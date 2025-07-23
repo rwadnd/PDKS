@@ -13,7 +13,7 @@ exports.getAllPersonnel = async (req, res) => {
 // GET single personnel by ID
 exports.getPersonnelById = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM Personnel WHERE id = ?', [req.params.id]);
+    const [rows] = await db.query('SELECT * FROM Personnel WHERE per_id = ?', [req.params.id]);
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Personnel not found' });
     }
@@ -28,7 +28,7 @@ exports.createPersonnel = async (req, res) => {
   const { ad, soyad, departman, gorev, durum } = req.body;
   try {
     const [result] = await db.query(
-      'INSERT INTO Personnel (ad, soyad, departman, gorev, durum) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO Personnel (per_name, per_lname, per_department, per_role, per_status) VALUES (?, ?, ?, ?, ?)',
       [ad, soyad, departman, gorev, durum || 'Aktif']
     );
     res.status(201).json({ id: result.insertId, ad, soyad, departman, gorev, durum });
@@ -42,7 +42,7 @@ exports.updatePersonnel = async (req, res) => {
   const { ad, soyad, departman, gorev, durum } = req.body;
   try {
     await db.query(
-      'UPDATE Personnel SET ad=?, soyad=?, departman=?, gorev=?, durum=? WHERE id=?',
+      'UPDATE Personnel SET per_name=?, per_lname=?, per_department=?, per_role=?, per_status=? WHERE per_id=?',
       [ad, soyad, departman, gorev, durum, req.params.id]
     );
     res.json({ message: 'Personnel updated successfully' });
@@ -54,7 +54,7 @@ exports.updatePersonnel = async (req, res) => {
 // DELETE personnel
 exports.deletePersonnel = async (req, res) => {
   try {
-    await db.query('DELETE FROM Personnel WHERE id=?', [req.params.id]);
+    await db.query('DELETE FROM Personnel WHERE per_id=?', [req.params.id]);
     res.json({ message: 'Personnel deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete personnel' });
