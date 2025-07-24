@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const PersonnelList = () => {
+const PersonnelList = ({ onSelectPerson }) => {
   const [personnel, setPersonnel] = useState([]);
 
   useEffect(() => {
@@ -13,10 +13,16 @@ const PersonnelList = () => {
   return (
    <div className="personnel-grid">
     {personnel.map((person) => (
-      <div className="personnel-card" key={person.per_id}>
+      <div 
+      className="personnel-card"
+      key={person.per_id}
+      onClick={() => onSelectPerson && onSelectPerson(person)}
+      tyle={{ cursor: "pointer" }}
+      >
         <img
           className="personnel-avatar"
-          src={"https://neweralive.na/wp-content/uploads/2024/06/lloyd-sikeba.jpg"}
+          src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
+          
           alt={person.name}
         />
         <div className="personnel-name">{person.per_name} {person.per_lname}</div>
@@ -28,3 +34,5 @@ const PersonnelList = () => {
 };
 
 export default PersonnelList;
+
+
