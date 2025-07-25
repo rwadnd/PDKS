@@ -1,8 +1,72 @@
-import React from "react";
+import React, { useEffect, useState } from 'react';
 import "../App.css";
+import axios from 'axios';
 
 const PersonnelDetail = ({ person, onBack }) => {
   if (!person) return null;
+  const [records, setRecords] = useState([]);
+
+
+  useEffect(() => {
+
+    axios.get(`http://localhost:5000/api/pdks/${person.per_id}`)
+      .then(res => setRecords(res.data))
+      .catch(err => console.error(err));
+  }, [person]);
+
+
+  const getMonday = () => {
+  const d = new Date();
+  const day = d.getDay() || 7;
+  if (day !== 1) d.setHours(-24 * (day - 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+
+  const getWeeklyHours = () => {
+    const monday = getMonday(); // start of this week
+
+    return records
+      .filter(rec => new Date(rec.pdks_date) >= monday)
+      .reduce((sum, rec) => {
+        if (!rec.pdks_checkInTime || !rec.pdks_checkOutTime) return sum;
+        const inTime = new Date(rec.pdks_checkInTime);
+        const outTime = new Date(rec.pdks_checkOutTime);
+        const diff = (outTime - inTime) / (1000 * 60 * 60); // hours
+        return sum + diff;
+      }, 0)
+      .toFixed(1);
+  };
+
+
+  const getMonthlyHours = () => {
+    const now = new Date();
+    return records.reduce((sum, rec) => {
+      const date = new Date(rec.pdks_date);
+      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+        if (!rec.pdks_checkInTime || !rec.pdks_checkOutTime) return sum;
+        const inTime = new Date(rec.pdks_checkInTime);
+        const outTime = new Date(rec.pdks_checkOutTime);
+        const diff = (outTime - inTime) / (1000 * 60 * 60);
+        return sum + diff;
+      }
+      return sum;
+    }, 0).toFixed(1);
+  };
+
+  const getTodayCheckIn = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRec = records.find(r => r.pdks_date?.startsWith(today));
+    return todayRec?.pdks_checkInTime?.slice(11, 16) || "-";
+  };
+
+  const getTodayCheckOut = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRec = records.find(r => r.pdks_date?.startsWith(today));
+    return todayRec?.pdks_checkOutTime?.slice(11, 16) || "-";
+  };
+
 
   return (
     <div>
@@ -20,9 +84,7 @@ const PersonnelDetail = ({ person, onBack }) => {
         }}
       >
         <img
-          src={
-            person.avatar || "https://randomuser.me/api/portraits/men/32.jpg"
-          }
+          src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
           alt={person.per_name}
           style={{
             width: 120,
@@ -46,23 +108,21 @@ const PersonnelDetail = ({ person, onBack }) => {
       <div className="stat-cards">
         <div className="stat-card">
           <div className="stat-title">Total Work Hours</div>
-          <div className="stat-value">70</div>
+          <div className="stat-value">{getWeeklyHours()}</div>
           <div className="stat-desc up">Weekly</div>
         </div>
         <div className="stat-card">
           <div className="stat-title">Total Work Hours</div>
-          <div className="stat-value">3</div>
+          <div className="stat-value">{getMonthlyHours}</div>
           <div className="stat-desc up">Monthly</div>
         </div>
         <div className="stat-card">
           <div className="stat-title">Today's Check-in Time</div>
-          <div className="stat-value">45</div>
-          <div className="stat-desc down">4.3% Down from yesterday</div>
+          <div className="stat-value">{getTodayCheckIn}</div>
         </div>
         <div className="stat-card">
           <div className="stat-title">Today's Check-out Time</div>
-          <div className="stat-value">2040</div>
-          <div className="stat-desc up">1.8% Up from yesterday</div>
+          <div className="stat-value">{getTodayCheckOut}</div>
         </div>
       </div>
       {/* Takvim veya diğer detaylar buraya eklenebilir */}

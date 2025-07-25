@@ -4,13 +4,19 @@ const db = require('../db/connection');
 exports.getAllRecords = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT pk.*, p.per_name, p.per_lname 
-      FROM pdks_entry pk 
+      SELECT 
+        pk.*,
+        p.per_name,
+        p.per_lname,
+        p.per_department,
+        p.per_role
+      FROM pdks_entry pk
       JOIN personnel p ON pk.personnel_per_id = p.per_id
       ORDER BY pk.pdks_date DESC
     `);
     res.json(rows);
   } catch (err) {
+    console.error("PDKS fetch error:", err);
     res.status(500).json({ error: 'Database error' });
   }
 };
