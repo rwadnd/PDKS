@@ -35,6 +35,33 @@ exports.getRecordsByPersonelId = async (req, res) => {
   }
 };
 
+
+
+// GET records for one date
+exports.getRecordsByDate = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        pk.*,
+        p.per_name,
+        p.per_lname,
+        p.per_department,
+        p.per_role,
+        p.per_status
+      FROM pdks_entry pk
+      JOIN personnel p ON pk.personnel_per_id = p.per_id
+      WHERE DATE(pdks_date) = ?
+      ORDER BY pdks_checkInTime DESC
+    `, [req.params.date]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+};
+
+
+
+
 // POST new record
 exports.createRecord = async (req, res) => {
   const { personel_id, tarih, giris_saat, cikis_saat } = req.body;

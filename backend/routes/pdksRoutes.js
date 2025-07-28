@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getAllRecords,
   getRecordsByPersonelId,
+  getRecordsByDate,
   createRecord,
   updateRecord,
   deleteRecord
@@ -10,6 +11,7 @@ const {
 
 router.get('/', getAllRecords);
 router.get('/:id', getRecordsByPersonelId);
+router.get('/by-date/:date', getRecordsByDate);
 router.post('/', createRecord);
 router.put('/:id', updateRecord);       // Optional
 router.delete('/:id', deleteRecord);    // Optional
