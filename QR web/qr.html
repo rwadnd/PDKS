@@ -1,0 +1,180 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Attendance QR</title>
+      <meta http-equiv="refresh" content="60">
+      <link href="https://fonts.googleapis.com/css2?family=Jockey+One&display=swap" rel="stylesheet">
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          background-color: #f1f1f1;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+        }
+
+        .card {
+          background-color: white;
+          padding: 40px;
+          border-radius: 10px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+          text-align: center;
+          width: 400px;
+          position: relative;
+        }
+
+        h1 {
+          color: #4f46e5;
+          font-size: 18px;
+          margin-bottom: 30px;
+        }
+
+        .date {
+          font-size: 16px;
+          color: #444;
+        }
+
+        .time {
+          font-size: 60px;
+          color: #4f46e5;
+          font-weight: bold;
+          margin-bottom: 20px;
+          font-family: 'Jockey One', sans-serif;
+          line-height: 1;
+        }
+
+        .qr-wrapper {
+          position: relative;
+          width: 260px;
+          height: 260px;
+          display: inline-block;
+        }
+
+        .qr-wrapper img {
+          width: 100%;
+          height: 100%;
+          border: 4px solid black;
+          padding: 5px;
+          border-radius: 4px;
+          background: white;
+          box-sizing: border-box;
+          display: block;
+        }
+
+        .progress-container {
+          pointer-events: none;
+          position: absolute;
+          top: 8px;
+          left: 9px;
+          width: 242px;
+          height: 242px;
+        }
+
+        .progress-bar {
+          position: absolute;
+          background-color: #4f46e5;
+          transform: scale(0);
+        }
+
+        .bar-top {
+          top: 0;
+          left: 0;
+          height: 6px;
+          width: 100%;
+          transform-origin: left;
+        }
+
+        .bar-right {
+          top: 0;
+          right: 0;
+          width: 6px;
+          height: 100%;
+          transform-origin: top;
+        }
+
+        .bar-bottom {
+          bottom: 0;
+          right: 0;
+          height: 6px;
+          width: 100%;
+          transform-origin: right;
+        }
+
+        .bar-left {
+          bottom: 0;
+          left: 0;
+          width: 6px;
+          height: 100%;
+          transform-origin: bottom;
+        }
+
+        .scan-text {
+          margin-top: 10px;
+          color: #465284;
+          font-size: 14px;
+        }
+
+        .footer {
+          margin-top: 40px;
+          font-size: 12px;
+          color: #777;
+        }
+
+        .credit {
+          display: block;
+          margin-top: 6px;
+          color: black;
+          font-weight: 600;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>Attendance Control System</h1>
+        <div class="date">Tuesday, July 29</div>
+        <div class="time">22:06</div>
+        <div class="qr-wrapper">
+          <img src="data:image/png;base64,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" alt="QR Code">
+          <div class="progress-container">
+            <div class="progress-bar bar-top"></div>
+            <div class="progress-bar bar-right"></div>
+            <div class="progress-bar bar-bottom"></div>
+            <div class="progress-bar bar-left"></div>
+          </div>
+        </div>
+        <div class="scan-text">Please Scan The QR Code</div>
+        <div class="footer">
+          A project Done in OSB Teknokent by:
+          <p class="credit">İpek Zorpineci - Ravad Nadam - Sude Terkan</p>
+        </div>
+      </div>
+
+      <script>
+        const duration = 60000;
+
+        function animateBar(element, keyframes, delay) {
+          element.style.transform = keyframes[0].transform;
+          element.animate(keyframes, {
+            duration: duration * 0.25,
+            delay,
+            fill: "forwards"
+          });
+        }
+
+        const topBar = document.querySelector(".bar-top");
+        const rightBar = document.querySelector(".bar-right");
+        const bottomBar = document.querySelector(".bar-bottom");
+        const leftBar = document.querySelector(".bar-left");
+
+        animateBar(topBar,    [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], 0);
+        animateBar(rightBar,  [{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], duration * 0.25);
+        animateBar(bottomBar, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], duration * 0.5);
+        animateBar(leftBar,   [{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], duration * 0.75);
+      </script>
+    </body>
+    </html>
+  
