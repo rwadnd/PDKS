@@ -1,47 +1,64 @@
 import React from "react";
+import {
+  FaTachometerAlt,
+  FaRegHeart,
+  FaRegComments,
+  FaListUl,
+} from "react-icons/fa";
+import { PiTableLight } from "react-icons/pi";
 import "../App.css";
 
 const Sidebar = ({ activePage, onChangePage }) => (
   <aside className="sidebar">
-    <div className="logo">DashStack</div>
+    <div className="logo" style={{ marginBottom: 16 }}>
+      DashStack
+    </div>
     <nav>
-      <ul>
+      <ul className="sidebar-menu" style={{ marginTop: 0, paddingTop: 0 }}>
         <li
-          className={activePage === "dashboard" ? "active" : ""}
+          className={
+            activePage === "dashboard"
+              ? "active sidebar-item-selected"
+              : "sidebar-item"
+          }
           onClick={() => onChangePage("dashboard")}
         >
+          <FaTachometerAlt style={{ marginRight: 16, fontSize: 22 }} />{" "}
           Dashboard
         </li>
         <li
-          className={activePage === "entries" ? "active" : ""}
+          className={
+            activePage === "entries"
+              ? "active sidebar-item-selected"
+              : "sidebar-item"
+          }
           onClick={() => onChangePage("entries")}
         >
-          Entries
+          <PiTableLight style={{ marginRight: 16, fontSize: 22 }} /> Entries
         </li>
         <li
-          className={activePage === "personnel" ? "active" : ""}
+          className={
+            activePage === "personnel"
+              ? "active sidebar-item-selected"
+              : "sidebar-item"
+          }
           onClick={() => onChangePage("personnel")}
         >
-          Personnel
+          <FaRegHeart style={{ marginRight: 16, fontSize: 22 }} /> Personnel
         </li>
         <li
-          className={activePage === "departments" ? "active" : ""}
+          className={
+            activePage === "departments"
+              ? "active sidebar-item-selected"
+              : "sidebar-item"
+          }
           onClick={() => onChangePage("departments")}
         >
+          <FaRegComments style={{ marginRight: 16, fontSize: 22 }} />{" "}
           Departments
-        </li>
-        <li
-          className={activePage === "orders" ? "active" : ""}
-          onClick={() => onChangePage("orders")}
-        >
-          Order Lists
         </li>
       </ul>
     </nav>
-    <div className="sidebar-bottom">
-      <div>Settings</div>
-      <div>Logout</div>
-    </div>
   </aside>
 );
 

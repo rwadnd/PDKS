@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect,useState } from "react";
 import {
   BarChart,
   Bar,
@@ -9,168 +9,337 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
+import {
+  FaUsers,
+  FaClock,
+  FaChartBar,
+  FaBuilding,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa";
 import "../App.css";
+import axios from "axios";
 
-const departments = [
-  {
-    id: 1,
-    name: "Quality Assurance (QA) Department",
-    people: 3,
-    hours: 126,
-    chart: [45, 40, 41],
-  },
-  {
-    id: 2,
-    name: "IT Department",
-    people: 4,
-    hours: 204,
-    chart: [45, 40, 41],
-  },
-  {
-    id: 3,
-    name: "HR Department",
-    people: 2,
-    hours: 88,
-    chart: [38, 25, 25],
-  },
-];
 
-const barColors = ["#a48bfa", "#ffb3c6", "#7ed6df"];
-const barLabels = ["A", "B", "C"];
+const Departments = ({ searchTerm }) => {
+  const [departments, setDepartments] = useState([]);
+  const [hoveredCard, setHoveredCard] = useState(null);
 
-const PeopleIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="#7b61ff">
-    <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C16.16 13.41 18 14.28 18 15.5V19h6v-2.5c0-2.33-4.67-3.5-6-3.5z" />
-  </svg>
-);
-const ClockIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="#7b61ff">
-    <path d="M12 20c4.41 0 8-3.59 8-8s-3.59-8-8-8-8 3.59-8 8 3.59 8 8 8zm0-18c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm1 5h-2v6l5.25 3.15.77-1.28-4.02-2.37V7z" />
-  </svg>
-);
 
-const Departments = () => (
-  <div
-    style={{
-      maxHeight: 500,
-      overflowY: "auto",
-      display: "grid",
-      gridTemplateColumns: "repeat(2, 1fr)",
-      gap: 48,
-      paddingBottom: 24,
-      alignItems: "start",
-    }}
-  >
-    {departments.map((dep) => {
-      // Bar chart için veri formatı
-      const data = dep.chart.map((val, i) => ({
-        name: barLabels[i],
-        value: val,
-        fill: barColors[i],
-      }));
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/department/").then((res) => setDepartments(res.data));
+  }, []);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
       return (
         <div
-          key={dep.id}
           style={{
-            minWidth: 340,
-            background: "#fff",
-            borderRadius: 32,
-            boxShadow: "0 4px 16px #e5e9f2",
-            padding: 40,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            backgroundColor: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "12px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
           }}
         >
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 28,
-              marginBottom: 32,
-              textAlign: "center",
-              color: "#223",
-              letterSpacing: 0.2,
-            }}
-          >
-            {dep.name}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              marginBottom: 32,
-              gap: 8,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 32,
-                color: "#7b61ff",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <PeopleIcon />{" "}
-              <span style={{ fontWeight: 700, fontSize: 28 }}>
-                {dep.people}
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: 32,
-                color: "#7b61ff",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <ClockIcon />{" "}
-              <span style={{ fontWeight: 700, fontSize: 28 }}>{dep.hours}</span>
-            </div>
-          </div>
-          {/* Gerçek bar chart */}
-          <div style={{ width: 260, height: 180, margin: "0 auto" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data}
-                margin={{ top: 20, right: 20, left: 10, bottom: 30 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  tick={false}
-                  label={{
-                    value: "Total Work Hour",
-                    position: "insideBottom",
-                    offset: -10,
-                    fontSize: 16,
-                    fill: "#888",
-                  }}
-                />
-                <YAxis
-                  domain={[0, 50]}
-                  ticks={[0, 10, 20, 30, 40, 50]}
-                  fontSize={14}
-                />
-                <Tooltip />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  <LabelList
-                    dataKey="value"
-                    position="top"
-                    fontSize={16}
-                    fontWeight={700}
-                    fill="#555"
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <p style={{ margin: 0, fontWeight: "600", color: "#374151" }}>
+            {label}: {payload[0].value}h
+          </p>
         </div>
       );
-    })}
-  </div>
-);
+    }
+    return null;
+  };
+
+  return (
+    <div
+      style={{
+        padding: "24px",
+        backgroundColor: "#f8fafc",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          marginBottom: "32px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              fontSize: "28px",
+              fontWeight: "700",
+              color: "#1e293b",
+              margin: "0 0 8px 0",
+            }}
+          >
+            Departments Overview
+          </h1>
+          <p
+            style={{
+              fontSize: "16px",
+              color: "#64748b",
+              margin: 0,
+            }}
+          >
+            Monitor performance and productivity across all departments
+          </p>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "12px 20px",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <FaChartBar style={{ color: "#64748b" }} />
+          <span
+            style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}
+          >
+            {departments.length} Departments
+          </span>
+        </div>
+      </div>
+
+      {/* Departments Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+          gap: "24px",
+          marginBottom: "32px",
+        }}
+      >
+        {departments
+          .filter((dep) => {
+            if (!searchTerm) return true;
+            const searchLower = searchTerm.toLowerCase();
+            return (
+              dep.name.toLowerCase().includes(searchLower) ||
+              dep.shortName.toLowerCase().includes(searchLower)
+            );
+          })
+          .map((dep) => {
+            const data = dep.chart.map((val, i) => ({
+              name: `Week ${i + 1}`,
+              value: val,
+              fill: dep.color,
+            }));
+
+            return (
+              <div
+                key={dep.id}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "20px",
+                  padding: "28px",
+                  boxShadow:
+                    hoveredCard === dep.id
+                      ? "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                  border: "1px solid #f1f5f9",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  transform:
+                    hoveredCard === dep.id
+                      ? "translateY(-4px)"
+                      : "translateY(0)",
+                }}
+                onMouseEnter={() => setHoveredCard(dep.id)}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                {/* Department Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: "24px",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "20px",
+                        fontWeight: "700",
+                        color: "#1e293b",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {dep.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        color: "#64748b",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {dep.shortName} Department
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      background: dep.gradient,
+                      borderRadius: "12px",
+                      padding: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <FaBuilding
+                      style={{ color: "#ffffff", fontSize: "18px" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Stats Row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "20px",
+                    marginBottom: "28px",
+                  }}
+                >
+                  {/* People Count */}
+                  <div
+                    style={{
+                      padding: "16px",
+                      backgroundColor: "#f8fafc",
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <FaUsers style={{ color: dep.color, fontSize: "16px" }} />
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          color: "#64748b",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Personnel
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "24px",
+                        fontWeight: "700",
+                        color: "#1e293b",
+                      }}
+                    >
+                      {dep.people}
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div
+                    style={{
+                      padding: "16px",
+                      backgroundColor: "#f8fafc",
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <FaClock style={{ color: dep.color, fontSize: "16px" }} />
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          color: "#64748b",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Hours
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "24px",
+                        fontWeight: "700",
+                        color: "#1e293b",
+                      }}
+                    >
+                      {dep.hours}h
+                    </div>
+                  </div>
+                </div>
+
+               
+
+                {/* Chart */}
+                <div style={{ height: "200px", marginTop: "16px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={data}
+                      margin={{ top: 30, right: 10, left: 10, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 12, fill: "#64748b" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={[0, 50]}
+                        ticks={[0, 10, 20, 30, 40, 50]}
+                        fontSize={12}
+                        tick={{ fill: "#64748b" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar
+                        dataKey="value"
+                        radius={[6, 6, 0, 0]}
+                        fill={dep.color}
+                        opacity={0.8}
+                      >
+                        <LabelList
+                          dataKey="value"
+                          position="top"
+                          fontSize={12}
+                          fontWeight="600"
+                          fill="#64748b"
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
+     
+    </div>
+  );
+};
 
 export default Departments;

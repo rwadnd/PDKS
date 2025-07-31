@@ -183,4 +183,136 @@ exports.submitEntry = async (req, res) => {
     console.error("SubmitEntry error:", err);
     res.status(500).json({ error: 'Server error during check-in/out' });
   }
+
+  
+};
+
+
+exports.getTodayStats = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+    // Get all personnel
+    const [allPersonnel] = await db.query(`
+      SELECT per_id, per_name, per_lname
+      FROM personnel
+    `);
+
+    // Get today's entries
+    const [todayEntries] = await db.query(`
+      SELECT personnel_per_id, pdks_checkInTime
+      FROM pdks_entry
+      WHERE DATE(pdks_date) = ?
+    `, [today]);
+
+    // Build ID -> check-in time map
+    const checkInMap = {};
+    todayEntries.forEach(entry => {
+      checkInMap[entry.personnel_per_id] = new Date(entry.pdks_checkInTime);
+    });
+
+    let onTimeCount = 0;
+    const absentList = [];
+
+    allPersonnel.forEach(person => {
+      const checkIn = checkInMap[person.per_id];
+
+      if (!checkIn) {
+        absentList.push(`${person.per_name} ${person.per_lname}`);
+      } else {
+        const hours = checkIn.getHours();
+        const minutes = checkIn.getMinutes();
+        if (hours < 8 || (hours === 8 && minutes < 10)) {
+          onTimeCount += 1;
+        }
+      }
+    });
+
+    res.json({
+      date: today,
+      onTimeToday: onTimeCount,
+      absentToday: absentList.length,
+      absentNames: absentList,
+      totalPersonnel: allPersonnel.length,
+    });
+  } catch (err) {
+    console.error("Stats fetch error:", err);
+    res.status(500).json({ error: "Failed to calculate stats" });
+  }
+};
+
+
+
+
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    // Total personnel
+    const [[{ totalPersonnel }]] = await db.query(`
+      SELECT COUNT(*) AS totalPersonnel FROM personnel
+    `);
+
+    // Total departments
+    const [[{ totalDepartments }]] = await db.query(`
+      SELECT COUNT(DISTINCT per_department) AS totalDepartments FROM personnel
+    `);
+
+    // Today's entries and last entry
+    const [todayEntries] = await db.query(`
+      SELECT personnel_per_id, pdks_checkInTime
+      FROM pdks_entry
+      WHERE DATE(pdks_date) = ?
+      AND pdks_checkInTime != ?
+      ORDER BY pdks_checkInTime DESC
+    `, [today,"0000-00-00"]);
+
+    const lastEntry = todayEntries[0]?.pdks_checkInTime
+      ? new Date(todayEntries[0].pdks_checkInTime).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "-";
+
+    // All personnel
+    const [allPersonnel] = await db.query(`
+      SELECT per_id, per_name, per_lname FROM personnel
+    `);
+
+    // Build check-in map
+    const checkInMap = {};
+    todayEntries.forEach(entry => {
+      checkInMap[entry.personnel_per_id] = new Date(entry.pdks_checkInTime);
+    });
+
+    let onTimeToday = 0;
+    const absentNames = [];
+
+    allPersonnel.forEach(p => {
+      const checkIn = checkInMap[p.per_id];
+      if (!checkIn) {
+        absentNames.push(`${p.per_name} ${p.per_lname}`);
+      } else {
+        const hour = checkIn.getHours();
+        const minute = checkIn.getMinutes();
+        if (hour < 8 || (hour === 8 && minute < 10)) {
+          onTimeToday++;
+        }
+      }
+    });
+
+    res.json({
+      totalPersonnel,
+      totalDepartments,
+      todaysEntries: todayEntries.length,
+      lastEntryTime: lastEntry,
+      onTimeToday,
+      absentToday: absentNames.length,
+      absentNames,
+    });
+  } catch (err) {
+    console.error("Dashboard stats error:", err);
+    res.status(500).json({ error: "Failed to get dashboard stats" });
+  }
 };

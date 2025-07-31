@@ -7,7 +7,9 @@ const {
   createRecord,
   updateRecord,
   deleteRecord,
-  submitEntry
+  submitEntry,
+  getTodayStats,
+  getDashboardStats
 } = require('../controllers/pdksController');
 
 router.get('/', getAllRecords);
@@ -17,5 +19,7 @@ router.post('/', createRecord);
 router.put('/:id', updateRecord);       // Optional
 router.delete('/:id', deleteRecord);    // Optional
 router.post('/submit', submitEntry);
+router.get('/today-stats', getTodayStats);
+router.get('/dashboard/stats', getDashboardStats);
 
 module.exports = router;

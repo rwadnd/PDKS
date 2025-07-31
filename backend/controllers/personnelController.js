@@ -39,15 +39,18 @@ exports.createPersonnel = async (req, res) => {
 
 // PUT update personnel
 exports.updatePersonnel = async (req, res) => {
-  const { ad, soyad, departman, gorev, durum } = req.body;
+ const { per_name, per_lname, per_role, per_department } = req.body;
+  const { id } = req.params;
+
   try {
     await db.query(
-      'UPDATE Personnel SET per_name=?, per_lname=?, per_department=?, per_role=?, per_status=? WHERE per_id=?',
-      [ad, soyad, departman, gorev, durum, req.params.id]
+      `UPDATE personnel SET per_name = ?, per_lname = ?, per_role = ?, per_department = ? WHERE per_id = ?`,
+      [per_name, per_lname, per_role, per_department, id]
     );
-    res.json({ message: 'Personnel updated successfully' });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update personnel' });
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error updating personnel:', error);
+    res.status(500).json({ error: 'Database update failed' });
   }
 };
 
