@@ -100,7 +100,7 @@ async function generateHTMLPage() {
         .qr-wrapper img {
           width: 100%;
           height: 100%;
-          border: 4px solid black;
+          border: 2px solid black;
           padding: 5px;
           border-radius: 4px;
           background: white;
@@ -111,10 +111,10 @@ async function generateHTMLPage() {
         .progress-container {
           pointer-events: none;
           position: absolute;
-          top: 8px;
-          left: 9px;
-          width: 242px;
-          height: 242px;
+          top: 1px;
+          left: 1px;
+          width: 257px;
+          height: 257px;
         }
 
         .progress-bar {
