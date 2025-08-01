@@ -59,26 +59,16 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     }));
   };
 
-  const getMonday = () => {
-    const d = new Date();
-    const day = d.getDay() || 7;
-    if (day !== 1) d.setHours(-24 * (day - 1));
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
 
-
-  const today = new Date().toISOString().split("T")[0]; // "2025-07-30"
-
+  const today = new Date().toISOString().split("T")[0];
 
   const todayRecord = records.find((rec) => {
     const recordDate = rec.pdks_date?.split(" ")[0];
     return recordDate === today;
   });
   const formattedCheckIn = todayRecord?.pdks_checkInTime &&
-    todayRecord.pdks_checkInTime !== "0000-00-00 00:00:00" &&
-    !isNaN(new Date(todayRecord.pdks_checkInTime).getTime())
-    ? new Date(todayRecord.pdks_checkInTime).toLocaleTimeString([], {
+    todayRecord.pdks_checkInTime !== "00:00:00"
+    ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -86,9 +76,8 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     : "-";
 
   const formattedCheckOut = todayRecord?.pdks_checkOutTime &&
-    todayRecord.pdks_checkOutTime !== "0000-00-00 00:00:00" &&
-    !isNaN(new Date(todayRecord.pdks_checkOutTime).getTime())
-    ? new Date(todayRecord.pdks_checkOutTime).toLocaleTimeString([], {
+    todayRecord.pdks_checkOutTime !== "00:00:00"
+    ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -101,10 +90,10 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       return "-"; // No check-in
     }
 
-    const checkIn = new Date(todayRecord.pdks_checkInTime);
+    const checkIn = new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`);
     const checkOutValid = todayRecord.pdks_checkOutTime && todayRecord.pdks_checkOutTime !== "0000-00-00 00:00:00";
 
-    const end = checkOutValid ? new Date(todayRecord.pdks_checkOutTime) : new Date(); // Use now if no check-out
+    const end = checkOutValid ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`) : new Date(); // Use now if no check-out
     const diffMs = end - checkIn;
 
     if (isNaN(diffMs) || diffMs < 0) return "-";
@@ -121,7 +110,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     const now = new Date();
     const currentDay = now.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
 
-    // Adjust to Monday
+    // Adjust to most recent Monday
     const monday = new Date(now);
     const offset = currentDay === 0 ? -6 : 1 - currentDay;
     monday.setDate(now.getDate() + offset);
@@ -134,10 +123,14 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         return date >= monday && date <= now;
       })
       .reduce((sum, rec) => {
-        if (!rec.pdks_checkInTime || rec.pdks_checkInTime === "0000-00-00 00:00:00") return sum;
-        const inTime = new Date(rec.pdks_checkInTime);
-        const outTimeValid = rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "0000-00-00 00:00:00";
-        const outTime = outTimeValid ? new Date(rec.pdks_checkOutTime) : now;
+        if (!rec.pdks_checkInTime || rec.pdks_checkInTime === "00:00:00") return sum;
+
+        const inTime = new Date(`${rec.pdks_date}T${rec.pdks_checkInTime}`);
+        const outTimeValid = rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "00:00:00";
+        const outTime = outTimeValid
+          ? new Date(`${rec.pdks_date}T${rec.pdks_checkOutTime}`)
+          : now;
+
         if (isNaN(inTime) || isNaN(outTime) || outTime < inTime) return sum;
         const diff = (outTime - inTime) / (1000 * 60 * 60); // in hours
         return sum + diff;
@@ -145,7 +138,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
     // ⏳ Required hours = 9h per weekday up to now
     let requiredHours = 0;
-
     for (let i = 0; i <= 6; i++) {
       const day = new Date(monday);
       day.setDate(monday.getDate() + i);
@@ -172,39 +164,53 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
 
 
-  const getTotalAbsencesThisMonth = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // normalize
+ const getMonthlyAbsenceCount = (records) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed: January = 0
 
-    // Create a Set of valid check-in dates (YYYY-MM-DD)
-    const checkInDates = new Set(
-      records
-        .filter(
-          (rec) =>
-            rec.pdks_checkInTime &&
-            rec.pdks_checkInTime !== "0000-00-00 00:00:00" &&
-            !isNaN(new Date(rec.pdks_checkInTime).getTime())
-        )
-        .map((rec) => new Date(rec.pdks_checkInTime).toISOString().split("T")[0])
-    );
+  // Step 1: Build a Set of valid check-in dates
+  const presentDates = new Set();
 
-    let absenceCount = 0;
+  for (const rec of records) {
+    const hasValidCheckIn =
+      rec.pdks_checkInTime &&
+      rec.pdks_checkInTime !== "00:00:00" &&
+      rec.pdks_checkInTime !== "0000-00-00 00:00:00";
 
-    // Loop through each day from start of month to today
-    for (let d = new Date(startOfMonth); d <= today; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip Sunday & Saturday
-
-      const dateStr = d.toISOString().split("T")[0];
-      if (!checkInDates.has(dateStr)) {
-        absenceCount++;
-      }
+    if (hasValidCheckIn && rec.pdks_date) {
+      const datePart = rec.pdks_date.split(" ")[0]; // "YYYY-MM-DD"
+      presentDates.add(datePart);
     }
+  }
 
-    return absenceCount;
-  };
+  // Step 2: Count expected workdays in current month up to today
+  let absenceCount = 0;
+  const today = new Date();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const current = new Date(year, month, day);
+
+    if (current > today) break;
+
+    const dayOfWeek = current.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip Sundays & Saturdays
+
+    const dateStr = current.toISOString().split("T")[0];
+
+    if (!presentDates.has(dateStr)) {
+      absenceCount++;
+    }
+  }
+
+  return absenceCount;
+};
+
+
+
+
+
 
   const checkInDatesSet = new Set(
     records
@@ -215,7 +221,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       )
       .map((rec) => new Date(rec.pdks_checkInTime).toISOString().split("T")[0])
   );
-
 
 
 
@@ -231,8 +236,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   // Get the first day in the heatmap (52 weeks ago from last Monday)
   const startDate = new Date(lastMonday);
   startDate.setDate(startDate.getDate() - (51 * 7));
-
-
 
 
 
@@ -446,10 +449,10 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
                 <div style={{ flex: 1 }}>
-                 
+
                 </div>
                 <div style={{ flex: 1 }}>
-                 
+
                 </div>
               </div>
             </div>
@@ -616,7 +619,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         </div>
         <div className="stat-card" style={{ position: "relative" }}>
           <div className="stat-title">Total Absences</div>
-          <div className="stat-value">{getTotalAbsencesThisMonth()}</div>
+          <div className="stat-value">{getMonthlyAbsenceCount(records)}</div>
           <div className="stat-desc up">Monthly</div>
           <div
             style={{
@@ -713,16 +716,16 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   const dateStr = cellDate.toISOString().split("T")[0];
                   const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
-                 let status;
-if (cellDate > todayy) {
-  status = "no-data"; // ✅ force gray for future
-} else if (checkInDatesSet.has(dateStr)) {
-  status = "present";
-} else if (!isWeekend) {
-  status = "absent";
-} else {
-  status = "no-data";
-}
+                  let status;
+                  if (cellDate > todayy) {
+                    status = "no-data"; // ✅ force gray for future
+                  } else if (checkInDatesSet.has(dateStr)) {
+                    status = "present";
+                  } else if (!isWeekend) {
+                    status = "absent";
+                  } else {
+                    status = "no-data";
+                  }
 
                   const colors = {
                     present: { bg: "#10b981", border: "#059669" },
