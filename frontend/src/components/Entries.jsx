@@ -13,9 +13,10 @@ import {
 const statusDot = (status, checkInTime) => {
   let color = "#c62116ff"; // Default red
 
-  const isCheckInValid = checkInTime &&
-    checkInTime !== "0000-00-00 00:00:00" &&
-    !isNaN(new Date(checkInTime).getTime());
+  const isCheckInValid =
+    checkInTime &&
+    checkInTime !== "00:00:00" &&
+    /^\d{2}:\d{2}:\d{2}$/.test(checkInTime); // Basic regex check for time format
 
   if (isCheckInValid) {
     color = "#1dbf73"; // Green
@@ -31,11 +32,12 @@ const statusDot = (status, checkInTime) => {
         height: 10,
         borderRadius: "50%",
         margin: "0 auto",
-        backgroundColor: color
+        backgroundColor: color,
       }}
     />
   );
 };
+
 
 const Entries = ({ searchTerm }) => {
   const [records, setRecords] = useState([]);
@@ -66,27 +68,16 @@ const Entries = ({ searchTerm }) => {
 
   // Calculate stats for cards
   const lastEntryRecord = records[0];
-  const todayEntriesCount = records.filter((record) => {
-
-
-    const recordDate = new Date(record.pdks_date).toDateString();
-    return recordDate === today;
-  }).length;
-
-  const totalEntries = records.length;
-  const averageEntriesPerDay =
-    totalEntries > 0 ? Math.round(totalEntries / 30) : 0; // Assuming 30 days
 
   // Calculate average check-in time
   const checkInTimes = records
     .filter((record) =>
       record.pdks_checkInTime &&
-      record.pdks_checkInTime !== "0000-00-00 00:00:00" &&
-      !isNaN(new Date(record.pdks_checkInTime).getTime())
+      record.pdks_checkInTime !== "00:00:00"
     )
     .map((record) => {
-      const date = new Date(record.pdks_checkInTime);
-      return date.getHours() * 60 + date.getMinutes();
+      const [hours, minutes] = record.pdks_checkInTime.split(":").map(Number);
+      return hours * 60 + minutes;
     });
 
   const averageCheckInMinutes =
@@ -103,36 +94,14 @@ const Entries = ({ searchTerm }) => {
     .toString()
     .padStart(2, "0")}:${averageCheckInMins.toString().padStart(2, "0")}`;
 
-  // Debug: Check the calculation
-  // console.log("Check-in times:", checkInTimes);
-  // console.log("Average minutes:", averageCheckInMinutes);
-  // console.log("Average time:", averageCheckInTime);
 
-  // Calculate department distribution
-  const departmentStats = records.reduce((acc, record) => {
-    const dept = record.per_department || "IT";
-    acc[dept] = (acc[dept] || 0) + 1;
-    return acc;
-  }, {});
 
-  const topDepartment = Object.entries(departmentStats).sort(
-    (a, b) => b[1] - a[1]
-  )[0];
-  const topDepartmentPercentage = topDepartment
-    ? Math.round((topDepartment[1] / records.length) * 100)
-    : 0;
-
-  // Calculate absent personnel today
-  const isValidDate = (date) =>
-    date && date !== "0000-00-00 00:00:00" && !isNaN(new Date(date).getTime());
   const todayEntries = records.filter((record) => {
-    console.log(record.pdks_date)
-    console.log(today)
     return (
       record.pdks_date &&
-      record.pdks_date.split(" ")[0] === today &&
-      isValidDate(record.pdks_checkInTime)
-
+      record.pdks_date.slice(0, 10) === today &&
+      record.pdks_checkInTime &&
+      record.pdks_checkInTime !== "00:00:00"
     );
   });
 
@@ -151,13 +120,6 @@ const Entries = ({ searchTerm }) => {
     (person) => !presentToday.includes(person)
   );
 
-  // Display formatted date
-  const todayFormatted = new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
 
   // Check for invalid or empty date
 
@@ -217,21 +179,13 @@ const Entries = ({ searchTerm }) => {
           })
           .map((entry, i) => {
             const formattedCheckIn = entry.pdks_checkInTime &&
-              entry.pdks_checkInTime !== "0000-00-00 00:00:00" &&
-              !isNaN(new Date(entry.pdks_checkInTime).getTime())
-              ? new Date(entry.pdks_checkInTime).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              entry.pdks_checkInTime !== "00:00:00"
+              ? entry.pdks_checkInTime.slice(0, 5)
               : "-";
 
             const formattedCheckOut = entry.pdks_checkOutTime &&
-              entry.pdks_checkOutTime !== "0000-00-00 00:00:00" &&
-              !isNaN(new Date(entry.pdks_checkOutTime).getTime())
-              ? new Date(entry.pdks_checkOutTime).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              entry.pdks_checkOutTime !== "00:00:00"
+              ? entry.pdks_checkOutTime.slice(0, 5)
               : "-";
 
             return (
@@ -388,7 +342,7 @@ const Entries = ({ searchTerm }) => {
           <div style={{ fontSize: "14px", color: "#6b7280" }}>
             {lastEntryRecord
               ? `${new Date(
-                lastEntryRecord.pdks_checkInTime
+                `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
               ).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -494,9 +448,7 @@ const Entries = ({ searchTerm }) => {
               >
                 {
                   todayEntries.filter((entry) => {
-                    const checkInTime = new Date(entry.pdks_checkInTime);
-                    const hours = checkInTime.getHours();
-                    const minutes = checkInTime.getMinutes();
+                    const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
                     // On time: before 9:00 AM
                     console.log(hours)
                     return hours <= 8 && minutes <= 30;
@@ -523,13 +475,11 @@ const Entries = ({ searchTerm }) => {
             {todayEntries.length > 0
               ? `${Math.round(
                 (todayEntries.filter((entry) => {
-                    const checkInTime = new Date(entry.pdks_checkInTime);
-                    const hours = checkInTime.getHours();
-                    const minutes = checkInTime.getMinutes();
-                    // On time: before 9:00 AM
-                    console.log(hours)
-                    return hours <= 8 && minutes <= 30;
-                  }).length /
+                  const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
+                  // On time: before 9:00 AM
+                  console.log(hours)
+                  return hours <= 8 && minutes <= 30;
+                }).length /
                   todayEntries.length) *
                 100
               )}% of today's entries`

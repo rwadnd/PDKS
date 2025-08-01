@@ -15,26 +15,21 @@ const Calendar = () => {
   const [departmentData, setDepartmentData] = useState([]);
 
   useEffect(() => {
-    // Türkiye resmi tatilleri 2025
-    const turkishHolidays = {
-      "1-1": "Yılbaşı Tatili",
-      "3-30": "Ramazan Bayramı",
-      "3-31": "Ramazan Bayramı",
-      "4-1": "Ramazan Bayramı",
-      "4-23": "Ulusal Egemenlik ve Çocuk Bayramı",
-      "5-1": "İşçi Bayramı",
-      "5-19": "Atatürk'ü Anma, Gençlik ve Spor Bayramı",
-      "6-6": "Kurban Bayramı",
-      "6-7": "Kurban Bayramı",
-      "6-8": "Kurban Bayramı",
-      "6-9": "Kurban Bayramı",
-      "7-15": "Demokrasi ve Milli Birlik Günü",
-      "8-30": "Zafer Bayramı",
-      "10-29": "Cumhuriyet Bayramı",
-      "10-30": "Cumhuriyet Bayramı", // Yarım gün + tam gün
-    };
-    setHolidays(turkishHolidays);
-  }, [sel.year]);
+  const url = `https://date.nager.at/api/v3/PublicHolidays/${sel.year}/TR`;
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const obj = {};
+      data.forEach(h => {
+        const dt = new Date(h.date);
+        const key = `${dt.getMonth() + 1}-${dt.getDate()}`;
+        obj[key] = h.localName;
+      });
+      setHolidays(obj);
+    })
+    .catch(console.error);
+}, [sel.year]);
+
 
   useEffect(() => {
     const fetchDepartments = async () => {

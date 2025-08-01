@@ -14,58 +14,59 @@ exports.overview = async (req, res) => {
     }
 
     const now = new Date();
-    const startOfThisWeek = new Date(now);
-    startOfThisWeek.setDate(startOfThisWeek.getDate() - startOfThisWeek.getDay() + 1); // Monday
-    startOfThisWeek.setHours(0, 0, 0, 0);
-
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekStartDates = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(startOfThisWeek);
-      d.setDate(d.getDate() - (6 - i) * 7);
+      const d = new Date(today);
+      d.setDate(d.getDate() - d.getDay() + 1 - (6 - i) * 7); // Monday start of week
+      d.setHours(0, 0, 0, 0);
       return d;
     });
+
+    const earliestDateStr = weekStartDates[0].toISOString().split("T")[0];
+
+    // Fetch entries only once
+    const [entries] = await db.query(`
+      SELECT personnel_per_id, pdks_date, pdks_checkInTime, pdks_checkOutTime
+      FROM pdks_entry
+      WHERE pdks_date >= ?
+    `, [earliestDateStr]);
 
     const result = [];
 
     for (const [department, ids] of Object.entries(deptMap)) {
-      const placeholders = ids.map(() => "?").join(",");
-      const [entries] = await db.query(
-        `SELECT personnel_per_id, pdks_checkInTime, pdks_checkOutTime
-         FROM pdks_entry
-         WHERE personnel_per_id IN (${placeholders})`,
-        ids
-      );
-
+      const deptEntries = entries.filter(e => ids.includes(e.personnel_per_id));
       let totalMinutesLastWeek = 0;
       const weeklyTotals = Array(7).fill(0);
 
-      for (const entry of entries) {
-        const checkIn = new Date(entry.pdks_checkInTime);
-        const checkOut = new Date(entry.pdks_checkOutTime);
-        if (!isNaN(checkIn) && !isNaN(checkOut)) {
-          const duration = (checkOut - checkIn) / (1000 * 60); // in minutes
+      for (const entry of deptEntries) {
+        const dateStr = entry.pdks_date;
+        const date = new Date(dateStr);
+        const inTimeStr = entry.pdks_checkInTime;
+        const outTimeStr = entry.pdks_checkOutTime;
 
-          for (let i = 0; i < 7; i++) {
-            const weekStart = new Date(weekStartDates[i]);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 7);
+        if (!inTimeStr || !outTimeStr || inTimeStr === "00:00:00" || outTimeStr === "00:00:00") continue;
 
-            if (checkIn >= weekStart && checkIn < weekEnd) {
-              weeklyTotals[i] += duration;
+        const checkIn = new Date(`${dateStr}T${inTimeStr}`);
+        const checkOut = new Date(`${dateStr}T${outTimeStr}`);
+        if (isNaN(checkIn) || isNaN(checkOut) || checkOut <= checkIn) continue;
 
-              if (i === 6) {
-                totalMinutesLastWeek += duration;
-              }
+        const durationMin = (checkOut - checkIn) / (1000 * 60);
 
-              break;
-            }
+        for (let i = 0; i < 7; i++) {
+          const start = weekStartDates[i];
+          const end = new Date(start);
+          end.setDate(end.getDate() + 7);
+          if (date >= start && date < end) {
+            weeklyTotals[i] += durationMin;
+            if (i === 6) totalMinutesLastWeek += durationMin;
+            break;
           }
         }
       }
 
       const peopleCount = ids.length;
       const avgHours = peopleCount > 0 ? Math.round((totalMinutesLastWeek / 60) / 5 / peopleCount) : 0;
-
-      const chart = weeklyTotals.map((mins) => Math.round(mins / 60));
+      const chart = weeklyTotals.map(min => Math.round(min / 60));
 
       const color =
         department === "IT"
@@ -92,7 +93,7 @@ exports.overview = async (req, res) => {
         change: "+0%",
         trend: "neutral",
         chart,
-        color: color,
+        color,
         gradient: color,
       });
     }
