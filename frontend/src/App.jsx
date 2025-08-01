@@ -52,6 +52,8 @@ const App = () => {
   }
 
   return (
+
+    
     <div className="dashboard-root">
       <Sidebar
         activePage={activePage}
@@ -71,7 +73,10 @@ const App = () => {
         />
         {activePage === "dashboard" && (
           <>
-            <StatCards />
+            <StatCards onChangePage={(page) => {
+          setActivePage(page);
+          setSelectedPerson(null); // Sayfa değişince detaydan çık
+        }} />
             <Calendar />
           </>
         )}
@@ -95,7 +100,7 @@ const App = () => {
         {/* Diğer sayfalar için de benzer şekilde ekleme yapılabilir */}
       </div>
     </div>
-  );
+);
 };
 
 export default App;

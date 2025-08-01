@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { FaUsers, FaBuilding, FaClock } from "react-icons/fa";
 import { FiLogIn } from "react-icons/fi";
 import "../App.css";
 
-const StatCards = () => {
+const StatCards = ({onChangePage}) => {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
@@ -20,34 +20,34 @@ const StatCards = () => {
     {
       title: "Total Personnel",
       value: stats.totalPersonnel,
-      change: "+0%",
       trend: "neutral",
       icon: <FaUsers size={24} />,
       color: "#667eea",
+      onClick: () => onChangePage("personnel"),
     },
     {
       title: "Total Departments",
       value: stats.totalDepartments,
-      change: "+0%",
       trend: "neutral",
       icon: <FaBuilding size={24} />,
       color: "#06b6d4",
+      onClick: () => onChangePage("departments"),
     },
     {
       title: "Today's Entries",
       value: stats.todaysEntries,
-      change: "+0%",
       trend: "up",
       icon: <FiLogIn size={24} />,
       color: "#10b981",
+      onClick: () => onChangePage("entries")
     },
     {
       title: "Last Entry",
       value: stats.lastEntryTime,
-      change: "-0%",
       trend: "neutral",
       icon: <FaClock size={24} />,
       color: "#f59e0b",
+      onClick: () => onChangePage("entries")
     },
   ];
 
@@ -63,6 +63,7 @@ const StatCards = () => {
         {statCards.map((stat, i) => (
           <div
             key={i}
+            onClick={stat.onClick}
             style={{
               background: "#fff",
               borderRadius: "20px",
@@ -108,37 +109,6 @@ const StatCards = () => {
                   }}
                 >
                   {stat.icon}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "4px 8px",
-                    borderRadius: "8px",
-                    background: "#fff",
-                    color:
-                      stat.trend === "up"
-                        ? "#10b981"
-                        : stat.trend === "down"
-                        ? "#ef4444"
-                        : "#6b7280",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    border: "1px solid #f1f5f9",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      transform:
-                        stat.trend === "down" ? "rotate(180deg)" : "none",
-                    }}
-                  >
-                    ▲
-                  </span>
-                  {stat.change}
                 </div>
               </div>
 
