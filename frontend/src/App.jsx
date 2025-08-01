@@ -7,6 +7,7 @@ import PersonnelList from "./components/PersonnelList";
 import PersonnelDetail from "./components/PersonnelDetail";
 import Departments from "./components/Departments";
 import Entries from "./components/Entries";
+import LeaveRequests from "./components/LeaveRequests";
 import Login from "./components/Login";
 import "./App.css";
 
@@ -23,21 +24,16 @@ const App = () => {
     const loggedIn = localStorage.getItem("isLoggedIn");
     const user = localStorage.getItem("adminUser");
 
-
-    
-
-
     if (loggedIn === "true" && user) {
       setIsLoggedIn(true);
       setCurrentUser(JSON.parse(user));
     }
-     const handleSidebarHover = (event) => {
+    const handleSidebarHover = (event) => {
       setSidebarOpen(event.detail);
     };
 
     window.addEventListener("sidebarHover", handleSidebarHover);
     return () => window.removeEventListener("sidebarHover", handleSidebarHover);
-  
   }, []);
 
   const handlePersonnelUpdate = (updatedPerson) => {
@@ -64,17 +60,15 @@ const App = () => {
   }
 
   return (
-
-    
     <div className="dashboard-root">
       <Sidebar
-              activePage={activePage}
-              onChangePage={(page) => {
-                setActivePage(page);
-                setSelectedPerson(null); // Sayfa değişince detaydan çık
-              }}
-              isOpen={sidebarOpen}
-            />
+        activePage={activePage}
+        onChangePage={(page) => {
+          setActivePage(page);
+          setSelectedPerson(null); // Sayfa değişince detaydan çık
+        }}
+        isOpen={sidebarOpen}
+      />
       <div className="dashboard-main">
         <Topbar
           activePage={activePage}
@@ -85,13 +79,19 @@ const App = () => {
           onLogout={handleLogout}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           sidebarOpen={sidebarOpen}
+          onChangePage={(page) => {
+            setActivePage(page);
+            setSelectedPerson(null);
+          }}
         />
         {activePage === "dashboard" && (
           <>
-            <StatCards onChangePage={(page) => {
-          setActivePage(page);
-          setSelectedPerson(null); // Sayfa değişince detaydan çık
-        }} />
+            <StatCards
+              onChangePage={(page) => {
+                setActivePage(page);
+                setSelectedPerson(null); // Sayfa değişince detaydan çık
+              }}
+            />
             <Calendar />
           </>
         )}
@@ -112,10 +112,13 @@ const App = () => {
             />
           ))}
         {activePage === "entries" && <Entries searchTerm={searchTerm} />}
+        {activePage === "leave-requests" && (
+          <LeaveRequests searchTerm={searchTerm} />
+        )}
         {/* Diğer sayfalar için de benzer şekilde ekleme yapılabilir */}
       </div>
     </div>
-);
+  );
 };
 
 export default App;

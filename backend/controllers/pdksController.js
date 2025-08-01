@@ -39,24 +39,31 @@ exports.getRecordsByPersonelId = async (req, res) => {
 exports.getRecordsByDate = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT 
-        pk.*,
-        p.per_name,
-        p.per_lname,
-        p.per_department,
-        p.per_role,
-        p.per_status
-      FROM pdks_entry pk
-      JOIN personnel p ON pk.personnel_per_id = p.per_id
-      WHERE DATE(pdks_date) = ?
-      ORDER BY pdks_checkInTime DESC
+     SELECT 
+  p.per_id,
+  p.per_name,
+  p.per_lname,
+  p.per_department,
+  p.per_role,
+  p.per_status,
+  e.pdks_date,
+  e.pdks_checkInTime,
+  e.pdks_checkOutTime
+FROM personnel p
+LEFT JOIN pdks_entry e 
+  ON p.per_id = e.personnel_per_id 
+  AND DATE(e.pdks_date) = ?
+ORDER BY 
+  -- Order first by whether there's a check-in: non-NULL first (0), NULL last (1)
+  e.pdks_checkInTime DESC
+
     `, [req.params.date]);
+
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Database error' });
   }
 };
-
 // POST new record
 exports.createRecord = async (req, res) => {
   const { personel_id, tarih, giris_saat, cikis_saat } = req.body;
@@ -258,22 +265,26 @@ exports.getDashboardStats = async (req, res) => {
       SELECT COUNT(DISTINCT per_department) AS totalDepartments FROM personnel
     `);
 
-    // Today's entries and last entry
+    // Today's entries with valid check-in time
     const [todayEntries] = await db.query(`
-      SELECT personnel_per_id, pdks_checkInTime
+      SELECT personnel_per_id, pdks_date, pdks_checkInTime
       FROM pdks_entry
-      WHERE DATE(pdks_date) = ?
-      AND pdks_checkInTime != ?
+      WHERE pdks_date = ?
+        AND pdks_checkInTime != '00:00:00'
       ORDER BY pdks_checkInTime DESC
-    `, [today,"0000-00-00"]);
+    `, [today]);
 
-    const lastEntry = todayEntries[0]?.pdks_checkInTime
-      ? new Date(todayEntries[0].pdks_checkInTime).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
-      : "-";
+    // Get last entry time
+    let lastEntryTime = "-";
+    if (todayEntries.length > 0) {
+      const last = todayEntries[0];
+      const combinedDateTime = new Date(`${last.pdks_date}T${last.pdks_checkInTime}`);
+      lastEntryTime = combinedDateTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    }
 
     // All personnel
     const [allPersonnel] = await db.query(`
@@ -283,7 +294,7 @@ exports.getDashboardStats = async (req, res) => {
     // Build check-in map
     const checkInMap = {};
     todayEntries.forEach(entry => {
-      checkInMap[entry.personnel_per_id] = new Date(entry.pdks_checkInTime);
+      checkInMap[entry.personnel_per_id] = new Date(`${entry.pdks_date}T${entry.pdks_checkInTime}`);
     });
 
     let onTimeToday = 0;
@@ -306,7 +317,7 @@ exports.getDashboardStats = async (req, res) => {
       totalPersonnel,
       totalDepartments,
       todaysEntries: todayEntries.length,
-      lastEntryTime: lastEntry,
+      lastEntryTime,
       onTimeToday,
       absentToday: absentNames.length,
       absentNames,

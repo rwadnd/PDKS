@@ -15,10 +15,8 @@ html,
 }
 
 .sidebar {
-  background: #fff;
-  box-shadow: 2px 0 8px #e5e9f2;
-  /* sidebardaki kisimi bozuyo */
-  /* display: flex;  */
+  background: #f8fafc;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
   flex-direction: column;
   justify-content: space-between;
   padding: 24px 0 24px 0;
@@ -40,7 +38,7 @@ html,
 .sidebar .logo {
   font-weight: bold;
   font-size: 1.4rem;
-  color: #3a3a3a;
+  color: #1e293b;
   margin-bottom: 32px;
   padding-left: 32px;
 }
@@ -50,15 +48,15 @@ html,
   margin: 0;
 }
 .sidebar nav ul li {
-  color: #3a3a3a;
+  color: #64748b;
   cursor: pointer;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 .sidebar nav ul li.active,
 .sidebar nav ul li:hover {
-  background: #e6edfa;
-  color: #4f6bed;
+  background: #e2e8f0;
+  color: #1e293b;
   width: 75%;
 }
 .sidebar-bottom {
@@ -195,13 +193,13 @@ html,
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #ecebff;
+  background: #e0f2fe;
   margin-left: 40px;
 }
 .stat-value {
   font-size: 2.1rem;
   font-weight: bold;
-  color: #3b5965;
+  color: #0f766e;
   margin: 10px 10px 10px 10px;
   text-align: left;
 }
@@ -242,11 +240,11 @@ html,
   padding: 6px 16px;
   font-size: 1rem;
   cursor: pointer;
-  color: #4f6bed;
+  color: #0891b2;
   transition: background 0.2s;
 }
 .calendar-view-toggle .active {
-  background: #4f6bed;
+  background: #0891b2;
   color: #fff;
 }
 .calendar-table {
@@ -394,22 +392,14 @@ html,
   display: flex;
   align-items: center;
   padding: 12px 18px;
-  color: #232323;
   cursor: pointer;
   border-radius: 16px;
   font-size: 1.18rem;
   margin-bottom: 8px;
   width: 75%;
-  transition: background 0.2s, color 0.2s;
-}
-.sidebar-item-selected,
-.sidebar-menu li.active {
-  background: #4f86ff;
-  color: #880e9b !important;
-  width: 75%;
+  transition: all 0.2s ease;
 }
 .sidebar-menu li:hover:not(.sidebar-item-selected):not(.active) {
-  background: #e6edfa;
-  color: #4f6bed;
+  color: #0891b2;
   width: 75%;
 }

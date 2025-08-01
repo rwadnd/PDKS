@@ -4,12 +4,12 @@ import { FaUsers, FaBuilding, FaClock } from "react-icons/fa";
 import { FiLogIn } from "react-icons/fi";
 import "../App.css";
 
-const StatCards = ({onChangePage}) => {
+const StatCards = ({ onChangePage }) => {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/pdks/dashboard/stats") // ✅ Adjust if your backend URL differs
+      .get("http://localhost:5050/api/pdks/dashboard/stats") // ✅ Adjust if your backend URL differs
       .then((res) => setStats(res.data))
       .catch((err) => console.error("Failed to fetch dashboard stats:", err));
   }, []);
@@ -39,7 +39,7 @@ const StatCards = ({onChangePage}) => {
       trend: "up",
       icon: <FiLogIn size={24} />,
       color: "#10b981",
-      onClick: () => onChangePage("entries")
+      onClick: () => onChangePage("entries"),
     },
     {
       title: "Last Entry",
@@ -47,7 +47,7 @@ const StatCards = ({onChangePage}) => {
       trend: "neutral",
       icon: <FaClock size={24} />,
       color: "#f59e0b",
-      onClick: () => onChangePage("entries")
+      onClick: () => onChangePage("entries"),
     },
   ];
 
