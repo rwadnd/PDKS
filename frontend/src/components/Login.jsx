@@ -27,7 +27,7 @@ const Login = ({ onLogin }) => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "http://localhost:5050/api/auth/login",
         formData
       );
 
@@ -54,55 +54,56 @@ const Login = ({ onLogin }) => {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#f8fafc",
         padding: "20px",
+        overflow: "hidden",
       }}
     >
       <div
         style={{
           background: "#ffffff",
           borderRadius: "20px",
-          padding: "40px",
+          padding: "32px",
           boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
           width: "100%",
-          maxWidth: "400px",
+          maxWidth: "380px",
           border: "1px solid #e2e8f0",
         }}
       >
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
           <div
             style={{
-              width: "80px",
-              height: "80px",
+              width: "70px",
+              height: "70px",
               borderRadius: "50%",
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 16px",
+              margin: "0 auto 12px",
               boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
             }}
           >
-            <FaUser style={{ color: "#ffffff", fontSize: "32px" }} />
+            <FaUser style={{ color: "#ffffff", fontSize: "28px" }} />
           </div>
           <h1
             style={{
-              fontSize: "28px",
+              fontSize: "24px",
               fontWeight: "700",
               color: "#1e293b",
-              margin: "0 0 8px 0",
+              margin: "0 0 6px 0",
             }}
           >
             Admin Login
           </h1>
           <p
             style={{
-              fontSize: "16px",
+              fontSize: "14px",
               color: "#64748b",
               margin: 0,
             }}
@@ -310,8 +311,8 @@ const Login = ({ onLogin }) => {
             backgroundColor: "#f0f9ff",
             border: "1px solid #bae6fd",
             borderRadius: "8px",
-            padding: "16px",
-            marginTop: "24px",
+            padding: "12px",
+            marginTop: "16px",
           }}
         >
           <div

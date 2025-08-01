@@ -11,6 +11,7 @@ const Topbar = ({
   onLogout,
   onToggleSidebar,
   sidebarOpen,
+  onChangePage,
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -560,6 +561,10 @@ const Topbar = ({
               }}
             >
               <button
+                onClick={() => {
+                  onChangePage("leave-requests");
+                  setShowNotifications(false);
+                }}
                 style={{
                   fontSize: "12px",
                   color: "#3b82f6",
@@ -591,9 +596,9 @@ const Topbar = ({
               cursor: "pointer",
               padding: "10px 16px",
               borderRadius: "20px",
-              backgroundColor: "#f8fafc",
+              backgroundColor: "transparent",
               transition: "all 0.2s ease",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+              boxShadow: "none",
             }}
             onClick={() => setShowDropdown(!showDropdown)}
           >
@@ -667,6 +672,18 @@ const Topbar = ({
                   color: "#374151",
                   borderBottom: "1px solid #f3f4f6",
                   fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s ease",
+                }}
+                onClick={() => {
+                  alert("Profile page is not available");
+                  setShowDropdown(false);
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#f8fafc";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
                 }}
               >
                 Profile
