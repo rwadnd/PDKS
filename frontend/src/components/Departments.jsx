@@ -1,4 +1,4 @@
-import React, { useEffect,useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -20,14 +20,14 @@ import {
 import "../App.css";
 import axios from "axios";
 
-
 const Departments = ({ searchTerm }) => {
   const [departments, setDepartments] = useState([]);
   const [hoveredCard, setHoveredCard] = useState(null);
 
-
   useEffect(() => {
-    axios.get("http://localhost:5000/api/department/").then((res) => setDepartments(res.data));
+    axios
+      .get("http://localhost:5050/api/department/")
+      .then((res) => setDepartments(res.data));
   }, []);
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -84,9 +84,7 @@ const Departments = ({ searchTerm }) => {
               color: "#64748b",
               margin: 0,
             }}
-          >
-            Monitor performance and productivity across all departments
-          </p>
+          ></p>
         </div>
         <div
           style={{
@@ -290,8 +288,6 @@ const Departments = ({ searchTerm }) => {
                   </div>
                 </div>
 
-               
-
                 {/* Chart */}
                 <div style={{ height: "200px", marginTop: "16px" }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -336,8 +332,6 @@ const Departments = ({ searchTerm }) => {
             );
           })}
       </div>
-
-     
     </div>
   );
 };
