@@ -3,7 +3,6 @@ import { FaCalendarAlt, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import axios from "axios";
 import { useMemo } from "react";
 
-
 const Calendar = () => {
   const today = new Date();
   const [sel, setSel] = useState({
@@ -37,21 +36,21 @@ const Calendar = () => {
     setHolidays(turkishHolidays);
   }, [sel.year]);
 
-
-    useEffect(() => {
+  useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/personnel");
+        const res = await axios.get("http://localhost:5050/api/personnel");
         const deptCounts = {};
-        res.data.forEach(p => {
-          deptCounts[p.per_department] = (deptCounts[p.per_department] || 0) + 1;
+        res.data.forEach((p) => {
+          deptCounts[p.per_department] =
+            (deptCounts[p.per_department] || 0) + 1;
         });
         const total = res.data.length;
         const formatted = Object.entries(deptCounts).map(([name, count]) => ({
           name,
           count,
           color: getDeptColor(name),
-          percentage: ((count / total) * 100).toFixed(2) + "%"
+          percentage: ((count / total) * 100).toFixed(2) + "%",
         }));
         setDepartmentData(formatted);
       } catch (error) {
@@ -61,25 +60,23 @@ const Calendar = () => {
     fetchDepartments();
   }, []);
 
-
   const pieGradient = useMemo(() => {
-  let currentAngle = 0;
-  return (
-    "conic-gradient(" +
-    departmentData
-      .map((dept) => {
-        const percent = parseFloat(dept.percentage);
-        const slice = (360 * percent) / 100;
-        const start = currentAngle;
-        const end = currentAngle + slice;
-        currentAngle = end;
-        return `${dept.color} ${start}deg ${end}deg`;
-      })
-      .join(", ") +
-    ")"
-  );
-}, [departmentData]);
-
+    let currentAngle = 0;
+    return (
+      "conic-gradient(" +
+      departmentData
+        .map((dept) => {
+          const percent = parseFloat(dept.percentage);
+          const slice = (360 * percent) / 100;
+          const start = currentAngle;
+          const end = currentAngle + slice;
+          currentAngle = end;
+          return `${dept.color} ${start}deg ${end}deg`;
+        })
+        .join(", ") +
+      ")"
+    );
+  }, [departmentData]);
 
   const daysInMonth = new Date(sel.year, sel.month + 1, 0).getDate();
   const offset = (new Date(sel.year, sel.month, 1).getDay() + 6) % 7;
@@ -91,7 +88,6 @@ const Calendar = () => {
     }
     weeks.push(week);
   }
-
 
   const getDeptColor = (name) => {
     const colorMap = {
@@ -109,23 +105,26 @@ const Calendar = () => {
 
   const getHolidayColor = (holidayName) => {
     const colors = {
-      "Yılbaşı Tatili": { bg: "#8b5cf6", border: "#7c3aed" }, // Mor
-      "Ramazan Bayramı": { bg: "#ec4899", border: "#db2777" }, // Pembe
-      "Ulusal Egemenlik ve Çocuk Bayramı": { bg: "#06b6d4", border: "#0891b2" }, // Cyan
-      "İşçi Bayramı": { bg: "#f59e0b", border: "#d97706" }, // Turuncu
+      "Yılbaşı Tatili": { bg: "transparent", border: "transparent" }, // Şeffaf
+      "Ramazan Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
+      "Ulusal Egemenlik ve Çocuk Bayramı": {
+        bg: "transparent",
+        border: "transparent",
+      }, // Şeffaf
+      "İşçi Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
       "Atatürk'ü Anma, Gençlik ve Spor Bayramı": {
-        bg: "#10b981",
-        border: "#059669",
-      }, // Yeşil
-      "Kurban Bayramı": { bg: "#ef4444", border: "#dc2626" }, // Kırmızı
+        bg: "transparent",
+        border: "transparent",
+      }, // Şeffaf
+      "Kurban Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
       "Demokrasi ve Milli Birlik Günü": {
-        bg: "#8b5cf6",
-        border: "#7c3aed",
-      }, // Mor
-      "Zafer Bayramı": { bg: "#06b6d4", border: "#0891b2" }, // Cyan
-      "Cumhuriyet Bayramı": { bg: "#f59e0b", border: "#d97706" }, // Turuncu
+        bg: "transparent",
+        border: "transparent",
+      }, // Şeffaf
+      "Zafer Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
+      "Cumhuriyet Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
     };
-    return colors[holidayName] || { bg: "#8b5cf6", border: "#7c3aed" };
+    return colors[holidayName] || { bg: "transparent", border: "transparent" };
   };
 
   const cellStyle = (d) => {
@@ -133,28 +132,26 @@ const Calendar = () => {
     const hol = holidays[key];
     if (isToday(d))
       return {
-        backgroundColor: "#667eea",
+        backgroundColor: "#E2CFFF",
         color: "#fff",
         borderRadius: "12px",
         fontWeight: "600",
-        boxShadow: "0 4px 12px rgba(102, 126, 234, 0.4)",
+        boxShadow: "0 4px 12px rgba(185, 186, 190, 0.4)",
         transform: "scale(1.05)",
       };
     if (hol)
       return {
-        backgroundColor: "#fef5e7",
+        backgroundColor: "#E3EBFF",
         color: "#d97706",
         borderRadius: "12px",
         fontWeight: "500",
-        border: "1px solid #fed7aa",
+        border: "1px solid rgb(234, 234, 234)",
       };
     return {};
   };
 
   return (
-    <div style={{ marginBottom: "0px" }}>
-      {/* Header kısmını tamamen kaldırdım */}
-
+    <div style={{ height: "calc(100vh - 120px)", overflow: "hidden" }}>
       {/* Ana container - 75% Calendar + 25% Side Card */}
       <div style={{ display: "flex", gap: "20px", height: "100%" }}>
         {/* Calendar - 75% width */}
@@ -170,8 +167,7 @@ const Calendar = () => {
             style={{
               background: "#ffffff",
               borderRadius: "20px",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.8)",
+              border: "1px solid #e2e8f0",
               overflow: "hidden",
               height: "100%",
               display: "flex",
@@ -217,7 +213,6 @@ const Calendar = () => {
                     color: "#64748b",
                     fontWeight: "500",
                     transition: "all 0.2s ease",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -283,7 +278,6 @@ const Calendar = () => {
                     color: "#64748b",
                     fontWeight: "500",
                     transition: "all 0.2s ease",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -403,9 +397,9 @@ const Calendar = () => {
                       <div
                         key={dayIndex}
                         style={{
-                          minHeight: "70px",
-                          padding: "8px",
-                          fontSize: "13px",
+                          minHeight: "60px",
+                          padding: "6px",
+                          fontSize: "12px",
                           backgroundColor: isCurrentMonth
                             ? "#ffffff"
                             : isOtherMonth
@@ -430,17 +424,12 @@ const Calendar = () => {
                           if (isCurrentMonth && !isToday(d) && !hol) {
                             e.target.style.backgroundColor = "#f8fafc";
                             e.target.style.borderColor = "#cbd5e1";
-                            e.target.style.transform = "translateY(-2px)";
-                            e.target.style.boxShadow =
-                              "0 4px 12px rgba(0, 0, 0, 0.08)";
                           }
                         }}
                         onMouseOut={(e) => {
                           if (isCurrentMonth && !isToday(d) && !hol) {
                             e.target.style.backgroundColor = "#ffffff";
                             e.target.style.borderColor = "#e2e8f0";
-                            e.target.style.transform = "translateY(0)";
-                            e.target.style.boxShadow = "none";
                           }
                         }}
                       >
@@ -451,8 +440,8 @@ const Calendar = () => {
                                 textAlign: "left",
                                 fontWeight: "600",
                                 color: isCurrentMonth ? "#374151" : "#9ca3af",
-                                fontSize: "14px",
-                                marginBottom: "6px",
+                                fontSize: "13px",
+                                marginBottom: "4px",
                               }}
                             >
                               {d}
@@ -461,38 +450,32 @@ const Calendar = () => {
                               <div
                                 style={{
                                   position: "absolute",
-                                  bottom: "6px",
-                                  left: "6px",
-                                  right: "6px",
-                                  minHeight: "20px",
-                                  backgroundColor: getHolidayColor(hol).bg,
-                                  borderRadius: "6px",
+                                  bottom: "4px",
+                                  left: "4px",
+                                  right: "4px",
+                                  minHeight: "16px",
+                                  borderRadius: "4px",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  fontSize: "9px",
+                                  fontSize: "8px",
                                   fontWeight: "600",
-                                  color: "#ffffff",
-                                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.15)",
+                                  color: "#1d062E",
+                                  boxShadow: "none",
                                   cursor: "pointer",
                                   transition: "all 0.2s ease",
-                                  padding: "3px 5px",
                                   textAlign: "center",
                                   lineHeight: "1.2",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
+                                  // whiteSpace: "nowrap",
                                 }}
                                 title={hol}
                                 onMouseOver={(e) => {
-                                  e.target.style.transform = "translateY(-2px)";
-                                  e.target.style.boxShadow =
-                                    "0 4px 8px rgba(0, 0, 0, 0.2)";
+                                  e.target.style.transform = "translateY(-1px)";
                                 }}
                                 onMouseOut={(e) => {
                                   e.target.style.transform = "translateY(0)";
-                                  e.target.style.boxShadow =
-                                    "0 2px 4px rgba(0, 0, 0, 0.15)";
                                 }}
                               >
                                 {hol.length > 10
@@ -517,31 +500,32 @@ const Calendar = () => {
             style={{
               background: "#ffffff",
               borderRadius: "20px",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.8)",
-              padding: "24px 8px 24px 24px", // Sağ padding'i 16px'den 8px'e düşürdüm
-              height: "91%",
+              border: "1px solid #e2e8f0",
+              padding: "20px 8px 20px 20px",
+              height: "92%",
               display: "flex",
               flexDirection: "column",
             }}
           >
             {/* Department Distribution Section */}
-            <div style={{ marginBottom: "32px", height: "100%" }}>
+            <div style={{ marginBottom: "24px", height: "100%" }}>
               <h3
                 style={{
                   fontSize: "20px",
                   fontWeight: "700",
                   color: "#1e293b",
-                  margin: "10px 12px 15px 12px  ", //dist basligi
+                  margin: "0 0 8px 0",
+                  textAlign: "center",
                 }}
               >
                 Department Distribution
               </h3>
               <p
                 style={{
-                  fontSize: "16px",
+                  fontSize: "14px",
                   color: "#64748b",
-                  margin: "20px 30px 38px ",
+                  margin: "0 0 24px 0",
+                  textAlign: "center",
                 }}
               >
                 Personnel by Department
@@ -553,7 +537,8 @@ const Calendar = () => {
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  marginBottom: "24px",
+                  marginBottom: "32px",
+                  padding: "16px",
                 }}
               >
                 <div
@@ -566,18 +551,20 @@ const Calendar = () => {
                     alignItems: "center",
                     justifyContent: "center",
                     position: "relative",
+                    border: "4px solid #f8fafc",
                   }}
                 >
                   <div
                     style={{
-                      width: "100px",
-                      height: "100px",
+                      width: "90px",
+                      height: "90px",
                       borderRadius: "50%",
                       background: "#ffffff",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
+                      border: "2px solid #f1f5f9",
                     }}
                   ></div>
                 </div>
@@ -588,7 +575,7 @@ const Calendar = () => {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
+                  gap: "16px",
                 }}
               >
                 {departmentData.map((dept, index) => (
@@ -597,18 +584,20 @@ const Calendar = () => {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
+                      gap: "12px",
                       fontSize: "14px",
-                      padding: "8px",
-                      borderRadius: "8px",
-                      transition: "background-color 0.2s ease",
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                      transition: "all 0.2s ease",
                     }}
-                    onMouseOver={(e) =>
-                      (e.target.style.backgroundColor = "#f8fafc")
-                    }
-                    onMouseOut={(e) =>
-                      (e.target.style.backgroundColor = "transparent")
-                    }
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = "#f8fafc";
+                      e.target.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = "transparent";
+                      e.target.style.transform = "translateY(0)";
+                    }}
                   >
                     <div
                       style={{
