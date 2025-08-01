@@ -1,10 +1,12 @@
+// app/layout.tsx
 import { Stack } from 'expo-router';
 import 'react-native-reanimated';
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="leave-request" />
     </Stack>
   );
 }
