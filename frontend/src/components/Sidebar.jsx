@@ -8,8 +8,24 @@ import {
 import { PiTableLight } from "react-icons/pi";
 import "../App.css";
 
-const Sidebar = ({ activePage, onChangePage }) => (
-  <aside className="sidebar">
+const Sidebar = ({ activePage, onChangePage, isOpen }) => (
+  <aside
+    className={`sidebar ${isOpen ? "sidebar-open" : "sidebar-closed"}`}
+    onMouseEnter={() => {
+      // Hover ile aç
+      if (!isOpen) {
+        const event = new CustomEvent("sidebarHover", { detail: true });
+        window.dispatchEvent(event);
+      }
+    }}
+    // onMouseLeave={() => {
+    //   // Hover'dan çıkınca kapat
+    //   if (isOpen) {
+    //     const event = new CustomEvent("sidebarHover", { detail: false });
+    //     window.dispatchEvent(event);
+    //   }
+    // }}
+  >
     <div className="logo" style={{ marginBottom: 16 }}>
       DashStack
     </div>

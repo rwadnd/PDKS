@@ -16,16 +16,28 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Check if user is logged in on component mount
   useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedIn");
     const user = localStorage.getItem("adminUser");
 
+
+    
+
+
     if (loggedIn === "true" && user) {
       setIsLoggedIn(true);
       setCurrentUser(JSON.parse(user));
     }
+     const handleSidebarHover = (event) => {
+      setSidebarOpen(event.detail);
+    };
+
+    window.addEventListener("sidebarHover", handleSidebarHover);
+    return () => window.removeEventListener("sidebarHover", handleSidebarHover);
+  
   }, []);
 
   const handlePersonnelUpdate = (updatedPerson) => {
@@ -56,12 +68,13 @@ const App = () => {
     
     <div className="dashboard-root">
       <Sidebar
-        activePage={activePage}
-        onChangePage={(page) => {
-          setActivePage(page);
-          setSelectedPerson(null); // Sayfa değişince detaydan çık
-        }}
-      />
+              activePage={activePage}
+              onChangePage={(page) => {
+                setActivePage(page);
+                setSelectedPerson(null); // Sayfa değişince detaydan çık
+              }}
+              isOpen={sidebarOpen}
+            />
       <div className="dashboard-main">
         <Topbar
           activePage={activePage}
@@ -70,6 +83,8 @@ const App = () => {
           hideSearch={selectedPerson !== null}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          sidebarOpen={sidebarOpen}
         />
         {activePage === "dashboard" && (
           <>

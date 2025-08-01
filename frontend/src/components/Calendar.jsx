@@ -158,7 +158,14 @@ const Calendar = () => {
       {/* Ana container - 75% Calendar + 25% Side Card */}
       <div style={{ display: "flex", gap: "20px", height: "100%" }}>
         {/* Calendar - 75% width */}
-        <div style={{ flex: "0 0 75%" }}>
+        <div
+          style={{
+            flex: "0 0 75%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
           <div
             style={{
               background: "#ffffff",
@@ -167,21 +174,30 @@ const Calendar = () => {
               border: "1px solid rgba(255, 255, 255, 0.8)",
               overflow: "hidden",
               height: "100%",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            {/* Modern header */}
+            {/* Modern header - Fixed */}
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "center",
                 alignItems: "center",
                 padding: "16px 24px",
                 background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
                 borderBottom: "1px solid #e2e8f0",
+                position: "relative",
+                flexShrink: 0,
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "16px", width:"40%" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                  justifyContent: "center",
+                }}
               >
                 <button
                   onClick={() =>
@@ -228,11 +244,11 @@ const Calendar = () => {
                     fontSize: "20px",
                     color: "#1e293b",
                     padding: "8px 16px",
-                    borderRadius: "10px",
-                    width: "90%",
+                    borderRadius: "20px",
                     textAlign: "center",
                     transition: "all 0.2s ease",
                     background: "rgba(255, 255, 255, 0.8)",
+                    minWidth: "200px",
                   }}
                   onClick={() => setShowPicker(!showPicker)}
                   onMouseOver={(e) => {
@@ -295,6 +311,8 @@ const Calendar = () => {
                   display: "flex",
                   alignItems: "center",
                   gap: "16px",
+                  position: "absolute",
+                  right: "24px",
                 }}
               >
                 <div
@@ -318,28 +336,39 @@ const Calendar = () => {
               </div>
             </div>
 
-            {/* Modern calendar grid */}
-            <div style={{ padding: "16px" }}>
-              {" "}
-              {/* 20px'den 16px'e düşürdüm */} {/* 12px'den 20px'e büyüttüm */}
+            {/* Modern calendar grid - Scrollable */}
+            <div
+              style={{
+                padding: "16px",
+                overflow: "auto",
+                flex: 1,
+                scrollbarWidth: "thin",
+                scrollbarColor: "#cbd5e1 #f1f5f9",
+              }}
+            >
               {/* Day headers */}
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, 1fr)",
-                  gap: "8px", // 10px'den 8px'e düşürdüm
-                  marginBottom: "10px", // 12px'den 10px'e düşürdüm
+                  gap: "8px",
+                  marginBottom: "10px",
+                  position: "sticky",
+                  top: 0,
+                  background: "#ffffff",
+                  zIndex: 10,
+                  padding: "8px 0",
                 }}
               >
                 {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
                   <div
                     key={d}
                     style={{
-                      height: "32px", // 36px'den 32px'e düşürdüm
+                      height: "32px",
                       padding: "6px 4px",
                       background: "transparent",
                       fontWeight: "600",
-                      fontSize: "12px", // 13px'den 12px'e düşürdüm
+                      fontSize: "12px",
                       color: "#64748b",
                       textAlign: "center",
                       display: "flex",
@@ -360,8 +389,8 @@ const Calendar = () => {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(7, 1fr)",
-                    gap: "8px", // 10px'den 8px'e düşürdüm
-                    marginBottom: "8px", // 10px'den 8px'e düşürdüm
+                    gap: "8px",
+                    marginBottom: "8px",
                   }}
                 >
                   {week.map((d, dayIndex) => {
@@ -374,9 +403,9 @@ const Calendar = () => {
                       <div
                         key={dayIndex}
                         style={{
-                          minHeight: "70px", // 80px'den 70px'e düşürdüm
-                          padding: "8px", // 10px'den 8px'e düşürdüm
-                          fontSize: "13px", // 14px'den 13px'e düşürdüm
+                          minHeight: "70px",
+                          padding: "8px",
+                          fontSize: "13px",
                           backgroundColor: isCurrentMonth
                             ? "#ffffff"
                             : isOtherMonth
@@ -422,7 +451,7 @@ const Calendar = () => {
                                 textAlign: "left",
                                 fontWeight: "600",
                                 color: isCurrentMonth ? "#374151" : "#9ca3af",
-                                fontSize: "14px", // 15px'den 14px'e düşürdüm
+                                fontSize: "14px",
                                 marginBottom: "6px",
                               }}
                             >
@@ -435,19 +464,19 @@ const Calendar = () => {
                                   bottom: "6px",
                                   left: "6px",
                                   right: "6px",
-                                  minHeight: "20px", // 22px'den 20px'e düşürdüm
+                                  minHeight: "20px",
                                   backgroundColor: getHolidayColor(hol).bg,
                                   borderRadius: "6px",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  fontSize: "9px", // 10px'den 9px'e düşürdüm
+                                  fontSize: "9px",
                                   fontWeight: "600",
                                   color: "#ffffff",
                                   boxShadow: "0 2px 4px rgba(0, 0, 0, 0.15)",
                                   cursor: "pointer",
                                   transition: "all 0.2s ease",
-                                  padding: "3px 5px", // 4px 6px'den 3px 5px'e düşürdüm
+                                  padding: "3px 5px",
                                   textAlign: "center",
                                   lineHeight: "1.2",
                                   overflow: "hidden",

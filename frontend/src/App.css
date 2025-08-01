@@ -23,6 +23,20 @@ html,
   flex-direction: column;
   justify-content: space-between;
   padding: 24px 0 24px 0;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.sidebar-open {
+  width: 220px;
+  opacity: 1;
+}
+
+.sidebar-closed {
+  width: 0;
+  opacity: 0;
+  padding: 0;
+  transform: translateX(-100%);
 }
 .sidebar .logo {
   font-weight: bold;
