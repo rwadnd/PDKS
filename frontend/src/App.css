@@ -15,7 +15,6 @@ html,
 }
 
 .sidebar {
-  width: 300px;
   background: #fff;
   box-shadow: 2px 0 8px #e5e9f2;
   /* sidebardaki kisimi bozuyo */
@@ -28,7 +27,7 @@ html,
 }
 
 .sidebar-open {
-  width: 220px;
+  width: 300px;
   opacity: 1;
 }
 
