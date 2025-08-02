@@ -1,41 +1,61 @@
 // app/LeaveRequest.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LeaveRequestScreen() {
   const [employeeId, setEmployeeId] = useState('');
   const [leaveType, setLeaveType] = useState('');
   const [reason, setReason] = useState('');
+  const [showReasonInput, setShowReasonInput] = useState(false);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [showLeaveTypeModal, setShowLeaveTypeModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
-  const [currentDateType, setCurrentDateType] = useState('start'); // 'start' or 'end'
-  const [tempDate, setTempDate] = useState({
-    day: new Date().getDate(),
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear()
-  });
+  const [currentDateType, setCurrentDateType] = useState('start');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState(new Date().getDate());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showDayPicker, setShowDayPicker] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
 
-  const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid'];
+  const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() + i);
+  const days = Array.from({length: 31}, (_, i) => i + 1);
 
   const handleLeaveSubmit = () => {
-    if (!employeeId || !leaveType || !reason || !startDate || !endDate) {
+    if (!employeeId || !leaveType || (leaveType === 'Other' && !reason) || !startDate || !endDate) {
       Alert.alert('Missing Info', 'Please fill in all fields.');
       return;
     }
     Alert.alert('Submitted', 'Leave request submitted successfully!');
   };
 
+  const handleLeaveTypeSelect = (type) => {
+    setLeaveType(type);
+    setShowReasonInput(type === 'Other');
+    if (type !== 'Other') {
+      setReason('');
+    }
+    setShowLeaveTypeModal(false);
+  };
+
   const handleDateConfirm = () => {
-    const selectedDate = new Date(tempDate.year, tempDate.month - 1, tempDate.day);
+    const selectedDate = new Date(selectedYear, selectedMonth - 1, selectedDay);
     if (currentDateType === 'start') {
       setStartDate(selectedDate);
     } else {
       setEndDate(selectedDate);
     }
     setShowDateModal(false);
+    setShowMonthPicker(false);
+    setShowDayPicker(false);
+    setShowYearPicker(false);
   };
 
   const formatDate = (date) => {
@@ -46,20 +66,172 @@ export default function LeaveRequestScreen() {
     setCurrentDateType(dateType);
     const dateToEdit = dateType === 'start' ? startDate : endDate;
     if (dateToEdit) {
-      setTempDate({
-        day: dateToEdit.getDate(),
-        month: dateToEdit.getMonth() + 1,
-        year: dateToEdit.getFullYear()
-      });
-    } else {
-      setTempDate({
-        day: new Date().getDate(),
-        month: new Date().getMonth() + 1,
-        year: new Date().getFullYear()
-      });
+      setSelectedDay(dateToEdit.getDate());
+      setSelectedMonth(dateToEdit.getMonth() + 1);
+      setSelectedYear(dateToEdit.getFullYear());
     }
     setShowDateModal(true);
   };
+
+  const renderDatePickerModal = () => (
+    <Modal
+      visible={showDateModal}
+      transparent={true}
+      animationType="slide"
+    >
+      <View style={styles.modalContainer}>
+        <View style={[styles.modalContent, {height: 350}]}>
+          <Text style={styles.modalTitle}>
+            Select {currentDateType === 'start' ? 'Start' : 'End'} Date
+          </Text>
+          
+          {/* Month Dropdown */}
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>Month:</Text>
+            <TouchableOpacity 
+              style={styles.dropdownButton}
+              onPress={() => {
+                setShowMonthPicker(!showMonthPicker);
+                setShowDayPicker(false);
+                setShowYearPicker(false);
+              }}
+            >
+              <Text>{months[selectedMonth - 1]}</Text>
+              <Ionicons 
+                name={showMonthPicker ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#777" 
+              />
+            </TouchableOpacity>
+            {showMonthPicker && (
+            <View style={[styles.dropdownOptions, styles.monthDropdownOptions]}>
+              <ScrollView>
+                {months.map((month, index) => (
+                  <TouchableOpacity
+                    key={month}
+                    style={[
+                      styles.dropdownOption,
+                      selectedMonth === index + 1 && styles.selectedOption
+                    ]}
+                    onPress={() => {
+                      setSelectedMonth(index + 1);
+                      setShowMonthPicker(false);
+                    }}
+                  >
+                    <Text style={selectedMonth === index + 1 && {color: '#fff'}}>
+                      {month}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          </View>
+
+          {/* Day Dropdown */}
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>Day:</Text>
+            <TouchableOpacity 
+              style={styles.dropdownButton}
+              onPress={() => {
+                setShowDayPicker(!showDayPicker);
+                setShowMonthPicker(false);
+                setShowYearPicker(false);
+              }}
+            >
+              <Text>{selectedDay}</Text>
+              <Ionicons 
+                name={showDayPicker ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#777" 
+              />
+            </TouchableOpacity>
+            {showDayPicker && (
+            <View style={[styles.dropdownOptions, styles.dayDropdownOptions]}>
+              <ScrollView>
+                {days.map((day) => (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.dropdownOption,
+                      selectedDay === day && styles.selectedOption
+                    ]}
+                    onPress={() => {
+                      setSelectedDay(day);
+                      setShowDayPicker(false);
+                    }}
+                  >
+                    <Text style={selectedDay === day && {color: '#fff'}}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          </View>
+
+          {/* Year Dropdown */}
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>Year:</Text>
+            <TouchableOpacity 
+              style={styles.dropdownButton}
+              onPress={() => {
+                setShowYearPicker(!showYearPicker);
+                setShowMonthPicker(false);
+                setShowDayPicker(false);
+              }}
+            >
+              <Text>{selectedYear}</Text>
+              <Ionicons 
+                name={showYearPicker ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#777" 
+              />
+            </TouchableOpacity>
+            {showYearPicker && (
+            <View style={[styles.dropdownOptions, styles.yearDropdownOptions]}>
+              <ScrollView>
+                {years.map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={[
+                      styles.dropdownOption,
+                      selectedYear === year && styles.selectedOption
+                    ]}
+                    onPress={() => {
+                      setSelectedYear(year);
+                      setShowYearPicker(false);
+                    }}
+                  >
+                    <Text style={selectedYear === year && {color: '#fff'}}>
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          </View>
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, {backgroundColor: 'red'}]}
+              onPress={() => setShowDateModal(false)}
+            >
+              <Text style={{color: '#fff'}}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, {backgroundColor: '#135796'}]}
+              onPress={handleDateConfirm}
+            >
+              <Text style={{color: '#fff'}}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
@@ -84,13 +256,15 @@ export default function LeaveRequestScreen() {
         <Ionicons name="chevron-down" size={20} color="#777" />
       </TouchableOpacity>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Reason"
-        placeholderTextColor="#777"
-        value={reason}
-        onChangeText={setReason}
-      />
+      {showReasonInput && (
+        <TextInput
+          style={styles.input}
+          placeholder="Please specify reason"
+          placeholderTextColor="#777"
+          value={reason}
+          onChangeText={setReason}
+        />
+      )}
 
       <View style={styles.dateRow}>
         <TouchableOpacity 
@@ -125,18 +299,17 @@ export default function LeaveRequestScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Leave Type</Text>
-            {leaveTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={styles.modalOption}
-                onPress={() => {
-                  setLeaveType(type);
-                  setShowLeaveTypeModal(false);
-                }}
-              >
-                <Text>{type}</Text>
-              </TouchableOpacity>
-            ))}
+            <ScrollView>
+              {leaveTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={styles.modalOption}
+                  onPress={() => handleLeaveTypeSelect(type)}
+                >
+                  <Text>{type}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
             <TouchableOpacity
               style={styles.modalCancel}
               onPress={() => setShowLeaveTypeModal(false)}
@@ -147,60 +320,7 @@ export default function LeaveRequestScreen() {
         </View>
       </Modal>
 
-      {/* Date Picker Modal */}
-      <Modal
-        visible={showDateModal}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Select {currentDateType === 'start' ? 'Start' : 'End'} Date
-            </Text>
-            <View style={styles.datePickerContainer}>
-              <TextInput
-                style={styles.dateInput}
-                value={tempDate.day.toString()}
-                onChangeText={(text) => setTempDate({...tempDate, day: parseInt(text) || 1})}
-                keyboardType="numeric"
-                placeholder="DD"
-                placeholderTextColor="#777"
-              />
-              <Text style={styles.dateSeparator}>/</Text>
-              <TextInput
-                style={styles.dateInput}
-                value={tempDate.month.toString()}
-                onChangeText={(text) => setTempDate({...tempDate, month: parseInt(text) || 1})}
-                keyboardType="numeric"
-                placeholder="MM"
-                placeholderTextColor="#777"
-              />
-              <Text style={styles.dateSeparator}>/</Text>
-              <TextInput
-                style={styles.dateInput}
-                value={tempDate.year.toString()}
-                onChangeText={(text) => setTempDate({...tempDate, year: parseInt(text) || new Date().getFullYear()})}
-                keyboardType="numeric"
-                placeholder="YYYY"
-                placeholderTextColor="#777"
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={handleDateConfirm}
-            >
-              <Text>OK</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setShowDateModal(false)}
-            >
-              <Text style={{color: 'red'}}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {renderDatePickerModal()}
 
       <TouchableOpacity style={styles.button} onPress={handleLeaveSubmit}>
         <Text style={styles.buttonText}>Submit</Text>
@@ -214,14 +334,14 @@ export default function LeaveRequestScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 60,
+    paddingTop: 35,
     alignItems: 'center',
     backgroundColor: '#eef0f6ff',
     flex: 1,
     paddingHorizontal: 20,
   },
   header: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#135796',
     marginBottom: 20,
@@ -279,22 +399,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#135796',
   },
-  datePickerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    width: 60,
-    padding: 8,
-    textAlign: 'center',
-    marginHorizontal: 5,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-  },
   button: {
     backgroundColor: '#135796',
     paddingVertical: 12,
@@ -331,7 +435,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
-    width: '80%',
+    width: '90%',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
@@ -347,17 +451,75 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+  },
   modalButton: {
-    padding: 15,
+    padding: 12,
+    borderRadius: 8,
+    width: '48%',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    marginTop: 10,
   },
   modalCancel: {
     padding: 15,
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#eee',
+  },
+  dropdownContainer: {
+    marginBottom: 15,
+  },
+  dropdownLabel: {
+    marginBottom: 5,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  dropdownOptions: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#f0f8ffff',
+    zIndex: 1,
+  },
+  monthDropdownOptions: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    maxHeight: 150,
+  },
+  dayDropdownOptions: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    maxHeight: 150,
+  },
+  yearDropdownOptions: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    maxHeight: 150,
+  },
+  dropdownOption: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  selectedOption: {
+    backgroundColor: '#135796',
   },
 });
