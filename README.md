@@ -1,3 +1,5 @@
+# HI
+
 # Personnel Attendance Management System (PDKS)
 
 This is a multi-component PDKS (Personnel Attendance Control System) project. It includes a mobile app for QR code-based check-ins, a backend server with a MySQL database, a web-based dashboard, and a QR code generator.
