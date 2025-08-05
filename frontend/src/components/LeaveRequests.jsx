@@ -6,126 +6,71 @@ import {
   FaUser,
   FaCalendarAlt,
 } from "react-icons/fa";
+import axios from 'axios';
+
 
 const LeaveRequests = ({ searchTerm = "" }) => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [filter, setFilter] = useState("all"); // all, pending, approved, rejected
   const [loading, setLoading] = useState(true);
 
-  // Mock leave requests data - real app would fetch from API
+
   useEffect(() => {
-
-
-    const [leaveRequests, setLeaveRequests] = useState([]);
-
-    useEffect(() => {
-      axios.get('http://localhost:5050/api/leave/')
-        .then(res => setLeaveRequests(res.data))
-        .catch(err => console.error('Error fetching personnel:', err));
-    }, []);
-
-
-
-    const mockRequests = [
-      {
-        id: 1,
-        employeeName: "Ahmet Yılmaz",
-        employeeId: "EMP001",
-        department: "IT",
-        leaveType: "Annual Leave",
-        startDate: "2024-01-20",
-        endDate: "2024-01-25",
-        days: 5,
-        reason: "Family vacation",
-        status: "pending",
-        submittedDate: "2024-01-10",
-        priority: "normal",
-      },
-      {
-        id: 2,
-        employeeName: "Ayşe Demir",
-        employeeId: "EMP002",
-        department: "HR",
-        leaveType: "Sick Leave",
-        startDate: "2024-01-18",
-        endDate: "2024-01-19",
-        days: 2,
-        reason: "Medical appointment",
-        status: "approved",
-        submittedDate: "2024-01-15",
-        priority: "high",
-      },
-      {
-        id: 3,
-        employeeName: "Mehmet Koç",
-        employeeId: "EMP003",
-        department: "Sales",
-        leaveType: "Personal Leave",
-        startDate: "2024-01-22",
-        endDate: "2024-01-22",
-        days: 1,
-        reason: "Personal matters",
-        status: "rejected",
-        submittedDate: "2024-01-12",
-        priority: "normal",
-      },
-      {
-        id: 4,
-        employeeName: "Burak Aslan",
-        employeeId: "EMP004",
-        department: "Marketing",
-        leaveType: "Annual Leave",
-        startDate: "2024-02-01",
-        endDate: "2024-02-05",
-        days: 4,
-        reason: "Holiday trip",
-        status: "pending",
-        submittedDate: "2024-01-14",
-        priority: "normal",
-      },
-      {
-        id: 5,
-        employeeName: "Can Arslan",
-        employeeId: "EMP005",
-        department: "Finance",
-        leaveType: "Sick Leave",
-        startDate: "2024-01-16",
-        endDate: "2024-01-17",
-        days: 2,
-        reason: "Not feeling well",
-        status: "pending",
-        submittedDate: "2024-01-15",
-        priority: "high",
-      },
-    ];
-
-    setLeaveRequests(mockRequests);
-    setLoading(false);
+    axios.get('http://localhost:5050/api/leave/')
+      .then(res => {
+        setLeaveRequests(res.data);
+        setLoading(false); // Move inside here
+      })
+      .catch(err => {
+        console.error('Error fetching personnel:', err);
+        setLoading(false); // Also set to false on error
+      });
   }, []);
 
-  const approveRequest = (id) => {
+const approveRequest = async (id) => {
+  try {
     setLeaveRequests((prev) =>
       prev.map((request) =>
-        request.id === id ? { ...request, status: "approved" } : request
+        request.request_id === id ? { ...request, status: "Approved" } : request
       )
     );
-  };
 
-  const rejectRequest = (id) => {
+    await axios.put(`http://localhost:5050/api/leave/${id}`, {
+      status: "Approved",
+    });
+
+    
+  } catch (error) {
+    console.error("Failed to approve leave request:", error);
+    // Optionally show error to user
+  }
+};
+
+const rejectRequest = async (id) => {
+  try {
     setLeaveRequests((prev) =>
       prev.map((request) =>
-        request.id === id ? { ...request, status: "rejected" } : request
+        request.request_id === id ? { ...request, status: "Rejected" } : request
       )
     );
-  };
+    
+    await axios.put(`http://localhost:5050/api/leave/${id}`, {
+      status: "Rejected",
+    });
+    
+  } catch (error) {
+    console.error("Failed to reject leave request:", error);
+    // Optionally show error to user
+  }
+};
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return "#f59e0b";
-      case "approved":
+      case "Approved":
         return "#10b981";
-      case "rejected":
+      case "Rejected":
         return "#ef4444";
       default:
         return "#6b7280";
@@ -134,11 +79,11 @@ const LeaveRequests = ({ searchTerm = "" }) => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return <FaClock style={{ color: "#f59e0b" }} />;
-      case "approved":
+      case "Approved":
         return <FaCheck style={{ color: "#10b981" }} />;
-      case "rejected":
+      case "Rejected":
         return <FaTimes style={{ color: "#ef4444" }} />;
       default:
         return <FaClock style={{ color: "#6b7280" }} />;
@@ -147,19 +92,18 @@ const LeaveRequests = ({ searchTerm = "" }) => {
 
   const filteredRequests = leaveRequests.filter((request) => {
     // Status filter
-    if (filter === "pending" && request.status !== "pending") return false;
-    if (filter === "approved" && request.status !== "approved") return false;
-    if (filter === "rejected" && request.status !== "rejected") return false;
+    if (filter === "Pending" && request.status !== "Pending") return false;
+    if (filter === "Approved" && request.status !== "Approved") return false;
+    if (filter === "Rejected" && request.status !== "Rejected") return false;
 
     // Search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       return (
-        request.employeeName.toLowerCase().includes(searchLower) ||
-        request.employeeId.toLowerCase().includes(searchLower) ||
+        request.per_name.toLowerCase().includes(searchLower) ||
+        request.personnel_per_id.toLowerCase().includes(searchLower) ||
         request.department.toLowerCase().includes(searchLower) ||
-        request.leaveType.toLowerCase().includes(searchLower) ||
-        request.reason.toLowerCase().includes(searchLower)
+        request.request_type.toLowerCase().includes(searchLower)
       );
     }
 
@@ -167,13 +111,13 @@ const LeaveRequests = ({ searchTerm = "" }) => {
   });
 
   const pendingCount = leaveRequests.filter(
-    (request) => request.status === "pending"
+    (request) => request.status === "Pending"
   ).length;
   const approvedCount = leaveRequests.filter(
-    (request) => request.status === "approved"
+    (request) => request.status === "Approved"
   ).length;
   const rejectedCount = leaveRequests.filter(
-    (request) => request.status === "rejected"
+    (request) => request.status === "Rejected"
   ).length;
 
   const formatDate = (dateString) => {
@@ -499,11 +443,11 @@ const LeaveRequests = ({ searchTerm = "" }) => {
           All ({leaveRequests.length})
         </button>
         <button
-          onClick={() => setFilter("pending")}
+          onClick={() => setFilter("Pending")}
           style={{
             padding: "6px 12px",
-            backgroundColor: filter === "pending" ? "#f59e0b" : "#f3f4f6",
-            color: filter === "pending" ? "white" : "#374151",
+            backgroundColor: filter === "Pending" ? "#f59e0b" : "#f3f4f6",
+            color: filter === "Pending" ? "white" : "#374151",
             border: "none",
             borderRadius: "8px",
             cursor: "pointer",
@@ -515,11 +459,11 @@ const LeaveRequests = ({ searchTerm = "" }) => {
           Pending ({pendingCount})
         </button>
         <button
-          onClick={() => setFilter("approved")}
+          onClick={() => setFilter("Approved")}
           style={{
             padding: "6px 12px",
-            backgroundColor: filter === "approved" ? "#10b981" : "#f3f4f6",
-            color: filter === "approved" ? "white" : "#374151",
+            backgroundColor: filter === "Approved" ? "#10b981" : "#f3f4f6",
+            color: filter === "Approved" ? "white" : "#374151",
             border: "none",
             borderRadius: "8px",
             cursor: "pointer",
@@ -531,11 +475,11 @@ const LeaveRequests = ({ searchTerm = "" }) => {
           Approved ({approvedCount})
         </button>
         <button
-          onClick={() => setFilter("rejected")}
+          onClick={() => setFilter("Rejected")}
           style={{
             padding: "6px 12px",
-            backgroundColor: filter === "rejected" ? "#ef4444" : "#f3f4f6",
-            color: filter === "rejected" ? "white" : "#374151",
+            backgroundColor: filter === "Rejected" ? "#ef4444" : "#f3f4f6",
+            color: filter === "Rejected" ? "white" : "#374151",
             border: "none",
             borderRadius: "8px",
             cursor: "pointer",
@@ -573,7 +517,7 @@ const LeaveRequests = ({ searchTerm = "" }) => {
         ) : (
           filteredRequests.map((request) => (
             <div
-              key={request.id}
+              key={request.request_id}
               style={{
                 backgroundColor: "transparent",
                 border: "1px solid #e5e7eb",
@@ -631,7 +575,7 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                       margin: "0",
                     }}
                   >
-                    {request.employeeName}
+                    {request.per_name + " " + request.per_lname}
                   </h3>
                 </div>
                 <div
@@ -642,8 +586,8 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                     color: "#6b7280",
                   }}
                 >
-                  <span>ID: {request.employeeId}</span>
-                  <span>Department: {request.department}</span>
+                  <span>ID: {request.personnel_per_id}</span>
+                  <span>Department: {request.per_department}</span>
                 </div>
               </div>
 
@@ -674,7 +618,7 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                       color: "#111827",
                     }}
                   >
-                    {request.leaveType}
+                    {request.request_type}
                   </div>
                 </div>
                 <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
@@ -694,8 +638,8 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                       color: "#111827",
                     }}
                   >
-                    {formatDate(request.startDate)} -{" "}
-                    {formatDate(request.endDate)}
+                    {formatDate(request.request_start_date)} -{" "}
+                    {formatDate(request.request_end_date)}
                   </div>
                 </div>
                 <div style={{ flex: "1 1 80px", minWidth: "80px" }}>
@@ -715,7 +659,12 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                       color: "#111827",
                     }}
                   >
-                    {request.days} day{request.days > 1 ? "s" : ""}
+                    {(() => {
+                      const start = new Date(request.request_start_date);
+                      const end = new Date(request.request_end_date);
+                      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                      return `${days} day${days !== 1 ? "s" : ""}`;
+                    })()}
                   </div>
                 </div>
                 <div>
@@ -735,7 +684,7 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                       color: "#111827",
                     }}
                   >
-                    {formatDate(request.submittedDate)}
+                    {formatDate(request.request_date)}
                   </div>
                 </div>
               </div>
@@ -752,15 +701,15 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                   Reason
                 </div>
                 <div style={{ fontSize: "14px", color: "#374151" }}>
-                  {request.reason}
+                  {request.request_other}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              {request.status === "pending" && (
+              {request.status === "Pending" && (
                 <div style={{ display: "flex", gap: "12px" }}>
                   <button
-                    onClick={() => approveRequest(request.id)}
+                    onClick={() => approveRequest(request.request_id)}
                     style={{
                       padding: "8px 16px",
                       backgroundColor: "#10b981",
@@ -779,7 +728,7 @@ const LeaveRequests = ({ searchTerm = "" }) => {
                     Approve
                   </button>
                   <button
-                    onClick={() => rejectRequest(request.id)}
+                    onClick={() => rejectRequest(request.request_id)}
                     style={{
                       padding: "8px 16px",
                       backgroundColor: "#ef4444",
