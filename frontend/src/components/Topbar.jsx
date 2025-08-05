@@ -676,7 +676,7 @@ const Topbar = ({
                   transition: "background-color 0.2s ease",
                 }}
                 onClick={() => {
-                  alert("Profile page is not available");
+                  onChangePage("profile");
                   setShowDropdown(false);
                 }}
                 onMouseEnter={(e) => {
