@@ -8,6 +8,7 @@ import PersonnelDetail from "./components/PersonnelDetail";
 import Departments from "./components/Departments";
 import Entries from "./components/Entries";
 import LeaveRequests from "./components/LeaveRequests";
+import Profile from "./components/Profile";
 import Login from "./components/Login";
 import "./App.css";
 
@@ -114,6 +115,12 @@ const App = () => {
         {activePage === "entries" && <Entries searchTerm={searchTerm} />}
         {activePage === "leave-requests" && (
           <LeaveRequests searchTerm={searchTerm} />
+        )}
+        {activePage === "profile" && (
+          <Profile
+            onBack={() => setActivePage("dashboard")}
+            currentUser={currentUser}
+          />
         )}
         {/* Diğer sayfalar için de benzer şekilde ekleme yapılabilir */}
       </div>
