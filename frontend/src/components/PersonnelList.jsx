@@ -5,7 +5,7 @@ const PersonnelList = ({ onSelectPerson }) => {
   const [personnel, setPersonnel] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/personnel')
+    axios.get('http://localhost:5050/api/personnel')
       .then(res => setPersonnel(res.data))
       .catch(err => console.error('Error fetching personnel:', err));
   }, []);

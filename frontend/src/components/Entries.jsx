@@ -49,7 +49,7 @@ const Entries = ({ searchTerm }) => {
   });
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/pdks/today-stats")
+    axios.get("http://localhost:5050/api/pdks/today-stats")
       .then((res) => {
         setStats(res.data);
         {/*console.log("Today's Stats:", res.data);*/ }
@@ -61,7 +61,7 @@ const Entries = ({ searchTerm }) => {
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/pdks/by-date/${today}`)
+    axios.get(`http://localhost:5050/api/pdks/by-date/${today}`)
       .then(res => setRecords(res.data))
       .catch(err => console.error(err));
   }, []);

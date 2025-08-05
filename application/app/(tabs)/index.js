@@ -31,7 +31,7 @@ export default function App() {
     }
 
     try {
-      const response = await axios.post('http://192.168.1.141:5000/api/pdks/submit', {
+      const response = await axios.post('http://192.168.1.141:5050/api/pdks/submit', {
         token,
         employeeId,
       });
