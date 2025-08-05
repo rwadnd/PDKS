@@ -17,6 +17,7 @@ app.use("/api/personnel", personnelRoutes);
 app.use("/api/pdks", pdksRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/department", departmentRoutes);
+app.use("/api/leave", leaveRoutes);
 
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {

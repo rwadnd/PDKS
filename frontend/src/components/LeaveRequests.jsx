@@ -14,6 +14,18 @@ const LeaveRequests = ({ searchTerm = "" }) => {
 
   // Mock leave requests data - real app would fetch from API
   useEffect(() => {
+
+
+    const [leaveRequests, setLeaveRequests] = useState([]);
+
+    useEffect(() => {
+      axios.get('http://localhost:5050/api/leave/')
+        .then(res => setLeaveRequests(res.data))
+        .catch(err => console.error('Error fetching personnel:', err));
+    }, []);
+
+
+
     const mockRequests = [
       {
         id: 1,
