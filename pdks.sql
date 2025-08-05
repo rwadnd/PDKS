@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Aug 01, 2025 at 02:35 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- Anamakine: 127.0.0.1
+-- Üretim Zamanı: 05 Ağu 2025, 14:43:45
+-- Sunucu sürümü: 10.4.32-MariaDB
+-- PHP Sürümü: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `pdks`
+-- Veritabanı: `pdks`
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `admin_users`
+-- Tablo için tablo yapısı `admin_users`
 --
 
 CREATE TABLE `admin_users` (
@@ -40,7 +40,7 @@ CREATE TABLE `admin_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `admin_users`
+-- Tablo döküm verisi `admin_users`
 --
 
 INSERT INTO `admin_users` (`id`, `username`, `password`, `email`, `full_name`, `role`, `created_at`, `last_login`, `is_active`) VALUES
@@ -51,7 +51,51 @@ INSERT INTO `admin_users` (`id`, `username`, `password`, `email`, `full_name`, `
 -- --------------------------------------------------------
 
 --
--- Table structure for table `pdks_entry`
+-- Tablo için tablo yapısı `leave_request`
+--
+
+CREATE TABLE `leave_request` (
+  `request_id` int(11) NOT NULL,
+  `personnel_per_id` int(11) NOT NULL,
+  `request_start_date` date NOT NULL,
+  `request_end_date` date NOT NULL,
+  `request_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `request_type` enum('Annual','Sick','Maternity','Paternity','Other') NOT NULL,
+  `request_other` text DEFAULT NULL,
+  `status` enum('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Tablo döküm verisi `leave_request`
+--
+
+INSERT INTO `leave_request` (`request_id`, `personnel_per_id`, `request_start_date`, `request_end_date`, `request_date`, `request_type`, `request_other`, `status`) VALUES
+(1, 1, '2025-08-12', '2025-08-16', '2025-08-05 10:53:31', 'Annual', NULL, 'Approved'),
+(21, 7, '2025-08-10', '2025-08-17', '2025-08-05 08:40:00', 'Paternity', NULL, 'Rejected'),
+(22, 15, '2025-08-12', '2025-08-20', '2025-08-05 07:40:00', 'Paternity', NULL, 'Rejected'),
+(23, 4, '2025-08-15', '2025-08-18', '2025-08-05 08:25:00', 'Sick', NULL, 'Approved'),
+(24, 14, '2025-08-15', '2025-11-15', '2025-08-05 07:35:00', 'Maternity', NULL, 'Approved'),
+(25, 12, '2025-08-17', '2025-08-13', '2025-08-05 08:30:00', 'Other', 'Seminar attendance', 'Rejected'),
+(26, 10, '2025-08-17', '2025-08-19', '2025-08-05 08:55:00', 'Other', 'Seminar attendance', 'Rejected'),
+(27, 13, '2025-08-14', '2025-08-16', '2025-08-05 09:05:00', 'Sick', NULL, 'Approved'),
+(28, 2, '2025-08-20', '2025-08-25', '2025-08-05 08:15:00', 'Annual', NULL, 'Approved'),
+(29, 17, '2025-08-21', '2025-08-25', '2025-08-05 09:15:00', 'Other', 'Training program', 'Rejected'),
+(30, 5, '2025-08-22', '2025-08-23', '2025-08-05 08:30:00', 'Sick', NULL, 'Rejected'),
+(31, 20, '2025-08-22', '2025-08-24', '2025-08-05 09:30:00', 'Other', 'Relocation assistance', 'Approved'),
+(32, 8, '2025-08-28', '2025-08-30', '2025-08-05 08:45:00', 'Other', 'Wedding leave', 'Approved'),
+(33, 18, '2025-08-30', '2025-09-02', '2025-08-05 09:20:00', 'Sick', NULL, 'Approved'),
+(34, 3, '2025-09-01', '2025-09-05', '2025-08-05 08:20:00', 'Annual', NULL, 'Pending'),
+(35, 9, '2025-09-05', '2025-09-06', '2025-08-05 08:50:00', 'Other', 'Family matter', 'Pending'),
+(36, 16, '2025-09-10', '2025-09-15', '2025-08-05 09:10:00', 'Annual', NULL, 'Rejected'),
+(37, 6, '2025-09-15', '2025-12-15', '2025-08-05 08:35:00', 'Maternity', NULL, 'Approved'),
+(38, 19, '2025-09-18', '2025-09-20', '2025-08-05 09:25:00', 'Annual', NULL, 'Pending'),
+(39, 11, '2025-10-01', '2025-10-03', '2025-08-05 09:00:00', 'Other', 'Out-of-town travel', 'Approved'),
+(40, 1, '2025-08-12', '2025-08-16', '2025-08-05 07:53:31', 'Annual', NULL, 'Approved');
+
+-- --------------------------------------------------------
+
+--
+-- Tablo için tablo yapısı `pdks_entry`
 --
 
 CREATE TABLE `pdks_entry` (
@@ -63,7 +107,7 @@ CREATE TABLE `pdks_entry` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `pdks_entry`
+-- Tablo döküm verisi `pdks_entry`
 --
 
 INSERT INTO `pdks_entry` (`pdks_id`, `pdks_date`, `pdks_checkInTime`, `pdks_checkOutTime`, `personnel_per_id`) VALUES
@@ -268,7 +312,7 @@ INSERT INTO `pdks_entry` (`pdks_id`, `pdks_date`, `pdks_checkInTime`, `pdks_chec
 -- --------------------------------------------------------
 
 --
--- Table structure for table `personnel`
+-- Tablo için tablo yapısı `personnel`
 --
 
 CREATE TABLE `personnel` (
@@ -281,7 +325,7 @@ CREATE TABLE `personnel` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `personnel`
+-- Tablo döküm verisi `personnel`
 --
 
 INSERT INTO `personnel` (`per_id`, `per_name`, `per_lname`, `per_department`, `per_role`, `per_status`) VALUES
@@ -307,57 +351,76 @@ INSERT INTO `personnel` (`per_id`, `per_name`, `per_lname`, `per_department`, `p
 (20, 'Buse', 'Tan', 'IT', 'Intern', 'Inactive');
 
 --
--- Indexes for dumped tables
+-- Dökümü yapılmış tablolar için indeksler
 --
 
 --
--- Indexes for table `admin_users`
+-- Tablo için indeksler `admin_users`
 --
 ALTER TABLE `admin_users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `username` (`username`);
 
 --
--- Indexes for table `pdks_entry`
+-- Tablo için indeksler `leave_request`
+--
+ALTER TABLE `leave_request`
+  ADD PRIMARY KEY (`request_id`),
+  ADD KEY `personnel_per_id` (`personnel_per_id`);
+
+--
+-- Tablo için indeksler `pdks_entry`
 --
 ALTER TABLE `pdks_entry`
   ADD PRIMARY KEY (`pdks_id`),
   ADD KEY `personnel_per_id` (`personnel_per_id`);
 
 --
--- Indexes for table `personnel`
+-- Tablo için indeksler `personnel`
 --
 ALTER TABLE `personnel`
   ADD PRIMARY KEY (`per_id`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- Dökümü yapılmış tablolar için AUTO_INCREMENT değeri
 --
 
 --
--- AUTO_INCREMENT for table `admin_users`
+-- Tablo için AUTO_INCREMENT değeri `admin_users`
 --
 ALTER TABLE `admin_users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT for table `pdks_entry`
+-- Tablo için AUTO_INCREMENT değeri `leave_request`
+--
+ALTER TABLE `leave_request`
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+--
+-- Tablo için AUTO_INCREMENT değeri `pdks_entry`
 --
 ALTER TABLE `pdks_entry`
   MODIFY `pdks_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=304;
 
 --
--- AUTO_INCREMENT for table `personnel`
+-- Tablo için AUTO_INCREMENT değeri `personnel`
 --
 ALTER TABLE `personnel`
   MODIFY `per_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
--- Constraints for dumped tables
+-- Dökümü yapılmış tablolar için kısıtlamalar
 --
 
 --
--- Constraints for table `pdks_entry`
+-- Tablo kısıtlamaları `leave_request`
+--
+ALTER TABLE `leave_request`
+  ADD CONSTRAINT `leave_request_ibfk_1` FOREIGN KEY (`personnel_per_id`) REFERENCES `personnel` (`per_id`) ON DELETE CASCADE;
+
+--
+-- Tablo kısıtlamaları `pdks_entry`
 --
 ALTER TABLE `pdks_entry`
   ADD CONSTRAINT `pdks_entry_ibfk_1` FOREIGN KEY (`personnel_per_id`) REFERENCES `personnel` (`per_id`) ON DELETE CASCADE ON UPDATE CASCADE;
