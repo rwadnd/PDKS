@@ -1,7 +1,11 @@
 // app/LeaveRequest.js
+import axios from 'axios';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// API base URL'sini burada tanımlayın
+const API_BASE_URL = 'http://192.168.1.141:5050'; 
 
 export default function LeaveRequestScreen() {
   const [employeeId, setEmployeeId] = useState('');
@@ -20,6 +24,40 @@ export default function LeaveRequestScreen() {
   const [showDayPicker, setShowDayPicker] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
 
+  const handleLeaveSubmit = async () => {
+    if (!employeeId || !leaveType || (leaveType === 'Other' && !reason) || !startDate || !endDate) {
+      Alert.alert('Missing Info', 'Please fill in all fields.');
+      return;
+    }
+
+    try {
+      // Tarih formatını YYYY-MM-DD şekline çeviriyoruz
+      const formattedStartDate = startDate.toISOString().split('T')[0];
+      const formattedEndDate = endDate.toISOString().split('T')[0];
+
+      const response = await axios.post(`${API_BASE_URL}/api/leave/submit`, {
+        personnel_per_id: parseInt(employeeId),
+        request_start_date: formattedStartDate,
+        request_end_date: formattedEndDate,
+        request_type: leaveType,
+        request_other: leaveType === 'Other' ? reason : null
+      });
+
+      Alert.alert('Success', 'Leave request submitted successfully!');
+      
+      // Formu temizle
+      setEmployeeId('');
+      setLeaveType('');
+      setReason('');
+      setStartDate(null);
+      setEndDate(null);
+      setShowReasonInput(false);
+    } catch (error) {
+      console.error('Error submitting leave request:', error);
+      Alert.alert('Error', 'Failed to submit leave request. Please try again.');
+    }
+  };
+
   const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -28,13 +66,6 @@ export default function LeaveRequestScreen() {
   const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() + i);
   const days = Array.from({length: 31}, (_, i) => i + 1);
 
-  const handleLeaveSubmit = () => {
-    if (!employeeId || !leaveType || (leaveType === 'Other' && !reason) || !startDate || !endDate) {
-      Alert.alert('Missing Info', 'Please fill in all fields.');
-      return;
-    }
-    Alert.alert('Submitted', 'Leave request submitted successfully!');
-  };
 
   const handleLeaveTypeSelect = (type) => {
     setLeaveType(type);
