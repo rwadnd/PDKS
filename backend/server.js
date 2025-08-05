@@ -4,6 +4,7 @@ const personnelRoutes = require("./routes/personnelRoutes");
 const pdksRoutes = require("./routes/pdksRoutes");
 const authRoutes = require("./routes/authRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
+const leaveRoutes = require("./routes/leaveRoutes")
 
 require("dotenv").config();
 
