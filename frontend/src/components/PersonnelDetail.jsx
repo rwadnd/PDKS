@@ -16,7 +16,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/api/pdks/${person.per_id}`)
+      .get(`http://localhost:5050/api/pdks/${person.per_id}`)
       .then((res) => setRecords(res.data))
       .catch((err) => console.error(err));
   }, [person]);
@@ -38,7 +38,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   const handleSave = async () => {
     try {
       await axios.put(
-        `http://localhost:5000/api/personnel/${person.per_id}`,
+        `http://localhost:5050/api/personnel/${person.per_id}`,
         editForm
       );
       console.log(editForm)
@@ -60,11 +60,23 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   };
 
 
-  const today = new Date().toISOString().split("T")[0];
+  const todayString = new Date().toISOString().split("T")[0];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayDay = today.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+  const daysSinceMonday = (todayDay + 6) % 7; // converts Sun→6, Mon→0, Tue→1, etc.
+  const lastMonday = new Date(today);
+  lastMonday.setDate(today.getDate() - daysSinceMonday);
+  lastMonday.setHours(0, 0, 0, 0);
+
+  // Get the first day in the heatmap (52 weeks ago from last Monday)
+  const startDate = new Date(lastMonday);
+  startDate.setDate(startDate.getDate() - (51 * 7));
+
 
   const todayRecord = records.find((rec) => {
     const recordDate = rec.pdks_date?.split(" ")[0];
-    return recordDate === today;
+    return recordDate === todayString;
   });
   const formattedCheckIn = todayRecord?.pdks_checkInTime &&
     todayRecord.pdks_checkInTime !== "00:00:00"
@@ -162,80 +174,68 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   };
 
 
+function toLocalISODate(date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`; // "YYYY-MM-DD"
+}
 
 
- const getMonthlyAbsenceCount = (records) => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed: January = 0
+  const getMonthlyAbsenceCount = (records) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed: January = 0
 
-  // Step 1: Build a Set of valid check-in dates
-  const presentDates = new Set();
+    // Step 1: Build a Set of valid check-in dates
+    const presentDates = new Set();
 
-  for (const rec of records) {
-    const hasValidCheckIn =
+    for (const rec of records) {
+      const hasValidCheckIn =
+        rec.pdks_checkInTime &&
+        rec.pdks_checkInTime !== "00:00:00" &&
+        rec.pdks_checkInTime !== "0000-00-00 00:00:00";
+
+      if (hasValidCheckIn && rec.pdks_date) {
+        const datePart = rec.pdks_date.split(" ")[0]; // "YYYY-MM-DD"
+        presentDates.add(datePart);
+      }
+    }
+
+    // Step 2: Count expected workdays in current month up to today
+    let absenceCount = 0;
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const current = new Date(year, month, day);
+
+      if (current > today) break;
+
+      const dayOfWeek = current.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip Sundays & Saturdays
+
+      const dateStr = current.toISOString().split("T")[0];
+
+      if (!presentDates.has(dateStr)) {
+        absenceCount++;
+      }
+    }
+
+    return absenceCount;
+  };
+
+
+const checkInDatesSet = new Set(
+  records
+    .filter((rec) =>
       rec.pdks_checkInTime &&
       rec.pdks_checkInTime !== "00:00:00" &&
-      rec.pdks_checkInTime !== "0000-00-00 00:00:00";
+      rec.pdks_date
+    )
+    .map((rec) => rec.pdks_date)  // use only the DATE part
+);
 
-    if (hasValidCheckIn && rec.pdks_date) {
-      const datePart = rec.pdks_date.split(" ")[0]; // "YYYY-MM-DD"
-      presentDates.add(datePart);
-    }
-  }
-
-  // Step 2: Count expected workdays in current month up to today
-  let absenceCount = 0;
-  const today = new Date();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const current = new Date(year, month, day);
-
-    if (current > today) break;
-
-    const dayOfWeek = current.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip Sundays & Saturdays
-
-    const dateStr = current.toISOString().split("T")[0];
-
-    if (!presentDates.has(dateStr)) {
-      absenceCount++;
-    }
-  }
-
-  return absenceCount;
-};
-
-
-
-
-
-
-  const checkInDatesSet = new Set(
-    records
-      .filter((rec) =>
-        rec.pdks_checkInTime &&
-        rec.pdks_checkInTime !== "0000-00-00 00:00:00" &&
-        !isNaN(new Date(rec.pdks_checkInTime).getTime())
-      )
-      .map((rec) => new Date(rec.pdks_checkInTime).toISOString().split("T")[0])
-  );
-
-
-
-  // Find most recent Monday before or on today
-  const todayy = new Date();
-  todayy.setHours(0, 0, 0, 0);
-  const todayDay = todayy.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
-  const daysSinceMonday = (todayDay + 6) % 7; // converts Sun→6, Mon→0, Tue→1, etc.
-  const lastMonday = new Date(todayy);
-  lastMonday.setDate(todayy.getDate() - daysSinceMonday);
-  lastMonday.setHours(0, 0, 0, 0);
-
-  // Get the first day in the heatmap (52 weeks ago from last Monday)
-  const startDate = new Date(lastMonday);
-  startDate.setDate(startDate.getDate() - (51 * 7));
 
 
 
@@ -704,27 +704,30 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
             {Array.from({ length: 52 }).map((_, weekIdx) => (
               <div key={weekIdx} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {Array.from({ length: 7 }).map((_, dayIdx) => {
+                  const yesterday = new Date();
+                  yesterday.setDate(today.getDate() - 1);
+                  yesterday.setHours(0, 0, 0, 0);
                   const cellDate = new Date(startDate);
                   cellDate.setDate(startDate.getDate() + (weekIdx * 7 + dayIdx));
                   cellDate.setHours(0, 0, 0, 0);
 
-                  if (cellDate > todayy) {
+                  if (cellDate > yesterday) {
                     // ✅ Skip rendering future boxes altogether (optional)
                     return <div key={dayIdx} style={{ width: 12, height: 12 }} />;
                   }
 
-                  const dateStr = cellDate.toISOString().split("T")[0];
+                  const dateStr = toLocalISODate(cellDate)
                   const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
                   let status;
-                  if (cellDate > todayy) {
-                    status = "no-data"; // ✅ force gray for future
+
+
+                  if (cellDate > yesterday || isWeekend) {
+                    status = "no-data"; // Hide future and weekends
                   } else if (checkInDatesSet.has(dateStr)) {
                     status = "present";
-                  } else if (!isWeekend) {
-                    status = "absent";
                   } else {
-                    status = "no-data";
+                    status = "absent";
                   }
 
                   const colors = {
