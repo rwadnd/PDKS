@@ -58,7 +58,7 @@ export default function LeaveRequestScreen() {
     }
   };
 
-  const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
+  const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Other'];
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
