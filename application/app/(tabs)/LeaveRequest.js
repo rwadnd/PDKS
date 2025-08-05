@@ -111,7 +111,7 @@ export default function LeaveRequestScreen() {
   const renderDatePickerModal = () => (
     <Modal visible={showDateModal} transparent={true} animationType="slide">
       <View style={styles.modalContainer}>
-        <View style={[styles.modalContent, { height: 350 }]}>
+        <View style={[styles.modalContent, { height: 400 }]}>
           <Text style={styles.modalTitle}>
             Select {currentDateType === "start" ? "Start" : "End"} Date
           </Text>
