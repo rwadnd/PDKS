@@ -6,63 +6,75 @@ import {
   FaUser,
   FaCalendarAlt,
 } from "react-icons/fa";
-import axios from 'axios';
-
+import axios from "axios";
 
 const LeaveRequests = ({ searchTerm = "" }) => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [filter, setFilter] = useState("all"); // all, pending, approved, rejected
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
-    axios.get('http://localhost:5050/api/leave/')
-      .then(res => {
+    axios
+      .get("http://localhost:5050/api/leave/")
+      .then((res) => {
         setLeaveRequests(res.data);
         setLoading(false); // Move inside here
       })
-      .catch(err => {
-        console.error('Error fetching personnel:', err);
+      .catch((err) => {
+        console.error("Error fetching personnel:", err);
         setLoading(false); // Also set to false on error
       });
   }, []);
 
-const approveRequest = async (id) => {
-  try {
-    setLeaveRequests((prev) =>
-      prev.map((request) =>
-        request.request_id === id ? { ...request, status: "Approved" } : request
-      )
-    );
+  const approveRequest = async (id) => {
+    try {
+      setLeaveRequests((prev) =>
+        prev.map((request) =>
+          request.request_id === id
+            ? { ...request, status: "Approved" }
+            : request
+        )
+      );
 
-    await axios.put(`http://localhost:5050/api/leave/${id}`, {
-      status: "Approved",
-    });
+      await axios.put(`http://localhost:5050/api/leave/${id}`, {
+        status: "Approved",
+      });
 
-    
-  } catch (error) {
-    console.error("Failed to approve leave request:", error);
-    // Optionally show error to user
-  }
-};
+      // Switch to Approved tab and scroll to top
+      setFilter("Approved");
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    } catch (error) {
+      console.error("Failed to approve leave request:", error);
+      // Optionally show error to user
+    }
+  };
 
-const rejectRequest = async (id) => {
-  try {
-    setLeaveRequests((prev) =>
-      prev.map((request) =>
-        request.request_id === id ? { ...request, status: "Rejected" } : request
-      )
-    );
-    
-    await axios.put(`http://localhost:5050/api/leave/${id}`, {
-      status: "Rejected",
-    });
-    
-  } catch (error) {
-    console.error("Failed to reject leave request:", error);
-    // Optionally show error to user
-  }
-};
+  const rejectRequest = async (id) => {
+    try {
+      setLeaveRequests((prev) =>
+        prev.map((request) =>
+          request.request_id === id
+            ? { ...request, status: "Rejected" }
+            : request
+        )
+      );
+
+      await axios.put(`http://localhost:5050/api/leave/${id}`, {
+        status: "Rejected",
+      });
+
+      // Switch to Rejected tab and scroll to top
+      setFilter("Rejected");
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    } catch (error) {
+      console.error("Failed to reject leave request:", error);
+      // Optionally show error to user
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -90,25 +102,27 @@ const rejectRequest = async (id) => {
     }
   };
 
-  const filteredRequests = leaveRequests.filter((request) => {
-    // Status filter
-    if (filter === "Pending" && request.status !== "Pending") return false;
-    if (filter === "Approved" && request.status !== "Approved") return false;
-    if (filter === "Rejected" && request.status !== "Rejected") return false;
+  const filteredRequests = leaveRequests
+    .filter((request) => {
+      // Status filter
+      if (filter === "Pending" && request.status !== "Pending") return false;
+      if (filter === "Approved" && request.status !== "Approved") return false;
+      if (filter === "Rejected" && request.status !== "Rejected") return false;
 
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        request.per_name.toLowerCase().includes(searchLower) ||
-        request.personnel_per_id.toLowerCase().includes(searchLower) ||
-        request.department.toLowerCase().includes(searchLower) ||
-        request.request_type.toLowerCase().includes(searchLower)
-      );
-    }
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          request.per_name.toLowerCase().includes(searchLower) ||
+          request.personnel_per_id.toLowerCase().includes(searchLower) ||
+          request.department.toLowerCase().includes(searchLower) ||
+          request.request_type.toLowerCase().includes(searchLower)
+        );
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
 
   const pendingCount = leaveRequests.filter(
     (request) => request.status === "Pending"
@@ -173,15 +187,6 @@ const rejectRequest = async (id) => {
           >
             Leave Requests
           </h1>
-          <p
-            style={{
-              fontSize: "16px",
-              color: "#6b7280",
-              margin: "0",
-            }}
-          >
-            Manage employee leave requests
-          </p>
         </div>
       </div>
 
@@ -205,13 +210,6 @@ const rejectRequest = async (id) => {
             position: "relative",
             overflow: "hidden",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.boxShadow = "0 8px 25px rgba(0, 0, 0, 0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.05)";
           }}
         >
           <div
@@ -277,13 +275,6 @@ const rejectRequest = async (id) => {
             position: "relative",
             overflow: "hidden",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.boxShadow = "0 8px 25px rgba(0, 0, 0, 0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.05)";
           }}
         >
           <div
@@ -349,13 +340,6 @@ const rejectRequest = async (id) => {
             position: "relative",
             overflow: "hidden",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.boxShadow = "0 8px 25px rgba(0, 0, 0, 0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.05)";
           }}
         >
           <div
@@ -501,7 +485,7 @@ const rejectRequest = async (id) => {
           width: "100%",
         }}
       >
-        {filteredRequests.length === 0 ? (
+        {filteredRequests.length === 0 || leaveRequests.length === 0 ? (
           <div
             style={{
               textAlign: "center",
@@ -512,26 +496,31 @@ const rejectRequest = async (id) => {
             <FaCalendarAlt
               style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.5 }}
             />
-            <p>No leave requests found</p>
+            <h3
+              style={{
+                fontSize: "20px",
+                fontWeight: "600",
+                marginBottom: "8px",
+                color: "#374151",
+              }}
+            >
+              No leave requests found
+            </h3>
+            <p style={{ fontSize: "14px", marginBottom: "4px" }}>
+              There are currently no leave requests in the system.
+            </p>
           </div>
         ) : (
           filteredRequests.map((request) => (
             <div
               key={request.request_id}
               style={{
-                backgroundColor: "transparent",
+                backgroundColor: "#ffffff",
                 border: "1px solid #e5e7eb",
                 borderRadius: "12px",
                 padding: "24px",
-                transition: "all 0.2s ease",
                 position: "relative",
                 boxShadow: "none",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.boxShadow = "none";
               }}
             >
               {/* Status Badge */}
@@ -662,7 +651,9 @@ const rejectRequest = async (id) => {
                     {(() => {
                       const start = new Date(request.request_start_date);
                       const end = new Date(request.request_end_date);
-                      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                      const days = Math.ceil(
+                        (end - start) / (1000 * 60 * 60 * 24)
+                      );
                       return `${days} day${days !== 1 ? "s" : ""}`;
                     })()}
                   </div>
