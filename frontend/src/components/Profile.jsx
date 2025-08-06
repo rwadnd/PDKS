@@ -58,23 +58,27 @@ const Profile = ({ onBack, currentUser }) => {
           margin: "auto",
           width: "90%",
           height: "auto",
-          minHeight: "auto",
+          minHeight: "calc(100vh - 240px)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
         }}
       >
         {/* Header */}
         <div
           style={{
-            padding: "30px 50px 20px 50px",
+            padding: "40px 50px 30px 50px",
             borderBottom: "1px solid #f0f0f0",
           }}
         >
           <h2
             style={{
               fontSize: "20px",
-              color: "#333",
+              color: "#0C2440",
               margin: "0",
             }}
           >
@@ -87,7 +91,7 @@ const Profile = ({ onBack, currentUser }) => {
           style={{
             display: "flex",
             gap: "60px",
-            padding: "30px 50px 20px 50px",
+            padding: "30px 30px 30px 30px",
             flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "flex-start",
@@ -104,7 +108,7 @@ const Profile = ({ onBack, currentUser }) => {
               style={{
                 position: "relative",
                 display: "inline-block",
-                marginBottom: "20px",
+                marginBottom: "10px",
               }}
             >
               <img
@@ -338,15 +342,14 @@ const Profile = ({ onBack, currentUser }) => {
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            padding: "10px 50px",
-            borderTop: "1px solid #f0f0f0",
+            padding: "16px 40px",
             flexShrink: 0,
           }}
         >
           <button
             onClick={handleSave}
             style={{
-              backgroundColor: "#333",
+              backgroundColor: "#0C2440",
               color: "#ffffff",
               border: "none",
               padding: "12px 24px",
