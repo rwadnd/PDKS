@@ -40,7 +40,6 @@ const Profile = ({ onBack, currentUser }) => {
       style={{
         height: "100vh",
         backgroundColor: "#f6f8fb",
-        padding: "60px",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
@@ -54,22 +53,21 @@ const Profile = ({ onBack, currentUser }) => {
           borderRadius: "12px",
           padding: "0",
           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          maxWidth: "900px",
           margin: "auto",
-          width: "90%",
-          height: "auto",
+          width: "100%",
+          height: "95vh",
           minHeight: "calc(100vh - 240px)",
           display: "flex",
           flexDirection: "column",
           overflowX: "hidden",
-          overflowY: "scroll",
+          overflowY: "hidden",
           // transform: "translate(-50%, -50%)",
         }}
       >
         {/* Header */}
         <div
           style={{
-            padding: "40px 50px 30px 50px",
+            padding: "20px 20px",
             borderBottom: "1px solid #f0f0f0",
           }}
         >
