@@ -15,21 +15,20 @@ const Calendar = () => {
   const [departmentData, setDepartmentData] = useState([]);
 
   useEffect(() => {
-  const url = `https://date.nager.at/api/v3/PublicHolidays/${sel.year}/TR`;
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      const obj = {};
-      data.forEach(h => {
-        const dt = new Date(h.date);
-        const key = `${dt.getMonth() + 1}-${dt.getDate()}`;
-        obj[key] = h.localName;
-      });
-      setHolidays(obj);
-    })
-    .catch(console.error);
-}, [sel.year]);
-
+    const url = `https://date.nager.at/api/v3/PublicHolidays/${sel.year}/TR`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        const obj = {};
+        data.forEach((h) => {
+          const dt = new Date(h.date);
+          const key = `${dt.getMonth() + 1}-${dt.getDate()}`;
+          obj[key] = h.localName;
+        });
+        setHolidays(obj);
+      })
+      .catch(console.error);
+  }, [sel.year]);
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -100,24 +99,24 @@ const Calendar = () => {
 
   const getHolidayColor = (holidayName) => {
     const colors = {
-      "Yılbaşı Tatili": { bg: "transparent", border: "transparent" }, // Şeffaf
-      "Ramazan Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
+      "Yılbaşı Tatili": { bg: "transparent", border: "transparent" },
+      "Ramazan Bayramı": { bg: "transparent", border: "transparent" },
       "Ulusal Egemenlik ve Çocuk Bayramı": {
         bg: "transparent",
         border: "transparent",
-      }, // Şeffaf
-      "İşçi Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
+      },
+      "İşçi Bayramı": { bg: "transparent", border: "transparent" },
       "Atatürk'ü Anma, Gençlik ve Spor Bayramı": {
         bg: "transparent",
         border: "transparent",
-      }, // Şeffaf
-      "Kurban Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
+      },
+      "Kurban Bayramı": { bg: "transparent", border: "transparent" },
       "Demokrasi ve Milli Birlik Günü": {
         bg: "transparent",
         border: "transparent",
-      }, // Şeffaf
-      "Zafer Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
-      "Cumhuriyet Bayramı": { bg: "transparent", border: "transparent" }, // Şeffaf
+      },
+      "Zafer Bayramı": { bg: "transparent", border: "transparent" },
+      "Cumhuriyet Bayramı": { bg: "transparent", border: "transparent" },
     };
     return colors[holidayName] || { bg: "transparent", border: "transparent" };
   };
@@ -146,16 +145,16 @@ const Calendar = () => {
   };
 
   return (
-    <div style={{ height: "calc(100vh - 120px)", overflow: "hidden" }}>
+    <div style={{ height: "calc(100vh - 120px)", overflow: "auto", padding: "0 20px" }}>
       {/* Ana container - 75% Calendar + 25% Side Card */}
-      <div style={{ display: "flex", gap: "20px", height: "100%" }}>
+      <div style={{ display: "flex", gap: "20px", minHeight: "100%", boxSizing: "border-box" }}>
         {/* Calendar - 75% width */}
         <div
           style={{
             flex: "0 0 75%",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden",
+            minHeight: "100%",
           }}
         >
           <div
@@ -163,7 +162,6 @@ const Calendar = () => {
               background: "#ffffff",
               borderRadius: "20px",
               border: "1px solid #e2e8f0",
-              overflow: "hidden",
               height: "100%",
               display: "flex",
               flexDirection: "column",
@@ -325,14 +323,13 @@ const Calendar = () => {
               </div>
             </div>
 
-            {/* Modern calendar grid - Scrollable */}
+            {/* Modern calendar grid - No scroll */}
             <div
               style={{
                 padding: "16px",
-                overflow: "auto",
                 flex: 1,
-                scrollbarWidth: "thin",
-                scrollbarColor: "#cbd5e1 #f1f5f9",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               {/* Day headers */}
@@ -342,11 +339,7 @@ const Calendar = () => {
                   gridTemplateColumns: "repeat(7, 1fr)",
                   gap: "8px",
                   marginBottom: "10px",
-                  position: "sticky",
-                  top: 0,
-                  background: "#ffffff",
-                  zIndex: 10,
-                  padding: "8px 0",
+                  flexShrink: 0,
                 }}
               >
                 {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
@@ -371,120 +364,121 @@ const Calendar = () => {
                   </div>
                 ))}
               </div>
-              {/* Calendar weeks */}
-              {weeks.map((week, weekIndex) => (
-                <div
-                  key={weekIndex}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(7, 1fr)",
-                    gap: "8px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {week.map((d, dayIndex) => {
-                    const key = `${sel.month + 1}-${d}`;
-                    const hol = holidays[key];
-                    const isCurrentMonth = d && d > 0 && d <= daysInMonth;
-                    const isOtherMonth = d && (d <= 0 || d > daysInMonth);
+              {/* Calendar weeks - Scrollable content */}
+              <div style={{ flex: 1 }}>
+                {weeks.map((week, weekIndex) => (
+                  <div
+                    key={weekIndex}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(7, 1fr)",
+                      gap: "8px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {week.map((d, dayIndex) => {
+                      const key = `${sel.month + 1}-${d}`;
+                      const hol = holidays[key];
+                      const isCurrentMonth = d && d > 0 && d <= daysInMonth;
+                      const isOtherMonth = d && (d <= 0 || d > daysInMonth);
 
-                    return (
-                      <div
-                        key={dayIndex}
-                        style={{
-                          minHeight: "60px",
-                          padding: "6px",
-                          fontSize: "12px",
-                          backgroundColor: isCurrentMonth
-                            ? "#ffffff"
-                            : isOtherMonth
-                            ? "#f9fafb"
-                            : "transparent",
-                          borderRadius: "12px",
-                          border: isCurrentMonth
-                            ? "1px solid #e2e8f0"
-                            : isOtherMonth
-                            ? "1px solid #f1f5f9"
-                            : "none",
-                          transition: "all 0.2s ease",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "flex-start",
-                          alignItems: "flex-start",
-                          boxSizing: "border-box",
-                          position: "relative",
-                          ...cellStyle(d),
-                        }}
-                        onMouseOver={(e) => {
-                          if (isCurrentMonth && !isToday(d) && !hol) {
-                            e.target.style.backgroundColor = "#f8fafc";
-                            e.target.style.borderColor = "#cbd5e1";
-                          }
-                        }}
-                        onMouseOut={(e) => {
-                          if (isCurrentMonth && !isToday(d) && !hol) {
-                            e.target.style.backgroundColor = "#ffffff";
-                            e.target.style.borderColor = "#e2e8f0";
-                          }
-                        }}
-                      >
-                        {d && (
-                          <>
-                            <div
-                              style={{
-                                textAlign: "left",
-                                fontWeight: "600",
-                                color: isCurrentMonth ? "#374151" : "#9ca3af",
-                                fontSize: "13px",
-                                marginBottom: "4px",
-                              }}
-                            >
-                              {d}
-                            </div>
-                            {hol && (
+                      return (
+                        <div
+                          key={dayIndex}
+                          style={{
+                            minHeight: "60px",
+                            padding: "6px",
+                            fontSize: "12px",
+                            backgroundColor: isCurrentMonth
+                              ? "#ffffff"
+                              : isOtherMonth
+                              ? "#f9fafb"
+                              : "transparent",
+                            borderRadius: "12px",
+                            border: isCurrentMonth
+                              ? "1px solid #e2e8f0"
+                              : isOtherMonth
+                              ? "1px solid #f1f5f9"
+                              : "none",
+                            transition: "all 0.2s ease",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "flex-start",
+                            alignItems: "flex-start",
+                            boxSizing: "border-box",
+                            position: "relative",
+                            ...cellStyle(d),
+                          }}
+                          onMouseOver={(e) => {
+                            if (isCurrentMonth && !isToday(d) && !hol) {
+                              e.target.style.backgroundColor = "#f8fafc";
+                              e.target.style.borderColor = "#cbd5e1";
+                            }
+                          }}
+                          onMouseOut={(e) => {
+                            if (isCurrentMonth && !isToday(d) && !hol) {
+                              e.target.style.backgroundColor = "#ffffff";
+                              e.target.style.borderColor = "#e2e8f0";
+                            }
+                          }}
+                        >
+                          {d && (
+                            <>
                               <div
                                 style={{
-                                  position: "absolute",
-                                  bottom: "4px",
-                                  left: "4px",
-                                  right: "4px",
-                                  minHeight: "16px",
-                                  borderRadius: "4px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: "8px",
+                                  textAlign: "left",
                                   fontWeight: "600",
-                                  color: "#1d062E",
-                                  boxShadow: "none",
-                                  cursor: "pointer",
-                                  transition: "all 0.2s ease",
-                                  textAlign: "center",
-                                  lineHeight: "1.2",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  // whiteSpace: "nowrap",
-                                }}
-                                title={hol}
-                                onMouseOver={(e) => {
-                                  e.target.style.transform = "translateY(-1px)";
-                                }}
-                                onMouseOut={(e) => {
-                                  e.target.style.transform = "translateY(0)";
+                                  color: isCurrentMonth ? "#374151" : "#9ca3af",
+                                  fontSize: "13px",
+                                  marginBottom: "4px",
                                 }}
                               >
-                                {hol.length > 10
-                                  ? hol.substring(0, 10) + "..."
-                                  : hol}
+                                {d}
                               </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                              {hol && (
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    bottom: "4px",
+                                    left: "4px",
+                                    right: "4px",
+                                    minHeight: "16px",
+                                    borderRadius: "4px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "8px",
+                                    fontWeight: "600",
+                                    color: "#1d062E",
+                                    boxShadow: "none",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s ease",
+                                    textAlign: "center",
+                                    lineHeight: "1.2",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                  title={hol}
+                                  onMouseOver={(e) => {
+                                    e.target.style.transform = "translateY(-1px)";
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.target.style.transform = "translateY(0)";
+                                  }}
+                                >
+                                  {hol.length > 10
+                                    ? hol.substring(0, 10) + "..."
+                                    : hol}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -497,7 +491,7 @@ const Calendar = () => {
               borderRadius: "20px",
               border: "1px solid #e2e8f0",
               padding: "20px 8px 20px 20px",
-              height: "92%",
+    
               display: "flex",
               flexDirection: "column",
             }}
@@ -596,8 +590,8 @@ const Calendar = () => {
                   >
                     <div
                       style={{
-                        width: "16px", // 12px'den 16px'e büyüttüm
-                        height: "16px", // 12px'den 16px'e büyüttüm
+                        width: "16px",
+                        height: "16px",
                         borderRadius: "50%",
                         background: dept.color,
                       }}
@@ -606,7 +600,7 @@ const Calendar = () => {
                       style={{
                         fontWeight: "600",
                         color: "#1e293b",
-                        minWidth: "40px", // 30px'den 40px'e büyüttüm
+                        minWidth: "40px",
                       }}
                     >
                       {dept.name}
@@ -618,8 +612,6 @@ const Calendar = () => {
                 ))}
               </div>
             </div>
-
-            {/* Side card artık sadece Department Distribution içeriyor */}
           </div>
         </div>
       </div>
