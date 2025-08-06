@@ -22,7 +22,7 @@ ON
 };
 
 
-exports.UpdateRequest = async (req, res) => {
+exports.updateRequest = async (req, res) => {
   const { status } = req.body;
   try {
     await db.query(`
@@ -33,5 +33,49 @@ exports.UpdateRequest = async (req, res) => {
     res.json({ message: 'Request status updated' });
   } catch (err) {
     res.status(500).json({ error: 'Update failed' });
+  }
+};
+
+
+exports.submitRequest = async (req, res) => {
+  const {
+    personnel_per_id,
+    request_start_date,
+    request_end_date,
+    request_type,
+    request_other
+  } = req.body;
+
+  const request_date = new Date(); // current date
+  const status = 'Pending';
+
+  try {
+    await db.query(
+      `
+      INSERT INTO leave_request (
+        personnel_per_id,
+        request_start_date,
+        request_end_date,
+        request_type,
+        request_other,
+        request_date,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+      [
+        personnel_per_id,
+        request_start_date,
+        request_end_date,
+        request_type,
+        request_other,
+        request_date,
+        status
+      ]
+    );
+
+    res.json({ message: 'Leave request submitted successfully' });
+  } catch (err) {
+    console.error("❌ Submit request failed:", err);
+    res.status(500).json({ error: 'Submit failed', detail: err.message });
   }
 };
