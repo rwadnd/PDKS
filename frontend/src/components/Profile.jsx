@@ -1,16 +1,53 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaEdit, FaUser, FaEnvelope, FaLock } from "react-icons/fa";
 
+// Component, dışarıdan gelen userId'yi bir prop olarak alacak.
 const Profile = ({ onBack, currentUser }) => {
   const [formData, setFormData] = useState({
-    name: currentUser?.full_name || "Charlene Reed",
-    email: currentUser?.email || "charlenereed@gmail.com",
-    username: currentUser?.username || "Charlene Reed",
+    full_name: "",
+    email: "",
+    username: "",
     password: "••••••••",
   });
   const [profileImage, setProfileImage] = useState(
     "https://randomuser.me/api/portraits/women/44.jpg"
   );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // currentUser nesnesi yoksa API isteği gönderme
+    if (!currentUser || !currentUser.id) {
+      setLoading(false);
+      setError("User data is not available.");
+      return;
+    }
+
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch(`http://localhost:5050/api/profile/${currentUser.id}`); // API URL'sini düzenleyin
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data.");
+        }
+        const data = await response.json();
+        if (data.success) {
+          setFormData({
+            full_name: data.user.full_name,
+            email: data.user.email,
+            username: data.user.username,
+            password: "••••••••", // Şifreyi güvenlik nedeniyle doldurmuyoruz
+          });
+        } else {
+          setError(data.message);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUserProfile();
+  }, [currentUser]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -19,9 +56,33 @@ const Profile = ({ onBack, currentUser }) => {
     }));
   };
 
-  const handleSave = () => {
-    // Save logic here
-    alert("Profile updated successfully!");
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`http://localhost:5050/api/profile/${currentUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert("Profile updated successfully!");
+        // Güncellenmiş verileri tekrar yükle
+        setFormData({
+          full_name: data.user.full_name,
+          email: data.user.email,
+          username: data.user.username,
+          password: "••••••••",
+        });
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("An error occurred while saving the profile.");
+    }
   };
 
   const handleImageChange = (event) => {
@@ -34,6 +95,14 @@ const Profile = ({ onBack, currentUser }) => {
       reader.readAsDataURL(file);
     }
   };
+
+  if (loading) {
+    return <div>Loading profile...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div
@@ -189,8 +258,8 @@ const Profile = ({ onBack, currentUser }) => {
                 />
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  value={formData.full_name}
+                  onChange={(e) => handleInputChange("full_name", e.target.value)}
                   style={{
                     width: "100%",
                     padding: "14px 12px 14px 40px",
