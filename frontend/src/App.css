@@ -12,6 +12,7 @@ html,
   display: flex;
   height: 100vh;
   background: #f6f8fb;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -74,7 +75,7 @@ html,
   flex-direction: column;
   padding: 16px 24px 16px 24px; /* 32px 40px 0 40px'den 16px 24px 16px 24px'e düşürdüm */
   height: 96vh; /* Tam ekran yüksekliği */
-  overflow: auto; /* Scroll'a izin ver */
+  overflow: hidden; /* Scroll'a izin ver */
 }
 
 .topbar {

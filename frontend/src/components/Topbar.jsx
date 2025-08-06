@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+
 import "../App.css";
 import { FaSearch, FaCog, FaBell, FaBars } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { format } from "date-fns";
+
 
 const Topbar = ({
   activePage,
@@ -16,6 +20,80 @@ const Topbar = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+
+
+
+
+
+
+
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch leave requests
+  useEffect(() => {
+    axios
+      .get("http://localhost:5050/api/leave")
+      .then((res) => {
+        setLeaveRequests(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch leave requests:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  // Approve request
+  const approveRequest = async (id) => {
+    try {
+      setLeaveRequests((prev) =>
+        prev.map((req) =>
+          req.request_id === id ? { ...req, status: "Approved" } : req
+        )
+      );
+      await axios.put(`http://localhost:5050/api/leave/${id}`, {
+        status: "Approved",
+      });
+    } catch (error) {
+      console.error("Failed to approve request:", error);
+    }
+  };
+
+  // Reject request
+  const rejectRequest = async (id) => {
+    try {
+      setLeaveRequests((prev) =>
+        prev.map((req) =>
+          req.request_id === id ? { ...req, status: "Rejected" } : req
+        )
+      );
+      await axios.put(`http://localhost:5050/api/leave/${id}`, {
+        status: "Rejected",
+      });
+    } catch (error) {
+      console.error("Failed to reject request:", error);
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString) =>
+    format(new Date(dateString), "dd MMM yyyy");
+
+  if (loading) {
+    return <div style={{ padding: "20px" }}>Loading leave requests...</div>;
+  }
+
+
+
+
+
+
+
+
+
+
+
   const handleLogout = () => {
     onLogout();
     setShowDropdown(false);
@@ -28,7 +106,7 @@ const Topbar = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "8px 20px",
+          padding: "8px 0px",
           width: "100%",
           background: "transparent",
           borderBottom: "1px solid #e2e8f0",
@@ -40,9 +118,8 @@ const Topbar = ({
             fontSize: "28px",
             fontWeight: "700",
             color: "#1e3a8a",
-            marginLeft: "20px",
             cursor: "pointer",
-            padding: "6px 12px",
+            padding: "6px 0px",
             borderRadius: "12px",
             transition: "all 0.2s ease",
             letterSpacing: "-0.5px",
@@ -234,323 +311,126 @@ const Topbar = ({
                   borderRadius: "12px",
                 }}
               >
-                3 Pending Requests
+                {leaveRequests
+    .filter((r) => r.status === "Pending").length} Pending requests
               </span>
             </div>
 
-            {/* Notifications List */}
-            <div style={{ padding: "8px 0" }}>
-              {/* Sample notification items */}
-              <div
-                style={{
-                  padding: "12px 20px",
-                  borderBottom: "1px solid #f9fafb",
-                  cursor: "pointer",
-                  transition: "background-color 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#f8fafc";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent";
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#1e293b",
-                    }}
-                  >
-                    Ahmet Yılmaz
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "#6b7280",
-                      backgroundColor: "#fef3c7",
-                      padding: "2px 6px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    Leave Request
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-
-                    color: "#6b7280",
-                    marginBottom: "8px",
-                  }}
-                >
-                  15-20 July 2025 • 5 days
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                  }}
-                >
-                  <button
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      backgroundColor: "#10b981",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "24px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#059669";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#10b981";
-                    }}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      backgroundColor: "#ef4444",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "24px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#dc2626";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#ef4444";
-                    }}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "12px 20px",
-                  borderBottom: "1px solid #f9fafb",
-                  cursor: "pointer",
-                  transition: "background-color 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#f8fafc";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent";
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#1e293b",
-                    }}
-                  >
-                    Ayşe Demir
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "#6b7280",
-                      backgroundColor: "#fef3c7",
-                      padding: "2px 6px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    Leave Request
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    marginBottom: "8px",
-                  }}
-                >
-                  22-24 July 2025 • 3 days
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                  }}
-                >
-                  <button
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      backgroundColor: "#10b981",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "24px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#059669";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#10b981";
-                    }}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      backgroundColor: "#ef4444",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "24px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#dc2626";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#ef4444";
-                    }}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "12px 20px",
-                  borderBottom: "1px solid #f9fafb",
-                  cursor: "pointer",
-                  transition: "background-color 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#f8fafc";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent";
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#1e293b",
-                    }}
-                  >
-                    Mehmet Koç
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "#6b7280",
-                      backgroundColor: "#fef3c7",
-                      padding: "2px 6px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    Leave Request
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    marginBottom: "8px",
-                  }}
-                >
-                  28-30 July 2025 • 3 days
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                  }}
-                >
-                  <button
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      backgroundColor: "#10b981",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "24px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#059669";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#10b981";
-                    }}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      backgroundColor: "#ef4444",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "24px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#dc2626";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "#ef4444";
-                    }}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
+            {/* Notifications List (Dynamic Leave Requests) */}
+<div style={{ padding: "8px 0" }}>
+  {leaveRequests
+    .filter((r) => r.status === "Pending") // Only show pending requests as notifications
+    .map((request) => {
+      const start = new Date(request.request_start_date);
+      const end = new Date(request.request_end_date);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      return (
+        <div
+          key={request.request_id}
+          style={{
+            padding: "12px 20px",
+            borderBottom: "1px solid #f9fafb",
+            cursor: "pointer",
+            transition: "background-color 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#f8fafc";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: "8px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "500",
+                color: "#1e293b",
+              }}
+            >
+              {request.per_name + " " + request.per_lname}
             </div>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#6b7280",
+                backgroundColor: "#fef3c7",
+                padding: "2px 6px",
+                borderRadius: "8px",
+              }}
+            >
+              Leave Request
+            </span>
+          </div>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#6b7280",
+              marginBottom: "8px",
+            }}
+          >
+            {formatDate(request.request_start_date)} -{" "}
+            {formatDate(request.request_end_date)} • {days}{" "}
+            {days === 1 ? "day" : "days"}
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: "500",
+                backgroundColor: "#10b981",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "24px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onClick={() => approveRequest(request.request_id)}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#059669";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "#10b981";
+              }}
+            >
+              Approve
+            </button>
+            <button
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: "500",
+                backgroundColor: "#ef4444",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "24px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onClick={() => rejectRequest(request.request_id)}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#dc2626";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "#ef4444";
+              }}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      );
+    })}
+</div>
+
 
             {/* Footer */}
             <div
