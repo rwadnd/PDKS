@@ -145,7 +145,7 @@ const Calendar = () => {
   };
 
   return (
-    <div style={{ height: "calc(100vh - 120px)", overflow: "auto", padding: "0 20px" }}>
+    <div style={{ height: "calc(100vh - 120px)", overflow: "hidden"}}>
       {/* Ana container - 75% Calendar + 25% Side Card */}
       <div style={{ display: "flex", gap: "20px", minHeight: "100%", boxSizing: "border-box" }}>
         {/* Calendar - 75% width */}
@@ -178,6 +178,8 @@ const Calendar = () => {
                 borderBottom: "1px solid #e2e8f0",
                 position: "relative",
                 flexShrink: 0,
+                borderTopLeftRadius: '20px',
+                borderTopRightRadius: '20px'
               }}
             >
               <div
