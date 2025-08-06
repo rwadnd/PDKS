@@ -222,7 +222,7 @@ function toLocalISODate(date) {
       }
     }
 
-    return absenceCount;
+    return absenceCount - 1;
   };
 
 
