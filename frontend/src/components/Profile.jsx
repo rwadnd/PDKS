@@ -61,11 +61,9 @@ const Profile = ({ onBack, currentUser }) => {
           minHeight: "calc(100vh - 240px)",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
+          overflowX: "hidden",
+          overflowY: "scroll",
+          // transform: "translate(-50%, -50%)",
         }}
       >
         {/* Header */}
