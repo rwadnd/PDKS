@@ -1,10 +1,8 @@
-
 import "../App.css";
 import { FaSearch, FaCog, FaBell, FaBars } from "react-icons/fa";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
-
 
 const Topbar = ({
   activePage,
@@ -20,12 +18,41 @@ const Topbar = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const dropdownContainer = document.getElementById(
+        "user-dropdown-container"
+      );
+      const notificationsContainer = document.getElementById(
+        "notifications-container"
+      );
+      const settingsContainer = document.getElementById("settings-container");
 
+      if (dropdownContainer && !dropdownContainer.contains(event.target)) {
+        setShowDropdown(false);
+      }
 
+      if (
+        notificationsContainer &&
+        !notificationsContainer.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
 
+      if (settingsContainer && !settingsContainer.contains(event.target)) {
+        // Settings dropdown varsa buraya eklenebilir
+      }
+    };
 
+    if (showDropdown || showNotifications) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
 
-
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown, showNotifications]);
 
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,16 +110,6 @@ const Topbar = ({
   if (loading) {
     return <div style={{ padding: "20px" }}>Loading leave requests...</div>;
   }
-
-
-
-
-
-
-
-
-
-
 
   const handleLogout = () => {
     onLogout();
@@ -198,6 +215,7 @@ const Topbar = ({
         >
           {/* Settings Icon */}
           <div
+            id="settings-container"
             style={{
               width: "44px",
               height: "44px",
@@ -268,6 +286,7 @@ const Topbar = ({
         {/* Notifications Dropdown - Outside the icons container */}
         {showNotifications && (
           <div
+            id="notifications-container"
             style={{
               position: "fixed",
               top: "80px",
@@ -302,165 +321,184 @@ const Topbar = ({
               >
                 Leave Requests
               </h3>
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "#6b7280",
-                  backgroundColor: "#f3f4f6",
-                  padding: "4px 8px",
-                  borderRadius: "12px",
-                }}
-              >
-                {leaveRequests
-    .filter((r) => r.status === "Pending").length} Pending requests
-              </span>
-            </div>
-
-            {/* Notifications List (Dynamic Leave Requests) */}
-<div style={{ padding: "8px 0" }}>
-  {leaveRequests
-    .filter((r) => r.status === "Pending") // Only show pending requests as notifications
-    .map((request) => {
-      const start = new Date(request.request_start_date);
-      const end = new Date(request.request_end_date);
-      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-      return (
-        <div
-          key={request.request_id}
-          style={{
-            padding: "12px 20px",
-            borderBottom: "1px solid #f9fafb",
-            cursor: "pointer",
-            transition: "background-color 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#f8fafc";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              marginBottom: "8px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "#1e293b",
-              }}
-            >
-              {request.per_name + " " + request.per_lname}
-            </div>
-            <span
-              style={{
-                fontSize: "11px",
-                color: "#6b7280",
-                backgroundColor: "#fef3c7",
-                padding: "2px 6px",
-                borderRadius: "8px",
-              }}
-            >
-              Leave Request
-            </span>
-          </div>
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#6b7280",
-              marginBottom: "8px",
-            }}
-          >
-            {formatDate(request.request_start_date)} -{" "}
-            {formatDate(request.request_end_date)} • {days}{" "}
-            {days === 1 ? "day" : "days"}
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-                fontWeight: "500",
-                backgroundColor: "#10b981",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "24px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onClick={() => approveRequest(request.request_id)}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = "#059669";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = "#10b981";
-              }}
-            >
-              Approve
-            </button>
-            <button
-              style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-                fontWeight: "500",
-                backgroundColor: "#ef4444",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "24px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onClick={() => rejectRequest(request.request_id)}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = "#dc2626";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = "#ef4444";
-              }}
-            >
-              Reject
-            </button>
-          </div>
-        </div>
-      );
-    })}
-</div>
-
-
-            {/* Footer */}
-            <div
-              style={{
-                padding: "12px 20px",
-                borderTop: "1px solid #f3f4f6",
-                textAlign: "center",
-              }}
-            >
               <button
                 onClick={() => {
                   onChangePage("leave-requests");
                   setShowNotifications(false);
                 }}
                 style={{
-                  fontSize: "12px",
+                  fontSize: "11px",
                   color: "#3b82f6",
                   backgroundColor: "transparent",
-                  border: "none",
+                  border: "1px solid #3b82f6",
                   cursor: "pointer",
                   fontWeight: "500",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#3b82f6";
+                  e.target.style.color = "#ffffff";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
+                  e.target.style.color = "#3b82f6";
                 }}
               >
                 View All
               </button>
             </div>
+
+            {/* Notifications List (Dynamic Leave Requests) */}
+            <div style={{ padding: "8px 0" }}>
+              {leaveRequests.filter((r) => r.status === "Pending").length ===
+              0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "20px",
+                    color: "#6b7280",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    No pending requests
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      opacity: 0.7,
+                    }}
+                  >
+                    There are currently no leave requests in the system.
+                  </div>
+                </div>
+              ) : (
+                leaveRequests
+                  .filter((r) => r.status === "Pending") // Only show pending requests as notifications
+                  .map((request) => {
+                    const start = new Date(request.request_start_date);
+                    const end = new Date(request.request_end_date);
+                    const days =
+                      Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    return (
+                      <div
+                        key={request.request_id}
+                        style={{
+                          padding: "12px 20px",
+                          borderBottom: "1px solid #f9fafb",
+                          cursor: "pointer",
+                          transition: "background-color 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f8fafc";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: "500",
+                              color: "#1e293b",
+                            }}
+                          >
+                            {request.per_name + " " + request.per_lname}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "#6b7280",
+                              backgroundColor: "#fef3c7",
+                              padding: "2px 6px",
+                              borderRadius: "8px",
+                            }}
+                          >
+                            Leave Request
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          {formatDate(request.request_start_date)} -{" "}
+                          {formatDate(request.request_end_date)} • {days}{" "}
+                          {days === 1 ? "day" : "days"}
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            style={{
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              backgroundColor: "#10b981",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: "24px",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                            }}
+                            onClick={() => approveRequest(request.request_id)}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = "#059669";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = "#10b981";
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            style={{
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              backgroundColor: "#ef4444",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: "24px",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                            }}
+                            onClick={() => rejectRequest(request.request_id)}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = "#dc2626";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = "#ef4444";
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
           </div>
         )}
         {/* User Info with Dropdown */}
         <div
+          id="user-dropdown-container"
           style={{
             position: "relative",
             display: "flex",
@@ -568,17 +606,7 @@ const Topbar = ({
               >
                 Profile
               </div>
-              <div
-                style={{
-                  padding: "8px 16px",
-                  fontSize: "14px",
-                  color: "#374151",
-                  borderBottom: "1px solid #f3f4f6",
-                  fontWeight: "500",
-                }}
-              >
-                Settings
-              </div>
+
               <div
                 style={{
                   padding: "8px 16px",
