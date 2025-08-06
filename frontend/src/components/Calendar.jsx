@@ -145,7 +145,7 @@ const Calendar = () => {
   };
 
   return (
-    <div style={{ height: "calc(100vh - 120px)", overflow: "hidden"}}>
+    <div style={{ height: "calc(100vh - 120px)", overflowX: "hidden"}}>
       {/* Ana container - 75% Calendar + 25% Side Card */}
       <div style={{ display: "flex", gap: "20px", minHeight: "100%", boxSizing: "border-box" }}>
         {/* Calendar - 75% width */}
