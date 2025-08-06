@@ -35,7 +35,7 @@ export default function LeaveRequestScreen() {
       const formattedStartDate = startDate.toISOString().split('T')[0];
       const formattedEndDate = endDate.toISOString().split('T')[0];
 
-      const response = await axios.post(`${API_BASE_URL}/api/leave/submit`, {
+      const response = await axios.post(`${API_BASE_URL}/api/leave/`, {
         personnel_per_id: parseInt(employeeId),
         request_start_date: formattedStartDate,
         request_end_date: formattedEndDate,
