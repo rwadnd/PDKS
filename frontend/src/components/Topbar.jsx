@@ -14,6 +14,8 @@ const Topbar = ({
   onToggleSidebar,
   sidebarOpen,
   onChangePage,
+  leaveRequests,
+  setLeaveRequests,
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -54,31 +56,20 @@ const Topbar = ({
     };
   }, [showDropdown, showNotifications]);
 
-  const [leaveRequests, setLeaveRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch leave requests
-  useEffect(() => {
-    axios
-      .get("http://localhost:5050/api/leave")
-      .then((res) => {
-        setLeaveRequests(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch leave requests:", err);
-        setLoading(false);
-      });
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   // Approve request
   const approveRequest = async (id) => {
     try {
-      setLeaveRequests((prev) =>
-        prev.map((req) =>
-          req.request_id === id ? { ...req, status: "Approved" } : req
-        )
+      const approvedRequest = leaveRequests.find(
+        (request) => request.request_id === id
       );
+
+      setLeaveRequests((prev) => {
+        const filtered = prev.filter((request) => request.request_id !== id);
+        return [{ ...approvedRequest, status: "Approved" }, ...filtered];
+      });
+
       await axios.put(`http://localhost:5050/api/leave/${id}`, {
         status: "Approved",
       });
@@ -90,11 +81,15 @@ const Topbar = ({
   // Reject request
   const rejectRequest = async (id) => {
     try {
-      setLeaveRequests((prev) =>
-        prev.map((req) =>
-          req.request_id === id ? { ...req, status: "Rejected" } : req
-        )
+      const rejectedRequest = leaveRequests.find(
+        (request) => request.request_id === id
       );
+
+      setLeaveRequests((prev) => {
+        const filtered = prev.filter((request) => request.request_id !== id);
+        return [{ ...rejectedRequest, status: "Rejected" }, ...filtered];
+      });
+
       await axios.put(`http://localhost:5050/api/leave/${id}`, {
         status: "Rejected",
       });
