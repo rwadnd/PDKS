@@ -1,22 +1,17 @@
+// index.js
 import axios from 'axios';
-import { Camera, CameraView } from 'expo-camera';
-import { useEffect, useState } from 'react';
-import {Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { CameraView } from 'expo-camera';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native'; // useIsFocused'ı buradan import ediyoruz
 
 export default function App() {
-  const [hasPermission, setHasPermission] = useState(null);
+  const [hasPermission] = useState(true); // İzni varsayılan olarak true yaptık
   const [scanned, setScanned] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
   const [token, setToken] = useState('');
-
-  useEffect(() => {
-    const getCameraPermissions = async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    };
-    getCameraPermissions();
-  }, []);
-
+  const isFocused = useIsFocused(); // Sayfanın odaklanma durumunu izler
+  
   const handleBarcodeScanned = ({ data }) => {
     setScanned(true);
     setToken(data);
@@ -43,12 +38,10 @@ export default function App() {
     }
   };
 
-  if (hasPermission === null) {
-    return <Text style={styles.centered}>Requesting camera permission...</Text>;
-  }
-  if (hasPermission === false) {
-    return <Text style={styles.centered}>No access to camera</Text>;
-  }
+  // Artık kamera izni kontrolü için beklemeyeceğiz.
+  // Varsayılan olarak true olduğu için direkt render edilecek.
+  // Eğer izinler daha önce verilmemişse, kamera çalışmayabilir.
+  // Ama siz izinleri manuel olarak verdiğinizi söylediğiniz için bu sorun olmayacaktır.
 
   return (
     <View style={styles.container}>
@@ -62,13 +55,15 @@ export default function App() {
         <View style={[styles.corner, styles.bottomLeft]} />
         <View style={[styles.corner, styles.bottomRight]} />
 
-        {/* CameraView inside wrapper */}
+        {/* CameraView only renders when the tab is focused */}
         <View style={styles.cameraWrapper}>
-          <CameraView
-            onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={StyleSheet.absoluteFillObject}
-          />
+          {isFocused && hasPermission && (
+            <CameraView
+              onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          )}
         </View>
       </View>
 
@@ -162,10 +157,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#135796',
     fontWeight: "500"
-    
   },
-
-  // ✅ Corner overlays
   corner: {
     position: 'absolute',
     width: 30,
