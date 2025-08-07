@@ -5,6 +5,7 @@ import { FiClock, FiActivity, FiTrendingUp, FiCalendar, FiBattery, FiArrowLeft, 
 
 const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   if (!person) return null;
+
   const [records, setRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -59,7 +60,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     }));
   };
 
-
   const todayString = new Date().toISOString().split("T")[0];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -72,7 +72,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   // Get the first day in the heatmap (52 weeks ago from last Monday)
   const startDate = new Date(lastMonday);
   startDate.setDate(startDate.getDate() - (51 * 7));
-
 
   const todayRecord = records.find((rec) => {
     const recordDate = rec.pdks_date?.split(" ")[0];
@@ -96,7 +95,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     })
     : "-";
 
-
   const getTimeAtWork = () => {
     if (!todayRecord?.pdks_checkInTime || todayRecord.pdks_checkInTime === "0000-00-00 00:00:00") {
       return "-"; // No check-in
@@ -114,9 +112,6 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
   };
-
-
-
 
   const getProductivityScore = () => {
     const now = new Date();
@@ -173,14 +168,12 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     return `${Math.round(percentage)}%`;
   };
 
-
-function toLocalISODate(date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`; // "YYYY-MM-DD"
-}
-
+  function toLocalISODate(date) {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`; // "YYYY-MM-DD"
+  }
 
   const getMonthlyAbsenceCount = (records) => {
     const now = new Date();
@@ -225,22 +218,22 @@ function toLocalISODate(date) {
     return absenceCount - 1;
   };
 
-
-const checkInDatesSet = new Set(
-  records
-    .filter((rec) =>
-      rec.pdks_checkInTime &&
-      rec.pdks_checkInTime !== "00:00:00" &&
-      rec.pdks_date
-    )
-    .map((rec) => rec.pdks_date)  // use only the DATE part
-);
-
-
-
+  const checkInDatesSet = new Set(
+    records
+      .filter((rec) =>
+        rec.pdks_checkInTime &&
+        rec.pdks_checkInTime !== "00:00:00" &&
+        rec.pdks_date
+      )
+      .map((rec) => rec.pdks_date)  // use only the DATE part
+  );
 
   return (
-    <>
+    <div style={{ 
+      height: '100vh', 
+      overflowY: 'auto',
+      padding: '1px'
+    }}>
       <div
         // personneldetail kart kismi
         style={{
@@ -255,7 +248,7 @@ const checkInDatesSet = new Set(
         }}
       >
 
-<button
+        <button
           onClick={onBack}
           style={{
             position: "absolute",
@@ -273,7 +266,7 @@ const checkInDatesSet = new Set(
             gap: "6px",
           }}
         >
-         <FiChevronLeft size={36} color="#c1c1c1ff"/>
+          <FiChevronLeft size={36} color="#c1c1c1ff"/>
         </button>
 
         <img
@@ -443,10 +436,8 @@ const checkInDatesSet = new Set(
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
                 <div style={{ flex: 1 }}>
-
                 </div>
                 <div style={{ flex: 1 }}>
-
                 </div>
               </div>
             </div>
@@ -661,9 +652,7 @@ const checkInDatesSet = new Set(
             style={{
               display: "flex",
               flexDirection: "column",
-
               marginRight: 8,
-
             }}
           >
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
@@ -693,7 +682,6 @@ const checkInDatesSet = new Set(
               paddingBottom: 5,
             }}
           >
-
             {Array.from({ length: 52 }).map((_, weekIdx) => (
               <div key={weekIdx} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {Array.from({ length: 7 }).map((_, dayIdx) => {
@@ -713,7 +701,6 @@ const checkInDatesSet = new Set(
                   const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
                   let status;
-
 
                   if (cellDate > yesterday || isWeekend) {
                     status = "no-data"; // Hide future and weekends
@@ -745,7 +732,6 @@ const checkInDatesSet = new Set(
                     />
                   );
                 })}
-
               </div>
             ))}
           </div>
@@ -845,7 +831,7 @@ const checkInDatesSet = new Set(
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
