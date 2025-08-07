@@ -129,12 +129,21 @@ const App = () => {
             />
           ))}
 
-        {activePage === "entries" && <Entries searchTerm={searchTerm} />}
+        {activePage === "entries" && (
+          <Entries
+            searchTerm={searchTerm}
+            onSelectPerson={setSelectedPerson}
+            onChangePage={changePage}
+          />
+        )}
         {activePage === "leave-requests" && (
           <LeaveRequests searchTerm={searchTerm} />
         )}
         {activePage === "profile" && (
-          <Profile onBack={() => changePage("dashboard")} currentUser={currentUser} />
+          <Profile
+            onBack={() => changePage("dashboard")}
+            currentUser={currentUser}
+          />
         )}
       </div>
     </div>
