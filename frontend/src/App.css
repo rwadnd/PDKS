@@ -270,7 +270,7 @@ html,
 .personnel-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 32px;
+  gap: 20px;
   max-height: 88%;
   overflow-y: auto;
   padding-right: 8px;
