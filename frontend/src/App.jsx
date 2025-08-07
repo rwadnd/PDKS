@@ -13,14 +13,17 @@ import Login from "./components/Login";
 import "./App.css";
 
 const App = () => {
-  const [activePage, setActivePage] = useState("dashboard");
+  // Read initial page from URL
+  const initialPage = window.location.pathname.replace("/", "") || "dashboard";
+
+  const [activePage, setActivePage] = useState(initialPage);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Check if user is logged in on component mount
+  // On first load: check login status and handle sidebar hover
   useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedIn");
     const user = localStorage.getItem("adminUser");
@@ -29,13 +32,31 @@ const App = () => {
       setIsLoggedIn(true);
       setCurrentUser(JSON.parse(user));
     }
+
     const handleSidebarHover = (event) => {
       setSidebarOpen(event.detail);
     };
 
+    // Allow back/forward navigation using browser buttons
+    const handlePopState = () => {
+      const path = window.location.pathname.replace("/", "") || "dashboard";
+      setActivePage(path);
+    };
+
     window.addEventListener("sidebarHover", handleSidebarHover);
-    return () => window.removeEventListener("sidebarHover", handleSidebarHover);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("sidebarHover", handleSidebarHover);
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, []);
+
+  const changePage = (page) => {
+    setActivePage(page);
+    setSelectedPerson(null);
+    window.history.pushState(null, "", "/" + page);
+  };
 
   const handlePersonnelUpdate = (updatedPerson) => {
     setSelectedPerson(updatedPerson);
@@ -46,6 +67,8 @@ const App = () => {
     setCurrentUser(user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("adminUser", JSON.stringify(user));
+    window.history.replaceState(null, "", "/dashboard");
+    setActivePage("dashboard");
   };
 
   const handleLogout = () => {
@@ -53,9 +76,10 @@ const App = () => {
     localStorage.removeItem("adminUser");
     setIsLoggedIn(false);
     setCurrentUser(null);
+    setActivePage("dashboard");
+    window.history.pushState(null, "", "/");
   };
 
-  // Show login page if not logged in
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;
   }
@@ -64,10 +88,7 @@ const App = () => {
     <div className="dashboard-root">
       <Sidebar
         activePage={activePage}
-        onChangePage={(page) => {
-          setActivePage(page);
-          setSelectedPerson(null); // Sayfa değişince detaydan çık
-        }}
+        onChangePage={changePage}
         isOpen={sidebarOpen}
       />
       <div className="dashboard-main">
@@ -80,25 +101,20 @@ const App = () => {
           onLogout={handleLogout}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           sidebarOpen={sidebarOpen}
-          onChangePage={(page) => {
-            setActivePage(page);
-            setSelectedPerson(null);
-          }}
+          onChangePage={changePage}
         />
+
         {activePage === "dashboard" && (
           <>
-            <StatCards
-              onChangePage={(page) => {
-                setActivePage(page);
-                setSelectedPerson(null); // Sayfa değişince detaydan çık
-              }}
-            />
+            <StatCards onChangePage={changePage} />
             <Calendar />
           </>
         )}
+
         {activePage === "departments" && (
           <Departments searchTerm={searchTerm} />
         )}
+
         {activePage === "personnel" &&
           (selectedPerson ? (
             <PersonnelDetail
@@ -112,17 +128,14 @@ const App = () => {
               searchTerm={searchTerm}
             />
           ))}
+
         {activePage === "entries" && <Entries searchTerm={searchTerm} />}
         {activePage === "leave-requests" && (
           <LeaveRequests searchTerm={searchTerm} />
         )}
         {activePage === "profile" && (
-          <Profile
-            onBack={() => setActivePage("dashboard")}
-            currentUser={currentUser}
-          />
+          <Profile onBack={() => changePage("dashboard")} currentUser={currentUser} />
         )}
-        {/* Diğer sayfalar için de benzer şekilde ekleme yapılabilir */}
       </div>
     </div>
   );
