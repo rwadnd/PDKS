@@ -11,6 +11,7 @@ import LeaveRequests from "./components/LeaveRequests";
 import Profile from "./components/Profile";
 import Login from "./components/Login";
 import "./App.css";
+import axios from 'axios'
 
 const App = () => {
   // Read initial page from URL
@@ -22,7 +23,9 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+  const [previousPage, setPreviousPage] = useState(null);
+
+
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedIn");
@@ -37,20 +40,51 @@ const App = () => {
       setSidebarOpen(event.detail);
     };
 
-    // Allow back/forward navigation using browser buttons
+    const fetchPersonById = async (id) => {
+      try {
+        const res = await axios.get(`http://localhost:5050/api/personnel/${id}`);
+        setSelectedPerson(res.data);
+      } catch (error) {
+        console.error("Error fetching person by ID:", error);
+      }
+    };
+
     const handlePopState = () => {
-      const path = window.location.pathname.replace("/", "") || "dashboard";
-      setActivePage(path);
+      const pathParts = window.location.pathname.split("/").filter(Boolean);
+      const page = pathParts[0] || "dashboard";
+
+      setActivePage(page);
+
+      if (page === "personnel" && pathParts.length === 2) {
+        const personId = pathParts[1];
+        fetchPersonById(personId); // fetch person by ID and show details
+      } else {
+        setSelectedPerson(null); // not on detail page, clear selection
+      }
     };
 
     window.addEventListener("sidebarHover", handleSidebarHover);
     window.addEventListener("popstate", handlePopState);
+
+    // run once on mount
+    handlePopState();
 
     return () => {
       window.removeEventListener("sidebarHover", handleSidebarHover);
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+
+
+  const fetchPersonById = async (id) => {
+    try {
+      const res = await axios.get(`http://localhost:5050/api/personnel/${id}`);
+      setSelectedPerson(res.data);
+    } catch (error) {
+      console.error("Error fetching person by ID:", error);
+    }
+  };
 
   const changePage = (page) => {
     setActivePage(page);
@@ -96,7 +130,11 @@ const App = () => {
           activePage={activePage}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          hideSearch={selectedPerson !== null}
+          hideSearch={
+            activePage === "dashboard" ||
+            activePage === "profile" ||
+            selectedPerson !== null
+          }
           currentUser={currentUser}
           onLogout={handleLogout}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
@@ -119,12 +157,20 @@ const App = () => {
           (selectedPerson ? (
             <PersonnelDetail
               person={selectedPerson}
-              onBack={() => setSelectedPerson(null)}
+              onBack={() => {
+                const path = previousPage ? `/${previousPage}` : "/personnel";
+                window.history.pushState(null, "", path);
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
               onUpdate={handlePersonnelUpdate}
             />
           ) : (
             <PersonnelList
-              onSelectPerson={setSelectedPerson}
+              onSelectPerson={(person) => {
+                setPreviousPage("personnel"); // 👈 store previous
+                window.history.pushState(null, "", `/personnel/${person.per_id}`);
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
               searchTerm={searchTerm}
             />
           ))}
@@ -137,9 +183,13 @@ const App = () => {
               onUpdate={handlePersonnelUpdate}
             />
           ) : (
-            <Entries 
-              searchTerm={searchTerm} 
-              onSelectPerson={setSelectedPerson} 
+            <Entries
+              searchTerm={searchTerm}
+              onSelectPerson={(person) => {
+                window.history.pushState(null, "", `/personnel/${person.per_id}`);
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+              setPreviousPage={setPreviousPage}
             />
           ))}
 

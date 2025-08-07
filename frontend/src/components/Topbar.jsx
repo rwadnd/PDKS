@@ -153,7 +153,7 @@ const Topbar = ({
         </div>
 
         {/* Center - Search Input */}
-        {activePage !== "dashboard" && (
+        {!hideSearch && (
           <div
             style={{
               position: "relative",

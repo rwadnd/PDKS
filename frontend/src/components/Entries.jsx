@@ -1,7 +1,7 @@
 import "../App.css";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {FaClock, FaChartLine, FaUserTimes } from "react-icons/fa";
+import { FaClock, FaChartLine, FaUserTimes } from "react-icons/fa";
 
 // Status dot logic
 const statusDot = (status, checkInTime) => {
@@ -33,7 +33,7 @@ const statusDot = (status, checkInTime) => {
 };
 
 
-const Entries = ({ searchTerm, onSelectPerson }) => {
+const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
   const [stats, setStats] = useState({
     onTimeToday: 0,
@@ -195,16 +195,12 @@ const Entries = ({ searchTerm, onSelectPerson }) => {
                   cursor: "pointer", // İmleci pointer yap
                 }}
                 onClick={() => {
-                  if (onSelectPerson) {
-                    onSelectPerson({
-                      per_id: entry.per_id,
-                      per_name: entry.per_name,
-                      per_lname: entry.per_lname,
-                      per_role: entry.per_role,
-                      per_department: entry.per_department,
-                    });
-                  }
-                }}
+  if (onSelectPerson && setPreviousPage) {
+    setPreviousPage("entries");
+    window.history.pushState(null, "", `/personnel/${entry.per_id}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+}}
                 onMouseOver={(e) =>
                   (e.target.parentElement.style.backgroundColor = "#f9fafb")
                 }

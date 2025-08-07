@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const PersonnelList = ({ onSelectPerson }) => {
+const PersonnelList = ({ searchTerm, onSelectPerson }) => {
   const [personnel, setPersonnel] = useState([]);
 
   useEffect(() => {
@@ -12,11 +12,23 @@ const PersonnelList = ({ onSelectPerson }) => {
 
   return (
     <div className="personnel-grid">
-      {personnel.map((person) => (
+      {personnel.filter((entry) => {
+        if (!searchTerm) return true;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          entry.per_name?.toLowerCase().includes(searchLower) ||
+          entry.per_lname?.toLowerCase().includes(searchLower) ||
+          entry.per_department?.toLowerCase().includes(searchLower) ||
+          entry.per_role?.toLowerCase().includes(searchLower)
+        );
+      }).map((person) => (
         <div
           className="personnel-card"
           key={person.per_id}
-          onClick={() => onSelectPerson && onSelectPerson(person)}
+          onClick={() => {
+            window.history.pushState(null, "", `/personnel/${person.per_id}`);
+            window.dispatchEvent(new PopStateEvent("popstate")); // trigger App logic
+          }}
           style={{ cursor: "pointer" }}
         >
           <img
