@@ -17,6 +17,7 @@ import { FiInbox, FiAward } from "react-icons/fi";
 // Official holidays (2025)
 const OFFICIAL_HOLIDAYS_2025 = [
   "2025-01-01", // New Year's Day
+  "2025-01-23", // Test Holiday
   "2025-04-23", // National Sovereignty and Children's Day
   "2025-05-01", // Labor and Solidarity Day
   "2025-05-19", // Youth and Sports Day
@@ -28,6 +29,7 @@ const OFFICIAL_HOLIDAYS_2025 = [
 // Holiday names in Turkish
 const HOLIDAY_NAMES = {
   "2025-01-01": "Yılbaşı",
+  "2025-01-23": "23 Ocak Test Tatil Günü",
   "2025-04-23": "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı",
   "2025-05-01": "1 Mayıs Emek ve Dayanışma Günü",
   "2025-05-19": "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı",
@@ -316,7 +318,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   });
 
   // Test için bugünü resmi tatil olarak ayarla
-  const today = new Date();
+  const today = new Date("2025-08-07");
   const todayStr = today.toISOString().split("T")[0];
   const holidayInfo = isHoliday(today);
 
@@ -501,17 +503,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                   marginBottom: "8px",
                 }}
               >
-                19 Mayıs Atatürk'ü Anma,
-              </div>
-              <div
-                style={{
-                  fontSize: "16px",
-                  color: "#374151",
-                  fontWeight: "600",
-                  marginBottom: "16px",
-                }}
-              >
-                Gençlik ve Spor Bayramı
+                {HOLIDAY_NAMES[todayStr] || "Official Holiday"}
               </div>
               <div
                 style={{
