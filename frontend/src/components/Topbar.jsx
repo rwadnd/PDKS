@@ -209,7 +209,7 @@ const Topbar = ({
           }}
         >
           {/* Settings Icon */}
-          <div
+          {/* <div
             id="settings-container"
             style={{
               width: "44px",
@@ -233,7 +233,7 @@ const Topbar = ({
             }}
           >
             <FaCog />
-          </div>
+          </div> */}
 
           {/* Notifications Icon */}
           <div
