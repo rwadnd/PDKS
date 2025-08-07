@@ -1,9 +1,6 @@
 import "../App.css";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-<<<<<<< HEAD
-import { FaClock, FaChartLine, FaUserTimes } from "react-icons/fa";
-=======
 import {
   FaUser,
   FaClock,
@@ -17,6 +14,9 @@ import {
 } from "react-icons/fa";
 import { FiInbox, FiAward } from "react-icons/fi";
 
+
+
+
 // Official holidays (2025)
 const OFFICIAL_HOLIDAYS_2025 = [
   "2025-01-01", // New Year's Day
@@ -25,7 +25,7 @@ const OFFICIAL_HOLIDAYS_2025 = [
   "2025-05-19", // Youth and Sports Day
   "2025-07-15", // Democracy and National Unity Day
   "2025-08-30", // Victory Day
-  "2025-10-29", // Republic Day
+  "2025-10-29",
 ];
 
 // Holiday names in Turkish
@@ -56,7 +56,35 @@ const isHoliday = (date) => {
 
   return { isHoliday: false, type: null, message: null };
 };
->>>>>>> 64dbc1c99849d890e2f6af332087a06bb85c8f6b
+
+
+// Holiday icon and color functions
+const getHolidayIcon = (type) => {
+  switch (type) {
+    case "weekend":
+      return <FaHome style={{ fontSize: "24px", color: "#3b82f6" }} />;
+    case "official":
+      return <FaUmbrellaBeach style={{ fontSize: "24px", color: "#f59e0b" }} />;
+    default:
+      return <FaCalendarAlt style={{ fontSize: "24px", color: "#10b981" }} />;
+  }
+};
+
+const getHolidayColor = (type) => {
+  switch (type) {
+    case "weekend":
+      return "#dbeafe";
+    case "official":
+      return "#fef3c7";
+    default:
+      return "#d1fae5";
+  }
+};
+
+
+
+
+
 
 // Status dot logic
 const statusDot = (status, checkInTime) => {
@@ -87,28 +115,7 @@ const statusDot = (status, checkInTime) => {
   );
 };
 
-// Holiday icon and color functions
-const getHolidayIcon = (type) => {
-  switch (type) {
-    case "weekend":
-      return <FaHome style={{ fontSize: "24px", color: "#3b82f6" }} />;
-    case "official":
-      return <FaUmbrellaBeach style={{ fontSize: "24px", color: "#f59e0b" }} />;
-    default:
-      return <FaCalendarAlt style={{ fontSize: "24px", color: "#10b981" }} />;
-  }
-};
 
-const getHolidayColor = (type) => {
-  switch (type) {
-    case "weekend":
-      return "#dbeafe";
-    case "official":
-      return "#fef3c7";
-    default:
-      return "#d1fae5";
-  }
-};
 
 // Holiday message component
 const HolidayMessage = ({ holidayInfo }) => {
@@ -317,9 +324,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const averageCheckInMinutes =
     checkInTimes.length > 0
       ? Math.round(
-          checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
-            checkInTimes.length
-        )
+        checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
+        checkInTimes.length
+      )
       : 0;
 
   const averageCheckInHours = Math.floor(averageCheckInMinutes / 60);
@@ -405,11 +412,13 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
         </div>
 
         {/* Table Content */}
-        {filteredRecords.length === 0 ? (
+        {holidayInfo.isHoliday ? (
           <EmptyStateMessage
             isHoliday={holidayInfo.isHoliday}
             holidayInfo={holidayInfo}
           />
+        ) : filteredRecords.length === 0 ? (
+          <EmptyStateMessage isHoliday={false} holidayInfo={{}} />
         ) : (
           filteredRecords.map((entry, i) => {
             const formattedCheckIn =
@@ -436,12 +445,12 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                   cursor: "pointer",
                 }}
                 onClick={() => {
-  if (onSelectPerson && setPreviousPage) {
-    setPreviousPage("entries");
-    window.history.pushState(null, "", `/personnel/${entry.per_id}`);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }
-}}
+                  if (onSelectPerson && setPreviousPage) {
+                    setPreviousPage("entries");
+                    window.history.pushState(null, "", `/personnel/${entry.per_id}`);
+                    window.dispatchEvent(new PopStateEvent("popstate"));
+                  }
+                }}
                 onMouseOver={(e) =>
                   (e.target.parentElement.style.backgroundColor = "#f9fafb")
                 }
@@ -716,11 +725,11 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {lastEntryRecord
                   ? `${new Date(
-                      `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
-                    ).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })} • ${lastEntryRecord.per_department}`
+                    `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })} • ${lastEntryRecord.per_department}`
                   : "No recent activity"}
               </div>
             </div>
@@ -849,16 +858,16 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {todayEntries.length > 0
                   ? `${Math.round(
-                      (todayEntries.filter((entry) => {
-                        const [hours, minutes] = entry.pdks_checkInTime
-                          .split(":")
-                          .map(Number);
-                        // On time: before 9:00 AM
-                        return hours <= 8 && minutes <= 30;
-                      }).length /
-                        todayEntries.length) *
-                        100
-                    )}% of today's entries`
+                    (todayEntries.filter((entry) => {
+                      const [hours, minutes] = entry.pdks_checkInTime
+                        .split(":")
+                        .map(Number);
+                      // On time: before 9:00 AM
+                      return hours <= 8 && minutes <= 30;
+                    }).length /
+                      todayEntries.length) *
+                    100
+                  )}% of today's entries`
                   : "No entries today"}
               </div>
             </div>
@@ -919,9 +928,8 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               </div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {absentToday.length > 0
-                  ? `${absentToday.slice(0, 2).join(", ")}${
-                      absentToday.length > 2 ? "..." : ""
-                    }`
+                  ? `${absentToday.slice(0, 2).join(", ")}${absentToday.length > 2 ? "..." : ""
+                  }`
                   : "All personnel present"}
               </div>
             </div>

@@ -23,11 +23,8 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-<<<<<<< HEAD
   const [previousPage, setPreviousPage] = useState(null);
 
-=======
->>>>>>> 64dbc1c99849d890e2f6af332087a06bb85c8f6b
 
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
@@ -188,15 +185,11 @@ const App = () => {
           ) : (
             <Entries
               searchTerm={searchTerm}
-<<<<<<< HEAD
               onSelectPerson={(person) => {
                 window.history.pushState(null, "", `/personnel/${person.per_id}`);
                 window.dispatchEvent(new PopStateEvent("popstate"));
               }}
               setPreviousPage={setPreviousPage}
-=======
-              onSelectPerson={setSelectedPerson}
->>>>>>> 64dbc1c99849d890e2f6af332087a06bb85c8f6b
             />
           ))}
 
