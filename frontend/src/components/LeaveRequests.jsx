@@ -8,23 +8,13 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 
-const LeaveRequests = ({ searchTerm = "" }) => {
-  const [leaveRequests, setLeaveRequests] = useState([]);
+const LeaveRequests = ({
+  searchTerm = "",
+  leaveRequests,
+  setLeaveRequests,
+}) => {
   const [filter, setFilter] = useState("Pending"); // all, pending, approved, rejected
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    axios
-      .get("http://localhost:5050/api/leave/")
-      .then((res) => {
-        setLeaveRequests(res.data);
-        setLoading(false); // Move inside here
-      })
-      .catch((err) => {
-        console.error("Error fetching personnel:", err);
-        setLoading(false); // Also set to false on error
-      });
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const approveRequest = async (id) => {
     try {
