@@ -11,7 +11,7 @@ import LeaveRequests from "./components/LeaveRequests";
 import Profile from "./components/Profile";
 import Login from "./components/Login";
 import "./App.css";
-import axios from 'axios'
+import axios from "axios";
 
 const App = () => {
   // Read initial page from URL
@@ -24,7 +24,6 @@ const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [previousPage, setPreviousPage] = useState(null);
-
 
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
@@ -42,7 +41,9 @@ const App = () => {
 
     const fetchPersonById = async (id) => {
       try {
-        const res = await axios.get(`http://localhost:5050/api/personnel/${id}`);
+        const res = await axios.get(
+          `http://localhost:5050/api/personnel/${id}`
+        );
         setSelectedPerson(res.data);
       } catch (error) {
         console.error("Error fetching person by ID:", error);
@@ -54,6 +55,7 @@ const App = () => {
       const page = pathParts[0] || "dashboard";
 
       setActivePage(page);
+      setSearchTerm(""); // Search state'ini temizle
 
       if (page === "personnel" && pathParts.length === 2) {
         const personId = pathParts[1];
@@ -75,8 +77,6 @@ const App = () => {
     };
   }, []);
 
-
-
   const fetchPersonById = async (id) => {
     try {
       const res = await axios.get(`http://localhost:5050/api/personnel/${id}`);
@@ -89,6 +89,7 @@ const App = () => {
   const changePage = (page) => {
     setActivePage(page);
     setSelectedPerson(null);
+    setSearchTerm(""); // Search state'ini temizle
     window.history.pushState(null, "", "/" + page);
   };
 
@@ -168,7 +169,11 @@ const App = () => {
             <PersonnelList
               onSelectPerson={(person) => {
                 setPreviousPage("personnel"); // 👈 store previous
-                window.history.pushState(null, "", `/personnel/${person.per_id}`);
+                window.history.pushState(
+                  null,
+                  "",
+                  `/personnel/${person.per_id}`
+                );
                 window.dispatchEvent(new PopStateEvent("popstate"));
               }}
               searchTerm={searchTerm}
@@ -186,7 +191,11 @@ const App = () => {
             <Entries
               searchTerm={searchTerm}
               onSelectPerson={(person) => {
-                window.history.pushState(null, "", `/personnel/${person.per_id}`);
+                window.history.pushState(
+                  null,
+                  "",
+                  `/personnel/${person.per_id}`
+                );
                 window.dispatchEvent(new PopStateEvent("popstate"));
               }}
               setPreviousPage={setPreviousPage}
