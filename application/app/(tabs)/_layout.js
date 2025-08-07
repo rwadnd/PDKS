@@ -1,3 +1,4 @@
+// _layout.js
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, StyleSheet, Platform, StatusBar } from 'react-native';
@@ -19,7 +20,7 @@ export default function TabLayout() {
             height: 70,
             paddingBottom: Platform.select({
               ios: 0,
-              android: 8, // Android'de biraz daha fazla padding
+              android: 8,
             }),
           },
           tabBarItemStyle: {
@@ -38,6 +39,7 @@ export default function TabLayout() {
               />
             );
           },
+          unmountOnBlur: false, // Kamera bileşeninin bellekten kaldırılmasını engeller
         })}
       >
         <Tabs.Screen name="index" options={{ title: 'QR' }} />
