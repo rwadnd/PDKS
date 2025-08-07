@@ -22,7 +22,7 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedIn");
@@ -129,7 +129,20 @@ const App = () => {
             />
           ))}
 
-        {activePage === "entries" && <Entries searchTerm={searchTerm} />}
+        {activePage === "entries" &&
+          (selectedPerson ? (
+            <PersonnelDetail
+              person={selectedPerson}
+              onBack={() => setSelectedPerson(null)}
+              onUpdate={handlePersonnelUpdate}
+            />
+          ) : (
+            <Entries 
+              searchTerm={searchTerm} 
+              onSelectPerson={setSelectedPerson} 
+            />
+          ))}
+
         {activePage === "leave-requests" && (
           <LeaveRequests searchTerm={searchTerm} />
         )}
