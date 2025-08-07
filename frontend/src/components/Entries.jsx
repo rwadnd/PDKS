@@ -14,9 +14,6 @@ import {
 } from "react-icons/fa";
 import { FiInbox, FiAward } from "react-icons/fi";
 
-
-
-
 // Official holidays (2025)
 const OFFICIAL_HOLIDAYS_2025 = [
   "2025-01-01", // New Year's Day
@@ -57,7 +54,6 @@ const isHoliday = (date) => {
   return { isHoliday: false, type: null, message: null };
 };
 
-
 // Holiday icon and color functions
 const getHolidayIcon = (type) => {
   switch (type) {
@@ -80,11 +76,6 @@ const getHolidayColor = (type) => {
       return "#d1fae5";
   }
 };
-
-
-
-
-
 
 // Status dot logic
 const statusDot = (status, checkInTime) => {
@@ -115,82 +106,120 @@ const statusDot = (status, checkInTime) => {
   );
 };
 
-
-
 // Holiday message component
 const HolidayMessage = ({ holidayInfo }) => {
   return (
-    <div
-      style={{
-        backgroundColor: getHolidayColor(holidayInfo.type),
-        borderRadius: "16px",
-        padding: "32px",
-        textAlign: "center",
-        border: "2px dashed #e5e7eb",
-        margin: "20px",
-      }}
-    >
-      <div style={{ marginBottom: "16px" }}>
-        {getHolidayIcon(holidayInfo.type)}
-      </div>
-      <h3
-        style={{
-          fontSize: "24px",
-          fontWeight: "600",
-          color: "#374151",
-          marginBottom: "8px",
-        }}
-      >
-        {holidayInfo.message}
-      </h3>
-      <p
-        style={{
-          fontSize: "16px",
-          color: "#6b7280",
-          marginBottom: "16px",
-        }}
-      >
-        {holidayInfo.type === "official"
-          ? "Bugün resmi tatil! Tüm personel bayramını kutluyor! 🎉"
-          : "Ofis bugün kapalı. Tüm personel tatilde! 🏠"}
-      </p>
+    <div style={{ display: "flex", gap: "24px", height: "88%" }}>
+      {/* Left Card - White */}
       <div
         style={{
+          flex: "1",
+          backgroundColor: "#ffffff",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow:
+            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          border: "1px solid #e5e7eb",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
-          gap: "16px",
-          flexWrap: "wrap",
+          alignItems: "center",
+          textAlign: "center",
         }}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            backgroundColor: "white",
-            borderRadius: "20px",
-            fontSize: "14px",
-            color: "#6b7280",
+            fontSize: "48px",
+            color: "#3b82f6",
+            marginBottom: "16px",
           }}
         >
-          <FaCoffee />
-          <span>Dinlenme</span>
+          📦
         </div>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            backgroundColor: "white",
-            borderRadius: "20px",
-            fontSize: "14px",
+            fontSize: "18px",
+            fontWeight: "600",
+            color: "#374151",
+            marginBottom: "8px",
+          }}
+        >
+          1 Mayıs Emek ve Dayanışma Günü
+        </div>
+        <div
+          style={{
+            fontSize: "16px",
             color: "#6b7280",
           }}
         >
-          <FaUmbrellaBeach />
-          <span>{holidayInfo.type === "official" ? "Kutlama" : "Tatil"}</span>
+          No entries found
+        </div>
+      </div>
+
+      {/* Right Card - Light Blue */}
+      <div
+        style={{
+          width: "300px",
+          backgroundColor: "#eaf6ff",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow:
+            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          border: "1px solid #e5e7eb",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "24px",
+            marginBottom: "16px",
+          }}
+        >
+          🇹🇷
+        </div>
+        <div
+          style={{
+            fontSize: "21px",
+            fontWeight: "700",
+            color: "#00123B",
+            marginBottom: "8px",
+          }}
+        >
+          Official Holiday
+        </div>
+        <div
+          style={{
+            fontSize: "16px",
+            color: "#374151",
+            fontWeight: "600",
+            marginBottom: "8px",
+          }}
+        >
+          19 Mayıs Atatürk'ü Anma,
+        </div>
+        <div
+          style={{
+            fontSize: "16px",
+            color: "#374151",
+            fontWeight: "600",
+            marginBottom: "16px",
+          }}
+        >
+          Gençlik ve Spor Bayramı
+        </div>
+        <div
+          style={{
+            fontSize: "15px",
+            color: "#00123B",
+            fontWeight: "500",
+            fontStyle: "italic",
+          }}
+        >
+          Bayramınız kutlu olsun!
         </div>
       </div>
     </div>
@@ -324,9 +353,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const averageCheckInMinutes =
     checkInTimes.length > 0
       ? Math.round(
-        checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
-        checkInTimes.length
-      )
+          checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
+            checkInTimes.length
+        )
       : 0;
 
   const averageCheckInHours = Math.floor(averageCheckInMinutes / 60);
@@ -373,299 +402,423 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
 
   return (
     <div style={{ display: "flex", gap: "24px", height: "88%" }}>
-      {/* Main Table */}
-      <div
-        style={{
-          flex: "1",
-          width: "110%",
-          backgroundColor: "#ffffff",
-          borderRadius: "16px",
-          boxShadow:
-            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-          border: "1px solid #e5e7eb",
-          overflowX: "hidden",
-          overflowY: "scroll",
-          maxHeight: "88vh",
-        }}
-      >
-        {/* Table Header */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
-            gap: "16px",
-            padding: "20px",
-            backgroundColor: "#f9fafb",
-            borderBottom: "1px solid #e5e7eb",
-            fontWeight: "600",
-            fontSize: "14px",
-            color: "#374151",
-          }}
-        >
-          <div>Photo</div>
-          <div>Personnel Name</div>
-          <div>Department</div>
-          <div>Role</div>
-          <div>Check-in Time</div>
-          <div>Check-out Time</div>
-          <div>Status</div>
-        </div>
-
-        {/* Table Content */}
-        {holidayInfo.isHoliday ? (
-          <EmptyStateMessage
-            isHoliday={holidayInfo.isHoliday}
-            holidayInfo={holidayInfo}
-          />
-        ) : filteredRecords.length === 0 ? (
-          <EmptyStateMessage isHoliday={false} holidayInfo={{}} />
-        ) : (
-          filteredRecords.map((entry, i) => {
-            const formattedCheckIn =
-              entry.pdks_checkInTime && entry.pdks_checkInTime !== "00:00:00"
-                ? entry.pdks_checkInTime.slice(0, 5)
-                : "-";
-
-            const formattedCheckOut =
-              entry.pdks_checkOutTime && entry.pdks_checkOutTime !== "00:00:00"
-                ? entry.pdks_checkOutTime.slice(0, 5)
-                : "-";
-
-            return (
-              <div
-                key={i}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
-                  gap: "16px",
-                  padding: "20px",
-                  borderBottom: "1px solid #f3f4f6",
-                  alignItems: "center",
-                  transition: "background-color 0.2s ease",
-                  cursor: "pointer",
-                }}
-                onClick={() => {
-                  if (onSelectPerson && setPreviousPage) {
-                    setPreviousPage("entries");
-                    window.history.pushState(null, "", `/personnel/${entry.per_id}`);
-                    window.dispatchEvent(new PopStateEvent("popstate"));
-                  }
-                }}
-                onMouseOver={(e) =>
-                  (e.target.parentElement.style.backgroundColor = "#f9fafb")
-                }
-                onMouseOut={(e) =>
-                  (e.target.parentElement.style.backgroundColor = "transparent")
-                }
-              >
-                {/* Photo */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <img
-                    src={`/${(
-                      entry.per_name + entry.per_lname
-                    ).toLowerCase()}.jpg`}
-                    alt={`${entry.per_name} ${entry.per_lname}`}
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      border: "2px solid #e5e7eb",
-                    }}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "flex";
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      backgroundColor: "#f59e0b",
-                      display: "none",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#ffffff",
-                      fontWeight: "600",
-                      fontSize: "16px",
-                    }}
-                  >
-                    ?
-                  </div>
-                </div>
-
-                {/* Personnel Name */}
-                <div style={{ fontWeight: "500", color: "#111827" }}>
-                  {entry.per_name} {entry.per_lname}
-                </div>
-
-                {/* Department */}
-                <div style={{ color: "#6b7280" }}>
-                  {entry.per_department || "IT"}
-                </div>
-
-                {/* Role */}
-                <div style={{ color: "#6b7280" }}>
-                  {entry.per_role || "Intern"}
-                </div>
-
-                {/* Check-in Time */}
-                <div style={{ color: "#6b7280" }}>{formattedCheckIn}</div>
-
-                {/* Check-out Time */}
-                <div style={{ color: "#6b7280" }}>{formattedCheckOut}</div>
-
-                {/* Status */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  {statusDot(entry.per_status, entry.pdks_checkInTime)}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Right Sidebar Cards */}
-      <div
-        style={{
-          width: "300px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}
-      >
-        {holidayInfo.isHoliday ? (
+      {holidayInfo.isHoliday && holidayInfo.type === "official" ? (
+        // Official Holiday Design - Two Cards
+        <>
+          {/* Main Table */}
           <div
             style={{
-              backgroundColor: "#eaf6ff",
+              flex: "1",
+              backgroundColor: "#ffffff",
               borderRadius: "16px",
-              padding: "32px",
               boxShadow:
                 "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
               border: "1px solid #e5e7eb",
-              textAlign: "center",
-              height: "88vh",
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
               alignItems: "center",
+              textAlign: "center",
+              height: "82vh",
             }}
           >
-            {holidayInfo.type === "official" ? (
-              <>
-                <div
-                  style={{
-                    fontSize: "2.5rem",
-                    marginBottom: "10px",
-                    color: "#3b82f6",
-                  }}
-                >
-                  <FiAward />
-                </div>
-                <h3
-                  style={{
-                    fontSize: "21px",
-                    fontWeight: "700",
-                    color: "#00123B",
-                  }}
-                >
-                  Official Holiday
-                </h3>
-                <div
-                  style={{
-                    fontSize: "16px",
-                    color: "#374151",
-                    fontWeight: 600,
-                    marginBottom: "18px",
-                  }}
-                >
-                  {HOLIDAY_NAMES[todayStr]}
-                </div>
-                <div
-                  style={{
-                    fontSize: "15px",
-                    color: "#00123B",
-                    fontWeight: 500,
-                    fontStyle: "italic",
-                  }}
-                >
-                  Bayramınız kutlu olsun!
-                </div>
-              </>
+            <div
+              style={{
+                fontSize: "48px",
+                color: "#3b82f6",
+                marginBottom: "16px",
+              }}
+            >
+              <FiInbox />
+            </div>
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "8px",
+              }}
+            >
+              Official Holiday
+            </div>
+            <div
+              style={{
+                fontSize: "18px",
+                color: "#6b7280",
+              }}
+            >
+              No entries found
+            </div>
+          </div>
+
+          {/* Right Sidebar Card */}
+          <div
+            style={{
+              width: "300px",
+              height: "75vh",
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "#eaf6ff",
+                borderRadius: "16px",
+                padding: "32px",
+                boxShadow:
+                  "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                border: "1px solid #e5e7eb",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "35px",
+                  marginBottom: "16px",
+                  color: "#3b82f6",
+                }}
+              >
+                <FiAward />
+              </div>
+              <div
+                style={{
+                  fontSize: "21px",
+                  fontWeight: "700",
+                  color: "#00123B",
+                  marginBottom: "8px",
+                }}
+              >
+                Official Holiday
+              </div>
+              <div
+                style={{
+                  fontSize: "16px",
+                  color: "#374151",
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                }}
+              >
+                19 Mayıs Atatürk'ü Anma,
+              </div>
+              <div
+                style={{
+                  fontSize: "16px",
+                  color: "#374151",
+                  fontWeight: "600",
+                  marginBottom: "16px",
+                }}
+              >
+                Gençlik ve Spor Bayramı
+              </div>
+              <div
+                style={{
+                  fontSize: "15px",
+                  color: "#00123B",
+                  fontWeight: "500",
+                  fontStyle: "italic",
+                }}
+              >
+                Bayramınız kutlu olsun!
+              </div>
+            </div>
+          </div>
+        </>
+      ) : holidayInfo.isHoliday && holidayInfo.type === "weekend" ? (
+        // Weekend Design - Two Cards
+        <>
+          {/* Main Table */}
+          <div
+            style={{
+              flex: "1",
+              backgroundColor: "#ffffff",
+              borderRadius: "16px",
+              boxShadow:
+                "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              border: "1px solid #e5e7eb",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              textAlign: "center",
+              height: "82vh",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "48px",
+                color: "#3b82f6",
+                marginBottom: "16px",
+              }}
+            >
+              <FaHome />
+            </div>
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "8px",
+              }}
+            >
+              Weekend
+            </div>
+            <div
+              style={{
+                fontSize: "18px",
+                color: "#6b7280",
+              }}
+            >
+              No entries found
+            </div>
+          </div>
+
+          {/* Right Sidebar Card */}
+          <div
+            style={{
+              width: "300px",
+              height: "75vh",
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "#eaf6ff",
+                borderRadius: "16px",
+                padding: "32px",
+                boxShadow:
+                  "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                border: "1px solid #e5e7eb",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "35px",
+                  marginBottom: "16px",
+                  color: "#3b82f6",
+                }}
+              >
+                <FaHome />
+              </div>
+              <div
+                style={{
+                  fontSize: "21px",
+                  fontWeight: "700",
+                  color: "#374151",
+                  marginBottom: "8px",
+                }}
+              >
+                Weekend
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "16px",
+                  color: "#6b7280",
+                  fontWeight: "600",
+                  marginBottom: "16px",
+                }}
+              >
+                <FaCalendarAlt />
+                <span>
+                  {new Date().toLocaleDateString("en-US", {
+                    day: "numeric",
+                    month: "short",
+                    weekday: "short",
+                  })}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "15px",
+                  color: "#374151",
+                  fontWeight: "500",
+
+                  marginTop: "16px",
+                }}
+              >
+                Have a nice holiday!
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        // Normal Day Design - Table with Sidebar Cards
+        <>
+          {/* Main Table */}
+          <div
+            style={{
+              flex: "1",
+              width: "110%",
+              backgroundColor: "#ffffff",
+              borderRadius: "16px",
+              boxShadow:
+                "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              border: "1px solid #e5e7eb",
+              overflowX: "hidden",
+              overflowY: "scroll",
+              maxHeight: "88vh",
+            }}
+          >
+            {/* Table Header */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+                gap: "16px",
+                padding: "20px",
+                backgroundColor: "#f9fafb",
+                borderBottom: "1px solid #e5e7eb",
+                fontWeight: "600",
+                fontSize: "14px",
+                color: "#374151",
+              }}
+            >
+              <div>Photo</div>
+              <div>Personnel Name</div>
+              <div>Department</div>
+              <div>Role</div>
+              <div>Check-in Time</div>
+              <div>Check-out Time</div>
+              <div>Status</div>
+            </div>
+
+            {/* Table Content */}
+            {filteredRecords.length === 0 ? (
+              <EmptyStateMessage isHoliday={false} holidayInfo={{}} />
             ) : (
-              <>
-                {holidayInfo.type === "weekend" && (
-                  <>
-                    <div style={{ marginBottom: "8px" }}>
-                      {getHolidayIcon(holidayInfo.type)}
+              filteredRecords.map((entry, i) => {
+                const formattedCheckIn =
+                  entry.pdks_checkInTime &&
+                  entry.pdks_checkInTime !== "00:00:00"
+                    ? entry.pdks_checkInTime.slice(0, 5)
+                    : "-";
+
+                const formattedCheckOut =
+                  entry.pdks_checkOutTime &&
+                  entry.pdks_checkOutTime !== "00:00:00"
+                    ? entry.pdks_checkOutTime.slice(0, 5)
+                    : "-";
+
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "80px 1fr 120px 120px 120px 120px 80px",
+                      gap: "16px",
+                      padding: "20px",
+                      borderBottom: "1px solid #f3f4f6",
+                      alignItems: "center",
+                      transition: "background-color 0.2s ease",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      if (onSelectPerson && setPreviousPage) {
+                        setPreviousPage("entries");
+                        window.history.pushState(
+                          null,
+                          "",
+                          `/personnel/${entry.per_id}`
+                        );
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                      }
+                    }}
+                    onMouseOver={(e) =>
+                      (e.target.parentElement.style.backgroundColor = "#f9fafb")
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.parentElement.style.backgroundColor =
+                        "transparent")
+                    }
+                  >
+                    {/* Photo */}
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <img
+                        src={`/${(
+                          entry.per_name + entry.per_lname
+                        ).toLowerCase()}.jpg`}
+                        alt={`${entry.per_name} ${entry.per_lname}`}
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: "2px solid #e5e7eb",
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "flex";
+                        }}
+                      />
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          backgroundColor: "#f59e0b",
+                          display: "none",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#ffffff",
+                          fontWeight: "600",
+                          fontSize: "16px",
+                        }}
+                      >
+                        ?
+                      </div>
                     </div>
-                    <h3
-                      style={{
-                        fontSize: "24px",
-                        fontWeight: "600",
-                        color: "#374151",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      Weekend
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: "16px",
-                        color: "#6b7280",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      Office is closed today. It is the weekend!
-                    </p>
-                  </>
-                )}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: "16px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px 16px",
-                      backgroundColor: "white",
-                      borderRadius: "20px",
-                      fontSize: "14px",
-                      color: "#6b7280",
-                    }}
-                  >
-                    <FaCoffee />
-                    <span>Rest</span>
+
+                    {/* Personnel Name */}
+                    <div style={{ fontWeight: "500", color: "#111827" }}>
+                      {entry.per_name} {entry.per_lname}
+                    </div>
+
+                    {/* Department */}
+                    <div style={{ color: "#6b7280" }}>
+                      {entry.per_department || "IT"}
+                    </div>
+
+                    {/* Role */}
+                    <div style={{ color: "#6b7280" }}>
+                      {entry.per_role || "Intern"}
+                    </div>
+
+                    {/* Check-in Time */}
+                    <div style={{ color: "#6b7280" }}>{formattedCheckIn}</div>
+
+                    {/* Check-out Time */}
+                    <div style={{ color: "#6b7280" }}>{formattedCheckOut}</div>
+
+                    {/* Status */}
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      {statusDot(entry.per_status, entry.pdks_checkInTime)}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px 16px",
-                      backgroundColor: "white",
-                      borderRadius: "20px",
-                      fontSize: "14px",
-                      color: "#6b7280",
-                    }}
-                  >
-                    <FaUmbrellaBeach />
-                    <span>Holiday</span>
-                  </div>
-                </div>
-              </>
+                );
+              })
             )}
           </div>
-        ) : (
-          /* Normal Day Cards */
-          <>
+
+          {/* Right Sidebar Cards */}
+          <div
+            style={{
+              width: "300px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
             {/* Last Entry Card */}
             <div
               style={{
@@ -725,11 +878,11 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {lastEntryRecord
                   ? `${new Date(
-                    `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
-                  ).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })} • ${lastEntryRecord.per_department}`
+                      `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })} • ${lastEntryRecord.per_department}`
                   : "No recent activity"}
               </div>
             </div>
@@ -858,16 +1011,16 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {todayEntries.length > 0
                   ? `${Math.round(
-                    (todayEntries.filter((entry) => {
-                      const [hours, minutes] = entry.pdks_checkInTime
-                        .split(":")
-                        .map(Number);
-                      // On time: before 9:00 AM
-                      return hours <= 8 && minutes <= 30;
-                    }).length /
-                      todayEntries.length) *
-                    100
-                  )}% of today's entries`
+                      (todayEntries.filter((entry) => {
+                        const [hours, minutes] = entry.pdks_checkInTime
+                          .split(":")
+                          .map(Number);
+                        // On time: before 9:00 AM
+                        return hours <= 8 && minutes <= 30;
+                      }).length /
+                        todayEntries.length) *
+                        100
+                    )}% of today's entries`
                   : "No entries today"}
               </div>
             </div>
@@ -928,14 +1081,15 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               </div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {absentToday.length > 0
-                  ? `${absentToday.slice(0, 2).join(", ")}${absentToday.length > 2 ? "..." : ""
-                  }`
+                  ? `${absentToday.slice(0, 2).join(", ")}${
+                      absentToday.length > 2 ? "..." : ""
+                    }`
                   : "All personnel present"}
               </div>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
