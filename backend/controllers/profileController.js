@@ -1,5 +1,4 @@
 const dbConfig = require("../db/connection");
-const bcrypt = require("bcryptjs"); // Şifre hash'lemek için eklendi
 
 // Kullanıcı profilini ID'ye göre getir
 const getUserProfile = async (req, res) => {
