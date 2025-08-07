@@ -1,13 +1,7 @@
 import "../App.css";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  FaUser,
-  FaClock,
-  FaUsers,
-  FaChartLine,
-  FaUserTimes,
-} from "react-icons/fa";
+import {FaClock, FaChartLine, FaUserTimes } from "react-icons/fa";
 
 // Status dot logic
 const statusDot = (status, checkInTime) => {
@@ -39,7 +33,7 @@ const statusDot = (status, checkInTime) => {
 };
 
 
-const Entries = ({ searchTerm }) => {
+const Entries = ({ searchTerm, onSelectPerson }) => {
   const [records, setRecords] = useState([]);
   const [stats, setStats] = useState({
     onTimeToday: 0,
@@ -139,7 +133,6 @@ const Entries = ({ searchTerm }) => {
           overflowX: "hidden",
           overflowY: "scroll",
           maxHeight: "88vh",
-          // overflowY: "auto",
         }}
       >
         {/* Table Header */}
@@ -199,6 +192,18 @@ const Entries = ({ searchTerm }) => {
                   borderBottom: "1px solid #f3f4f6",
                   alignItems: "center",
                   transition: "background-color 0.2s ease",
+                  cursor: "pointer", // İmleci pointer yap
+                }}
+                onClick={() => {
+                  if (onSelectPerson) {
+                    onSelectPerson({
+                      per_id: entry.per_id,
+                      per_name: entry.per_name,
+                      per_lname: entry.per_lname,
+                      per_role: entry.per_role,
+                      per_department: entry.per_department,
+                    });
+                  }
                 }}
                 onMouseOver={(e) =>
                   (e.target.parentElement.style.backgroundColor = "#f9fafb")
