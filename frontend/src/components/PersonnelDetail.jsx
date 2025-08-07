@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../App.css";
 import axios from "axios";
-import { FiClock, FiActivity, FiTrendingUp, FiCalendar } from "react-icons/fi";
+import { FiClock, FiActivity, FiTrendingUp, FiCalendar, FiBattery, FiArrowLeft, FiChevronLeft } from "react-icons/fi";
 
 const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   if (!person) return null;
@@ -240,20 +240,28 @@ const checkInDatesSet = new Set(
 
 
   return (
-    <div>
+    <>
       <div
+        // personneldetail kart kismi
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 24,
-          marginTop: -20,
+          alignItems: "flex-start",
+          background: "#fff",
+          borderRadius: 10,
+          padding: "32px 64px",
+          marginBottom: 20,
+          position: "relative",
+          boxShadow: "0 2px 8px #e5e9f2"
         }}
       >
-        <button
+
+<button
           onClick={onBack}
           style={{
-            padding: "8px 16px",
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            padding: "8px 8px",
             backgroundColor: "transparent",
             color: "#374151",
             border: "none",
@@ -265,23 +273,9 @@ const checkInDatesSet = new Set(
             gap: "6px",
           }}
         >
-          &larr; Back
+         <FiChevronLeft size={36} color="#c1c1c1ff"/>
         </button>
-        <div></div> {/* Sağ tarafta boşluk bırakıyor */}
-      </div>
-      <div
-        // personneldetail kart kismi
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          background: "#fff",
-          borderRadius: 10,
-          padding: 32,
-          marginBottom: 32,
-          position: "relative",
-          marginLeft: 32,
-        }}
-      >
+
         <img
           src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
           alt={person.per_name}
@@ -644,7 +638,6 @@ const checkInDatesSet = new Set(
       {/* Attendance Chart */}
       <div
         style={{
-          marginTop: 24,
           background: "#fff",
           borderRadius: 15,
           padding: 30,
@@ -852,7 +845,7 @@ const checkInDatesSet = new Set(
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

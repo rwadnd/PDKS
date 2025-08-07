@@ -164,9 +164,7 @@ const HolidayMessage = ({ holidayInfo }) => {
           }}
         >
           <FaCoffee />
-          <span>
-            {holidayInfo.type === "official" ? "Dinlenme" : "Dinlenme"}
-          </span>
+          <span>Dinlenme</span>
         </div>
         <div
           style={{
@@ -268,7 +266,7 @@ const EmptyStateMessage = ({ isHoliday, holidayInfo }) => {
   );
 };
 
-const Entries = ({ searchTerm, onSelectPerson, onChangePage }) => {
+const Entries = ({ searchTerm, onSelectPerson }) => {
   const [records, setRecords] = useState([]);
   const [stats, setStats] = useState({
     onTimeToday: 0,
@@ -365,227 +363,159 @@ const Entries = ({ searchTerm, onSelectPerson, onChangePage }) => {
   return (
     <div style={{ display: "flex", gap: "24px", height: "88%" }}>
       {/* Main Table */}
-      {holidayInfo.type === "weekend" ? (
+      <div
+        style={{
+          flex: "1",
+          width: "110%",
+          backgroundColor: "#ffffff",
+          borderRadius: "16px",
+          boxShadow:
+            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          border: "1px solid #e5e7eb",
+          overflowX: "hidden",
+          overflowY: "scroll",
+          maxHeight: "88vh",
+        }}
+      >
+        {/* Table Header */}
         <div
           style={{
-            flex: 1,
-            width: "110%",
-            backgroundColor: "#fff",
-            borderRadius: "16px",
-            boxShadow:
-              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-            border: "1px solid #e5e7eb",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "340px",
-            minWidth: "400px",
-            textAlign: "center",
+            display: "grid",
+            gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+            gap: "16px",
+            padding: "20px",
+            backgroundColor: "#f9fafb",
+            borderBottom: "1px solid #e5e7eb",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#374151",
           }}
         >
-          <div
-            style={{ fontSize: "4rem", marginBottom: "8px", color: "#3b82f6" }}
-          >
-            <FiInbox />
-          </div>
-          <div
-            style={{ fontSize: "1.4rem", color: "#374151", fontWeight: 600 }}
-          >
-            No entries found
-          </div>
+          <div>Photo</div>
+          <div>Personnel Name</div>
+          <div>Department</div>
+          <div>Role</div>
+          <div>Check-in Time</div>
+          <div>Check-out Time</div>
+          <div>Status</div>
         </div>
-      ) : holidayInfo.type === "official" ? (
-        <div
-          style={{
-            flex: 1,
-            width: "110%",
-            backgroundColor: "#fff",
-            borderRadius: "16px",
-            boxShadow:
-              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-            border: "1px solid #e5e7eb",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "340px",
-            minWidth: "400px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{ fontSize: "4rem", marginBottom: "8px", color: "#3b82f6" }}
-          >
-            <FiInbox />
-          </div>
-          <div
-            style={{
-              fontSize: "1.4rem",
-              color: "#374151",
-              fontWeight: 600,
-              marginBottom: "8px",
-            }}
-          >
-            Official Holiday
-          </div>
-          <div
-            style={{ fontSize: "1.1rem", color: "#374151", fontWeight: 500 }}
-          >
-            No entries found
-          </div>
-        </div>
-      ) : (
-        <div
-          style={{
-            flex: "1",
-            width: "110%",
-            backgroundColor: "#ffffff",
-            borderRadius: "16px",
-            boxShadow:
-              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-            border: "1px solid #e5e7eb",
-            overflowX: "hidden",
-            overflowY: "scroll",
-            maxHeight: "88vh",
-          }}
-        >
-          {/* Table Header */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
-              gap: "16px",
-              padding: "20px",
-              backgroundColor: "#f9fafb",
-              borderBottom: "1px solid #e5e7eb",
-              fontWeight: "600",
-              fontSize: "14px",
-              color: "#374151",
-            }}
-          >
-            <div>Photo</div>
-            <div>Personnel Name</div>
-            <div>Department</div>
-            <div>Role</div>
-            <div>Check-in Time</div>
-            <div>Check-out Time</div>
-            <div>Status</div>
-          </div>
 
-          {/* Table Content */}
-          {filteredRecords.length === 0 ? (
-            <EmptyStateMessage
-              isHoliday={holidayInfo.isHoliday}
-              holidayInfo={holidayInfo}
-            />
-          ) : (
-            filteredRecords.map((entry, i) => {
-              const formattedCheckIn =
-                entry.pdks_checkInTime && entry.pdks_checkInTime !== "00:00:00"
-                  ? entry.pdks_checkInTime.slice(0, 5)
-                  : "-";
+        {/* Table Content */}
+        {filteredRecords.length === 0 ? (
+          <EmptyStateMessage
+            isHoliday={holidayInfo.isHoliday}
+            holidayInfo={holidayInfo}
+          />
+        ) : (
+          filteredRecords.map((entry, i) => {
+            const formattedCheckIn =
+              entry.pdks_checkInTime && entry.pdks_checkInTime !== "00:00:00"
+                ? entry.pdks_checkInTime.slice(0, 5)
+                : "-";
 
-              const formattedCheckOut =
-                entry.pdks_checkOutTime &&
-                entry.pdks_checkOutTime !== "00:00:00"
-                  ? entry.pdks_checkOutTime.slice(0, 5)
-                  : "-";
+            const formattedCheckOut =
+              entry.pdks_checkOutTime && entry.pdks_checkOutTime !== "00:00:00"
+                ? entry.pdks_checkOutTime.slice(0, 5)
+                : "-";
 
-              return (
-                <div
-                  key={i}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "80px 1fr 120px 120px 120px 120px 80px",
-                    gap: "16px",
-                    padding: "20px",
-                    borderBottom: "1px solid #f3f4f6",
-                    alignItems: "center",
-                    transition: "background-color 0.2s ease",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    if (onSelectPerson) onSelectPerson(entry);
-                    if (onChangePage) onChangePage("personnel");
-                  }}
-                  onMouseOver={(e) =>
-                    (e.target.parentElement.style.backgroundColor = "#f9fafb")
+            return (
+              <div
+                key={i}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+                  gap: "16px",
+                  padding: "20px",
+                  borderBottom: "1px solid #f3f4f6",
+                  alignItems: "center",
+                  transition: "background-color 0.2s ease",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  if (onSelectPerson) {
+                    onSelectPerson({
+                      per_id: entry.per_id,
+                      per_name: entry.per_name,
+                      per_lname: entry.per_lname,
+                      per_role: entry.per_role,
+                      per_department: entry.per_department,
+                    });
                   }
-                  onMouseOut={(e) =>
-                    (e.target.parentElement.style.backgroundColor =
-                      "transparent")
-                  }
-                >
-                  {/* Photo */}
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <img
-                      src={`/${(
-                        entry.per_name + entry.per_lname
-                      ).toLowerCase()}.jpg`}
-                      alt={`${entry.per_name} ${entry.per_lname}`}
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        border: "2px solid #e5e7eb",
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        e.target.nextSibling.style.display = "flex";
-                      }}
-                    />
-                    <div
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "50%",
-                        backgroundColor: "#f59e0b",
-                        display: "none",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        fontWeight: "600",
-                        fontSize: "16px",
-                      }}
-                    >
-                      ?
-                    </div>
-                  </div>
-
-                  {/* Personnel Name */}
-                  <div style={{ fontWeight: "500", color: "#111827" }}>
-                    {entry.per_name} {entry.per_lname}
-                  </div>
-
-                  {/* Department */}
-                  <div style={{ color: "#6b7280" }}>
-                    {entry.per_department || "IT"}
-                  </div>
-
-                  {/* Role */}
-                  <div style={{ color: "#6b7280" }}>
-                    {entry.per_role || "Intern"}
-                  </div>
-
-                  {/* Check-in Time */}
-                  <div style={{ color: "#6b7280" }}>{formattedCheckIn}</div>
-
-                  {/* Check-out Time */}
-                  <div style={{ color: "#6b7280" }}>{formattedCheckOut}</div>
-
-                  {/* Status */}
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    {statusDot(entry.per_status, entry.pdks_checkInTime)}
+                }}
+                onMouseOver={(e) =>
+                  (e.target.parentElement.style.backgroundColor = "#f9fafb")
+                }
+                onMouseOut={(e) =>
+                  (e.target.parentElement.style.backgroundColor = "transparent")
+                }
+              >
+                {/* Photo */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <img
+                    src={`/${(
+                      entry.per_name + entry.per_lname
+                    ).toLowerCase()}.jpg`}
+                    alt={`${entry.per_name} ${entry.per_lname}`}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "2px solid #e5e7eb",
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "flex";
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      backgroundColor: "#f59e0b",
+                      display: "none",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      fontWeight: "600",
+                      fontSize: "16px",
+                    }}
+                  >
+                    ?
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-      )}
+
+                {/* Personnel Name */}
+                <div style={{ fontWeight: "500", color: "#111827" }}>
+                  {entry.per_name} {entry.per_lname}
+                </div>
+
+                {/* Department */}
+                <div style={{ color: "#6b7280" }}>
+                  {entry.per_department || "IT"}
+                </div>
+
+                {/* Role */}
+                <div style={{ color: "#6b7280" }}>
+                  {entry.per_role || "Intern"}
+                </div>
+
+                {/* Check-in Time */}
+                <div style={{ color: "#6b7280" }}>{formattedCheckIn}</div>
+
+                {/* Check-out Time */}
+                <div style={{ color: "#6b7280" }}>{formattedCheckOut}</div>
+
+                {/* Status */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  {statusDot(entry.per_status, entry.pdks_checkInTime)}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {/* Right Sidebar Cards */}
       <div

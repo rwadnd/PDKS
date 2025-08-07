@@ -52,7 +52,7 @@ const StatCards = ({ onChangePage }) => {
   ];
 
   return (
-    <div style={{ marginBottom: "16px" }}>
+    <div style={{ marginBottom: "20px" }}>
       <div
         style={{
           display: "grid",
@@ -67,7 +67,7 @@ const StatCards = ({ onChangePage }) => {
             style={{
               background: "#fff",
               borderRadius: "20px",
-              padding: "16px",
+              padding: "20px",
               border: "1px solid rgba(255, 255, 255, 0.8)",
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
               transition: "all 0.3s ease",
@@ -86,68 +86,56 @@ const StatCards = ({ onChangePage }) => {
                 "0 4px 20px rgba(0, 0, 0, 0.08)";
             }}
           >
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginBottom: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "12px",
-                    background: "#f3f4f6",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: stat.color,
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
-                  }}
-                >
-                  {stat.icon}
-                </div>
-              </div>
+            <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center", // changed from flex-start to center
+  }}
+>
+  {/* Left Side: Text */}
+  <div style={{ flex: 1 }}>
+    <div
+      style={{
+        fontSize: "14px",
+        color: "#64748b",
+        fontWeight: "500",
+        marginBottom: "6px",
+      }}
+    >
+      {stat.title}
+    </div>
+    <div
+      style={{
+        fontSize: "28px",
+        fontWeight: "700",
+        color: "#1e293b",
+        marginBottom: "4px",
+      }}
+    >
+      {stat.value}
+    </div>
+  </div>
 
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    color: "#64748b",
-                    fontWeight: "500",
-                    marginBottom: "6px",
-                  }}
-                >
-                  {stat.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: "28px",
-                    fontWeight: "700",
-                    color: "#1e293b",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {stat.value}
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#94a3b8",
-                    fontWeight: "400",
-                  }}
-                >
-                  {stat.trend === "up"
-                    ? "↗ Increased from yesterday"
-                    : stat.trend === "down"
-                    ? "↘ Decreased from yesterday"
-                    : "→ No change from yesterday"}
-                </div>
-              </div>
-            </div>
+  {/* Right Side: Icon */}
+  <div
+    style={{
+      width: "56px",
+      height: "56px",
+      borderRadius: "16px",
+      background: "#f3f4f6",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: stat.color,
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+      flexShrink: 0,
+    }}
+  >
+    <span style={{ fontSize: "24px" }}>{stat.icon}</span>
+  </div>
+</div>
+
           </div>
         ))}
       </div>

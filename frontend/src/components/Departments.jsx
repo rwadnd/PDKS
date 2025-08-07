@@ -294,13 +294,15 @@ const Departments = ({ searchTerm }) => {
                     <BarChart
                       data={data}
                       margin={{ top: 30, right: 10, left: 10, bottom: 20 }}
+                      isAnimationActive={false}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" isAnimationActive={false} />
                       <XAxis
                         dataKey="name"
                         tick={{ fontSize: 12, fill: "#64748b" }}
                         axisLine={false}
                         tickLine={false}
+                        isAnimationActive={false}
                       />
                       <YAxis
                         domain={[0, 50]}
@@ -309,9 +311,11 @@ const Departments = ({ searchTerm }) => {
                         tick={{ fill: "#64748b" }}
                         axisLine={false}
                         tickLine={false}
+                        isAnimationActive={false}
                       />
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<CustomTooltip />} isAnimationActive={false}/>
                       <Bar
+                        isAnimationActive={false}
                         dataKey="value"
                         radius={[6, 6, 0, 0]}
                         fill={dep.color}
@@ -323,6 +327,7 @@ const Departments = ({ searchTerm }) => {
                           fontSize={12}
                           fontWeight="600"
                           fill="#64748b"
+                          isAnimationActive={false}
                         />
                       </Bar>
                     </BarChart>

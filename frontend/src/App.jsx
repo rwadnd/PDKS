@@ -129,13 +129,20 @@ const App = () => {
             />
           ))}
 
-        {activePage === "entries" && (
-          <Entries
-            searchTerm={searchTerm}
-            onSelectPerson={setSelectedPerson}
-            onChangePage={changePage}
-          />
-        )}
+        {activePage === "entries" &&
+          (selectedPerson ? (
+            <PersonnelDetail
+              person={selectedPerson}
+              onBack={() => setSelectedPerson(null)}
+              onUpdate={handlePersonnelUpdate}
+            />
+          ) : (
+            <Entries
+              searchTerm={searchTerm}
+              onSelectPerson={setSelectedPerson}
+            />
+          ))}
+
         {activePage === "leave-requests" && (
           <LeaveRequests searchTerm={searchTerm} />
         )}
