@@ -4,7 +4,8 @@ const personnelRoutes = require("./routes/personnelRoutes");
 const pdksRoutes = require("./routes/pdksRoutes");
 const authRoutes = require("./routes/authRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
-const leaveRoutes = require("./routes/leaveRoutes")
+const leaveRoutes = require("./routes/leaveRoutes");
+const profileRoutes = require("./routes/profileRoutes"); 
 
 require("dotenv").config();
 
@@ -19,6 +20,7 @@ app.use("/api/pdks", pdksRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/leave", leaveRoutes);
+app.use("/api/profile", profileRoutes); 
 
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {

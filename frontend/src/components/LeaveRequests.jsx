@@ -10,7 +10,7 @@ import axios from "axios";
 
 const LeaveRequests = ({ searchTerm = "" }) => {
   const [leaveRequests, setLeaveRequests] = useState([]);
-  const [filter, setFilter] = useState("all"); // all, pending, approved, rejected
+  const [filter, setFilter] = useState("Pending"); // all, pending, approved, rejected
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,23 +28,18 @@ const LeaveRequests = ({ searchTerm = "" }) => {
 
   const approveRequest = async (id) => {
     try {
-      setLeaveRequests((prev) =>
-        prev.map((request) =>
-          request.request_id === id
-            ? { ...request, status: "Approved" }
-            : request
-        )
+      const approvedRequest = leaveRequests.find(
+        (request) => request.request_id === id
       );
+
+      setLeaveRequests((prev) => {
+        const filtered = prev.filter((request) => request.request_id !== id);
+        return [{ ...approvedRequest, status: "Approved" }, ...filtered];
+      });
 
       await axios.put(`http://localhost:5050/api/leave/${id}`, {
         status: "Approved",
       });
-
-      // Switch to Approved tab and scroll to top
-      setFilter("Approved");
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 100);
     } catch (error) {
       console.error("Failed to approve leave request:", error);
       // Optionally show error to user
@@ -53,23 +48,18 @@ const LeaveRequests = ({ searchTerm = "" }) => {
 
   const rejectRequest = async (id) => {
     try {
-      setLeaveRequests((prev) =>
-        prev.map((request) =>
-          request.request_id === id
-            ? { ...request, status: "Rejected" }
-            : request
-        )
+      const rejectedRequest = leaveRequests.find(
+        (request) => request.request_id === id
       );
+
+      setLeaveRequests((prev) => {
+        const filtered = prev.filter((request) => request.request_id !== id);
+        return [{ ...rejectedRequest, status: "Rejected" }, ...filtered];
+      });
 
       await axios.put(`http://localhost:5050/api/leave/${id}`, {
         status: "Rejected",
       });
-
-      // Switch to Rejected tab and scroll to top
-      setFilter("Rejected");
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 100);
     } catch (error) {
       console.error("Failed to reject leave request:", error);
       // Optionally show error to user
@@ -102,27 +92,31 @@ const LeaveRequests = ({ searchTerm = "" }) => {
     }
   };
 
-  const filteredRequests = leaveRequests
-    .filter((request) => {
-      // Status filter
-      if (filter === "Pending" && request.status !== "Pending") return false;
-      if (filter === "Approved" && request.status !== "Approved") return false;
-      if (filter === "Rejected" && request.status !== "Rejected") return false;
+  const filteredRequests = leaveRequests.filter((request) => {
+    // Status filter
+    if (filter === "Pending" && request.status !== "Pending") return false;
+    if (filter === "Approved" && request.status !== "Approved") return false;
+    if (filter === "Rejected" && request.status !== "Rejected") return false;
 
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          request.per_name.toLowerCase().includes(searchLower) ||
-          request.personnel_per_id.toLowerCase().includes(searchLower) ||
-          request.department.toLowerCase().includes(searchLower) ||
-          request.request_type.toLowerCase().includes(searchLower)
-        );
-      }
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (request.per_name &&
+          String(request.per_name).toLowerCase().includes(searchLower)) ||
+        (request.personnel_per_id &&
+          String(request.personnel_per_id)
+            .toLowerCase()
+            .includes(searchLower)) ||
+        (request.department &&
+          String(request.department).toLowerCase().includes(searchLower)) ||
+        (request.request_type &&
+          String(request.request_type).toLowerCase().includes(searchLower))
+      );
+    }
 
-      return true;
-    })
-    .sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+    return true;
+  });
 
   const pendingCount = leaveRequests.filter(
     (request) => request.status === "Pending"
