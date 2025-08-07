@@ -24,6 +24,7 @@ const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [previousPage, setPreviousPage] = useState(null);
+  const [leaveRequests, setLeaveRequests] = useState([]);
 
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
@@ -34,6 +35,18 @@ const App = () => {
       setIsLoggedIn(true);
       setCurrentUser(JSON.parse(user));
     }
+
+    // Fetch leave requests
+    const fetchLeaveRequests = async () => {
+      try {
+        const res = await axios.get("http://localhost:5050/api/leave");
+        setLeaveRequests(res.data);
+      } catch (error) {
+        console.error("Failed to fetch leave requests:", error);
+      }
+    };
+
+    fetchLeaveRequests();
 
     const handleSidebarHover = (event) => {
       setSidebarOpen(event.detail);
@@ -141,6 +154,8 @@ const App = () => {
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           sidebarOpen={sidebarOpen}
           onChangePage={changePage}
+          leaveRequests={leaveRequests}
+          setLeaveRequests={setLeaveRequests}
         />
 
         {activePage === "dashboard" && (
@@ -203,7 +218,11 @@ const App = () => {
           ))}
 
         {activePage === "leave-requests" && (
-          <LeaveRequests searchTerm={searchTerm} />
+          <LeaveRequests
+            searchTerm={searchTerm}
+            leaveRequests={leaveRequests}
+            setLeaveRequests={setLeaveRequests}
+          />
         )}
         {activePage === "profile" && (
           <Profile
