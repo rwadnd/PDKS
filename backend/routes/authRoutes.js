@@ -8,6 +8,9 @@ router.post("/login", authController.adminLogin);
 // Get all admin users
 router.get("/users", authController.getAdminUsers);
 
+// Get all admin users
+router.get("/users/:id", authController.getAdminUser);
+
 // Create new admin user
 router.post("/users", authController.createAdminUser);
 

@@ -19,9 +19,17 @@ const Topbar = ({
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-
+  const [user, setUser] = useState({});
   // Close dropdown when clicking outside
   useEffect(() => {
+    axios
+      .get(`http://localhost:5050/api/auth/users/${currentUser.id}`)
+      .then((res) => {
+        setUser(res.data);
+      })
+      .catch((err) => console.error("Failed to load stats:", err));
+
+        console.log("Current user:", user);
     const handleClickOutside = (event) => {
       const dropdownContainer = document.getElementById(
         "user-dropdown-container"
@@ -348,7 +356,7 @@ const Topbar = ({
             {/* Notifications List (Dynamic Leave Requests) */}
             <div style={{ padding: "8px 0" }}>
               {leaveRequests.filter((r) => r.status === "Pending").length ===
-              0 ? (
+                0 ? (
                 <div
                   style={{
                     textAlign: "center",
@@ -535,9 +543,7 @@ const Topbar = ({
                   lineHeight: "1.2",
                 }}
               >
-                {currentUser?.full_name ||
-                  currentUser?.username ||
-                  "Admin User"}
+                {user ? user.full_name : "Loading..."}
               </div>
               <div
                 style={{
@@ -546,7 +552,7 @@ const Topbar = ({
                   lineHeight: "1.2",
                 }}
               >
-                {currentUser?.role || "Admin"}
+                {user?.role || "Admin"}
               </div>
             </div>
             <div

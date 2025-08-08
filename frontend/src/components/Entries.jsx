@@ -317,8 +317,8 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
     totalPersonnel: 0,
   });
 
-  // Test için bugünü resmi tatil olarak ayarla
-  const today = new Date("2025-08-07");
+
+  const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
   const holidayInfo = isHoliday(today);
 
@@ -737,9 +737,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                     {/* Photo */}
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <img
-                        src={`/${(
-                          entry.per_name + entry.per_lname
-                        ).toLowerCase()}.jpg`}
+                        src={`/${entry.per_id}.jpg`}
                         alt={`${entry.per_name} ${entry.per_lname}`}
                         style={{
                           width: "40px",

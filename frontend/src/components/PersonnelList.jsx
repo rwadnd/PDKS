@@ -33,7 +33,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
         >
           <img
             className="personnel-avatar"
-            src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
+            src={`/${person.per_id}.jpg`}
             alt={`${person.per_name} ${person.per_lname}`}
           />
           <div className="personnel-name">{person.per_name} {person.per_lname}</div>

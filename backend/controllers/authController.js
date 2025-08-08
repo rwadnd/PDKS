@@ -70,6 +70,38 @@ const getAdminUsers = async (req, res) => {
   }
 };
 
+
+
+// Get Admin Users
+const getAdminUser = async (req, res) => {
+  try {
+    const [rows] = await dbConfig.execute(
+      "SELECT id, username, email, full_name, role, created_at, last_login, is_active FROM admin_users WHERE id = ?",
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ✅ Return just one user object
+    res.json({
+      success: true,
+      user: rows[0],
+    });
+  } catch (error) {
+    console.error("Get admin user error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
 // Create Admin User
 const createAdminUser = async (req, res) => {
   try {
@@ -174,4 +206,5 @@ module.exports = {
   createAdminUser,
   updateAdminUser,
   deleteAdminUser,
+  getAdminUser
 };

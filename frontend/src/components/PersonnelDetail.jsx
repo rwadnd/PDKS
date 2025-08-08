@@ -270,7 +270,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         </button>
 
         <img
-          src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
+          src={`/${person.per_id}.jpg`}
           alt={person.per_name}
           style={{
             width: 130,
