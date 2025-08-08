@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import "../App.css";
 import axios from "axios";
-import { FiClock, FiActivity, FiTrendingUp, FiCalendar, FiBattery, FiArrowLeft, FiChevronLeft } from "react-icons/fi";
+import {
+  FiClock,
+  FiActivity,
+  FiTrendingUp,
+  FiCalendar,
+  FiBattery,
+  FiArrowLeft,
+  FiChevronLeft,
+} from "react-icons/fi";
 
 const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   if (!person) return null;
@@ -42,7 +50,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         `http://localhost:5050/api/personnel/${person.per_id}`,
         editForm
       );
-      console.log(editForm)
+      console.log(editForm);
       setIsEditing(false);
       if (onUpdate) {
         onUpdate({ ...person, ...editForm });
@@ -71,39 +79,53 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
   // Get the first day in the heatmap (52 weeks ago from last Monday)
   const startDate = new Date(lastMonday);
-  startDate.setDate(startDate.getDate() - (51 * 7));
+  startDate.setDate(startDate.getDate() - 51 * 7);
 
   const todayRecord = records.find((rec) => {
     const recordDate = rec.pdks_date?.split(" ")[0];
     return recordDate === todayString;
   });
-  const formattedCheckIn = todayRecord?.pdks_checkInTime &&
-    todayRecord.pdks_checkInTime !== "00:00:00"
-    ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    : "-";
+  const formattedCheckIn =
+    todayRecord?.pdks_checkInTime && todayRecord.pdks_checkInTime !== "00:00:00"
+      ? new Date(
+          `${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`
+        ).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "-";
 
-  const formattedCheckOut = todayRecord?.pdks_checkOutTime &&
+  const formattedCheckOut =
+    todayRecord?.pdks_checkOutTime &&
     todayRecord.pdks_checkOutTime !== "00:00:00"
-    ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    : "-";
+      ? new Date(
+          `${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`
+        ).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "-";
 
   const getTimeAtWork = () => {
-    if (!todayRecord?.pdks_checkInTime || todayRecord.pdks_checkInTime === "0000-00-00 00:00:00") {
+    if (
+      !todayRecord?.pdks_checkInTime ||
+      todayRecord.pdks_checkInTime === "0000-00-00 00:00:00"
+    ) {
       return "-"; // No check-in
     }
 
-    const checkIn = new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`);
-    const checkOutValid = todayRecord.pdks_checkOutTime && todayRecord.pdks_checkOutTime !== "0000-00-00 00:00:00";
+    const checkIn = new Date(
+      `${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`
+    );
+    const checkOutValid =
+      todayRecord.pdks_checkOutTime &&
+      todayRecord.pdks_checkOutTime !== "0000-00-00 00:00:00";
 
-    const end = checkOutValid ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`) : new Date(); // Use now if no check-out
+    const end = checkOutValid
+      ? new Date(`${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`)
+      : new Date(); // Use now if no check-out
     const diffMs = end - checkIn;
 
     if (isNaN(diffMs) || diffMs < 0) return "-";
@@ -130,10 +152,12 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         return date >= monday && date <= now;
       })
       .reduce((sum, rec) => {
-        if (!rec.pdks_checkInTime || rec.pdks_checkInTime === "00:00:00") return sum;
+        if (!rec.pdks_checkInTime || rec.pdks_checkInTime === "00:00:00")
+          return sum;
 
         const inTime = new Date(`${rec.pdks_date}T${rec.pdks_checkInTime}`);
-        const outTimeValid = rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "00:00:00";
+        const outTimeValid =
+          rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "00:00:00";
         const outTime = outTimeValid
           ? new Date(`${rec.pdks_date}T${rec.pdks_checkOutTime}`)
           : now;
@@ -220,65 +244,163 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
   const checkInDatesSet = new Set(
     records
-      .filter((rec) =>
-        rec.pdks_checkInTime &&
-        rec.pdks_checkInTime !== "00:00:00" &&
-        rec.pdks_date
+      .filter(
+        (rec) =>
+          rec.pdks_checkInTime &&
+          rec.pdks_checkInTime !== "00:00:00" &&
+          rec.pdks_date
       )
-      .map((rec) => rec.pdks_date)  // use only the DATE part
+      .map((rec) => rec.pdks_date) // use only the DATE part
   );
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      overflowY: 'auto',
-      padding: '1px'
-    }}>
+    <div
+      style={{
+        height: "100vh",
+        overflowY: "auto",
+        padding: "1px",
+      }}
+    >
       <div
-        // personneldetail kart kismi
         style={{
           display: "flex",
           alignItems: "flex-start",
-          background: "#fff",
-          borderRadius: 10,
-          padding: "32px 64px",
-          marginBottom: 20,
+          background: "transparent",
+          borderRadius: "24px",
+          padding: "20px 60px",
+          marginBottom: "20px",
           position: "relative",
-          boxShadow: "0 2px 8px #e5e9f2"
+          overflow: "hidden",
         }}
       >
-
         <button
           onClick={onBack}
           style={{
             position: "absolute",
-            top: "10px",
-            left: "10px",
-            padding: "8px 8px",
+            top: "20px",
+            left: "20px",
+            padding: "12px",
             backgroundColor: "transparent",
             color: "#374151",
             border: "none",
+            borderRadius: "12px",
             cursor: "pointer",
             fontSize: "14px",
             fontWeight: "500",
             display: "flex",
             alignItems: "center",
             gap: "6px",
+            transition: "all 0.2s ease",
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "translateY(-2px)";
+            e.target.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "translateY(0)";
+            e.target.style.backgroundColor = "transparent";
           }}
         >
-          <FiChevronLeft size={36} color="#c1c1c1ff"/>
+          <FiChevronLeft size={20} color="#64748b" />
         </button>
 
-        <img
-          src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
-          alt={person.per_name}
+        <div
           style={{
-            width: 130,
-            height: 125,
-            borderRadius: "50%",
-            marginRight: 40,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "16px",
+            flex: "1",
           }}
-        />
+        >
+          <div style={{ position: "relative" }}>
+            <img
+              src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
+              alt={person.per_name}
+              style={{
+                width: "100px",
+                height: "100px",
+                borderRadius: "50%",
+                border: "2px solid rgba(255, 255, 255, 0.9)",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
+                objectFit: "cover",
+              }}
+            />
+            {/* Edit icon */}
+            <div
+              onClick={handleEdit}
+              style={{
+                position: "absolute",
+                bottom: "8px",
+                right: "8px",
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                transition: "all 0.2s ease",
+                border: "2px solid #ffffff",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.1)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(0, 0, 0, 0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.boxShadow =
+                  "0 2px 8px rgba(0, 0, 0, 0.2)";
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+              >
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "24px",
+                fontWeight: "700",
+                color: "#000000",
+                marginBottom: "8px",
+              }}
+            >
+              {person.per_name} {person.per_lname}
+            </h2>
+            <div
+              style={{
+                fontSize: "16px",
+                color: "#64748b",
+                fontWeight: "500",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <span style={{ color: "#374151" }}>
+                {person.per_department || "IT"}
+              </span>
+              <span style={{ color: "#94a3b8" }}>/</span>
+              <span style={{ color: "#374151" }}>{person.per_role}</span>
+            </div>
+          </div>
+        </div>
         <div
           style={{
             display: "flex",
@@ -295,12 +417,13 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   <label
                     style={{
                       fontSize: "14px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
+                      color: "#374151",
+                      marginBottom: "8px",
                       display: "block",
+                      fontWeight: "600",
                     }}
                   >
-                    Ad
+                    First Name
                   </label>
                   <input
                     type="text"
@@ -309,20 +432,26 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       handleInputChange("per_name", e.target.value)
                     }
                     style={{
-                      padding: "12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
+                      padding: "14px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
+                      backgroundColor: "#ffffff",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
-                        "0 0 0 3px rgba(59, 130, 246, 0.1)";
+                        "0 0 0 4px rgba(59, 130, 246, 0.1)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#d1d5db";
-                      e.target.style.boxShadow = "none";
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.boxShadow =
+                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                      e.target.style.transform = "translateY(0)";
                     }}
                   />
                 </div>
@@ -330,12 +459,13 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   <label
                     style={{
                       fontSize: "14px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
+                      color: "#374151",
+                      marginBottom: "8px",
                       display: "block",
+                      fontWeight: "600",
                     }}
                   >
-                    Soyad
+                    Last Name
                   </label>
                   <input
                     type="text"
@@ -344,20 +474,26 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       handleInputChange("per_lname", e.target.value)
                     }
                     style={{
-                      padding: "12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
+                      padding: "14px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
+                      backgroundColor: "#ffffff",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
-                        "0 0 0 3px rgba(59, 130, 246, 0.1)";
+                        "0 0 0 4px rgba(59, 130, 246, 0.1)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#d1d5db";
-                      e.target.style.boxShadow = "none";
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.boxShadow =
+                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                      e.target.style.transform = "translateY(0)";
                     }}
                   />
                 </div>
@@ -367,12 +503,13 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   <label
                     style={{
                       fontSize: "14px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
+                      color: "#374151",
+                      marginBottom: "8px",
                       display: "block",
+                      fontWeight: "600",
                     }}
                   >
-                    Pozisyon
+                    Position
                   </label>
                   <input
                     type="text"
@@ -381,20 +518,26 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       handleInputChange("per_role", e.target.value)
                     }
                     style={{
-                      padding: "12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
+                      padding: "14px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
+                      backgroundColor: "#ffffff",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
-                        "0 0 0 3px rgba(59, 130, 246, 0.1)";
+                        "0 0 0 4px rgba(59, 130, 246, 0.1)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#d1d5db";
-                      e.target.style.boxShadow = "none";
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.boxShadow =
+                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                      e.target.style.transform = "translateY(0)";
                     }}
                   />
                 </div>
@@ -402,12 +545,13 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   <label
                     style={{
                       fontSize: "14px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
+                      color: "#374151",
+                      marginBottom: "8px",
                       display: "block",
+                      fontWeight: "600",
                     }}
                   >
-                    Departman
+                    Department
                   </label>
                   <input
                     type="text"
@@ -416,127 +560,111 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       handleInputChange("per_department", e.target.value)
                     }
                     style={{
-                      padding: "12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
+                      padding: "14px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
+                      backgroundColor: "#ffffff",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
-                        "0 0 0 3px rgba(59, 130, 246, 0.1)";
+                        "0 0 0 4px rgba(59, 130, 246, 0.1)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#d1d5db";
-                      e.target.style.boxShadow = "none";
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.boxShadow =
+                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                      e.target.style.transform = "translateY(0)";
                     }}
                   />
                 </div>
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
-                <div style={{ flex: 1 }}>
-                </div>
-                <div style={{ flex: 1 }}>
-                </div>
+                <div style={{ flex: 1 }}></div>
+                <div style={{ flex: 1 }}></div>
+              </div>
+
+              {/* Save/Cancel Buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  justifyContent: "center",
+                  marginTop: "24px",
+                }}
+              >
+                <button
+                  onClick={handleSave}
+                  style={{
+                    padding: "12px 24px",
+                    background:
+                      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow =
+                      "0 6px 16px rgba(16, 185, 129, 0.4)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow =
+                      "0 4px 12px rgba(16, 185, 129, 0.3)";
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  style={{
+                    padding: "12px 24px",
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    color: "#64748b",
+                    border: "1px solid rgba(0, 0, 0, 0.1)",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.backgroundColor = "#f8fafc";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-            >
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "24px",
-                  fontWeight: "600",
-                  color: "#111827",
-                }}
-              >
-                {person.per_name} {person.per_lname}
-              </h2>
-              <div style={{ fontSize: "16px", color: "#6b7280" }}>
-                {person.per_department || "IT"} / {person.per_role}
-              </div>
-            </div>
-          )}
-        </div>
-        <div style={{ position: "absolute", top: "16px", right: "16px" }}>
-          {isEditing ? (
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#10b981",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "#059669";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "#10b981";
-                }}
-              >
-                Save
-              </button>
-              <button
-                onClick={handleCancel}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#6b7280",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "#4b5563";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "#6b7280";
-                }}
-              >
-                İptal
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleEdit}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "#3b82f6",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "500",
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = "#2563eb";
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = "#3b82f6";
-              }}
-            >
-              Düzenle
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="stat-cards">
         <div className="stat-card" style={{ position: "relative" }}>
           <div className="stat-title">Check-in/Check-out</div>
-          <div className="stat-value">{formattedCheckIn} - {formattedCheckOut}</div>
-          <div className="stat-desc up">Today</div>
+          <div className="stat-value">
+            {formattedCheckIn} - {formattedCheckOut}
+          </div>
+          <div className="stat-desc up" style={{ color: "#9ca3af" }}>
+            Today
+          </div>
           <div
             style={{
               position: "absolute",
@@ -559,7 +687,9 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         <div className="stat-card" style={{ position: "relative" }}>
           <div className="stat-title">Time at Work</div>
           <div className="stat-value">{getTimeAtWork()}</div>
-          <div className="stat-desc up">Today</div>
+          <div className="stat-desc up" style={{ color: "#9ca3af" }}>
+            Today
+          </div>
           <div
             style={{
               position: "absolute",
@@ -582,7 +712,9 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         <div className="stat-card" style={{ position: "relative" }}>
           <div className="stat-title">Productivity Score</div>
           <div className="stat-value">{getProductivityScore()}</div>
-          <div className="stat-desc up">Weekly</div>
+          <div className="stat-desc up" style={{ color: "#9ca3af" }}>
+            Weekly
+          </div>
           <div
             style={{
               position: "absolute",
@@ -605,7 +737,9 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         <div className="stat-card" style={{ position: "relative" }}>
           <div className="stat-title">Total Absences</div>
           <div className="stat-value">{getMonthlyAbsenceCount(records)}</div>
-          <div className="stat-desc up">Monthly</div>
+          <div className="stat-desc up" style={{ color: "#9ca3af" }}>
+            Monthly
+          </div>
           <div
             style={{
               position: "absolute",
@@ -633,20 +767,19 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
           borderRadius: 15,
           padding: 30,
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
         <div
           style={{
-            fontWeight: 600,
-            fontSize: 16,
-            marginBottom: 16,
-            color: "#1f2937",
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+            justifyContent: "center",
           }}
         >
-          📅 Attendance
-        </div>
-
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           {/* Gün isimleri */}
           <div
             style={{
@@ -683,22 +816,30 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
             }}
           >
             {Array.from({ length: 52 }).map((_, weekIdx) => (
-              <div key={weekIdx} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div
+                key={weekIdx}
+                style={{ display: "flex", flexDirection: "column", gap: 2 }}
+              >
                 {Array.from({ length: 7 }).map((_, dayIdx) => {
                   const yesterday = new Date();
                   yesterday.setDate(today.getDate() - 1);
                   yesterday.setHours(0, 0, 0, 0);
                   const cellDate = new Date(startDate);
-                  cellDate.setDate(startDate.getDate() + (weekIdx * 7 + dayIdx));
+                  cellDate.setDate(
+                    startDate.getDate() + (weekIdx * 7 + dayIdx)
+                  );
                   cellDate.setHours(0, 0, 0, 0);
 
                   if (cellDate > yesterday) {
                     // ✅ Skip rendering future boxes altogether (optional)
-                    return <div key={dayIdx} style={{ width: 12, height: 12 }} />;
+                    return (
+                      <div key={dayIdx} style={{ width: 12, height: 12 }} />
+                    );
                   }
 
-                  const dateStr = toLocalISODate(cellDate)
-                  const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
+                  const dateStr = toLocalISODate(cellDate);
+                  const isWeekend =
+                    cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
                   let status;
 

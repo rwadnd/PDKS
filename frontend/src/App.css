@@ -138,14 +138,14 @@ html,
 
 .stat-cards {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   margin-bottom: 20px;
 }
 .stat-card {
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 2px 8px #e5e9f2;
-  padding: 24px 32px;
+  padding: 16px 24px;
   min-width: 200px;
   flex: 1;
   display: flex;
@@ -155,7 +155,7 @@ html,
 .stat-title {
   font-size: 1rem;
   color: #8a8a8a;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .modern-stat-card {
@@ -198,9 +198,9 @@ html,
   margin-left: 40px;
 }
 .stat-value {
-  font-size: 2.1rem;
+  font-size: 1.6rem;
   font-weight: bold;
-  color: #0f766e;
+  color: #1f2937;
   margin: 10px 10px 10px 10px;
   text-align: left;
 }
