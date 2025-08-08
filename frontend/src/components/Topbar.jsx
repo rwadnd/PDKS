@@ -271,19 +271,22 @@ const Topbar = ({
               e.target.style.transform = "scale(1)";
             }}
           >
-            <FaBell />
-            {/* Notification Badge */}
-            <div
-              style={{
-                position: "absolute",
-                top: "6px",
-                right: "6px",
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: "#ef4444",
-              }}
-            />
+           <FaBell />
+
+{/* Notification Badge */}
+{leaveRequests.filter(r => r.status === "Pending").length > 0 && (
+  <div
+    style={{
+      position: "absolute",
+      top: "6px",
+      right: "6px",
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      backgroundColor: "#ef4444",
+    }}
+  />
+)}
           </div>
         </div>
         {/* Notifications Dropdown - Outside the icons container */}
