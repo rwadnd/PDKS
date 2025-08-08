@@ -25,7 +25,7 @@ const Topbar = ({
     axios
       .get(`http://localhost:5050/api/auth/users/${currentUser.id}`)
       .then((res) => {
-        setUser(res.data);
+        setUser(res.data.user);
       })
       .catch((err) => console.error("Failed to load stats:", err));
 
