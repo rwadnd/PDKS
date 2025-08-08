@@ -90,11 +90,11 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       ? new Date(
           `${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`
         ).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    : "-";
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "-";
 
   const formattedCheckOut =
     todayRecord?.pdks_checkOutTime &&
@@ -102,11 +102,11 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       ? new Date(
           `${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`
         ).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    : "-";
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "-";
 
   const getTimeAtWork = () => {
     if (
@@ -153,11 +153,11 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       })
       .reduce((sum, rec) => {
         if (!rec.pdks_checkInTime || rec.pdks_checkInTime === "00:00:00")
-return sum;
+          return sum;
 
         const inTime = new Date(`${rec.pdks_date}T${rec.pdks_checkInTime}`);
         const outTimeValid =
-rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "00:00:00";
+          rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "00:00:00";
         const outTime = outTimeValid
           ? new Date(`${rec.pdks_date}T${rec.pdks_checkOutTime}`)
           : now;
@@ -245,24 +245,24 @@ rec.pdks_checkOutTime && rec.pdks_checkOutTime !== "00:00:00";
   const checkInDatesSet = new Set(
     records
       .filter(
-(rec) =>
-        rec.pdks_checkInTime &&
-        rec.pdks_checkInTime !== "00:00:00" &&
-        rec.pdks_date
+        (rec) =>
+          rec.pdks_checkInTime &&
+          rec.pdks_checkInTime !== "00:00:00" &&
+          rec.pdks_date
       )
       .map((rec) => rec.pdks_date) // use only the DATE part
   );
 
   return (
     <div
-style={{ 
-      height: "100vh", 
-      overflowY: "auto",
-      padding: "1px",
-    }}
->
+      style={{
+        height: "100vh",
+        overflowY: "auto",
+        padding: "1px",
+      }}
+    >
       <div
-                style={{
+        style={{
           display: "flex",
           alignItems: "flex-start",
           background: "transparent",
@@ -283,14 +283,14 @@ style={{
             backgroundColor: "transparent",
             color: "#374151",
             border: "none",
-borderRadius: "12px",
+            borderRadius: "12px",
             cursor: "pointer",
             fontSize: "14px",
             fontWeight: "500",
             display: "flex",
             alignItems: "center",
             gap: "6px",
-transition: "all 0.2s ease",
+            transition: "all 0.2s ease",
             zIndex: 10,
           }}
           onMouseEnter={(e) => {
@@ -305,15 +305,9 @@ transition: "all 0.2s ease",
           <FiChevronLeft size={20} color="#64748b" />
         </button>
 
-<<<<<<< HEAD
-        <img
-          src={`/${person.per_id}.jpg`}
-          alt={person.per_name}
-=======
         <div
->>>>>>> 500e3954a04df55d96ff7529a2d546ef70e45b86
           style={{
-display: "flex",
+            display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "16px",
@@ -322,13 +316,13 @@ display: "flex",
         >
           <div style={{ position: "relative" }}>
             <img
-              src={`/${(person.per_name + person.per_lname).toLowerCase()}.jpg`}
+              src={`/${person.id}.jpg`}
               alt={person.per_name}
               style={{
-            width: "100px",
-            height: "100px",
-            borderRadius: "50%",
-            border: "2px solid rgba(255, 255, 255, 0.9)",
+                width: "100px",
+                height: "100px",
+                borderRadius: "50%",
+                border: "2px solid rgba(255, 255, 255, 0.9)",
                 boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
                 objectFit: "cover",
               }}
@@ -426,7 +420,7 @@ display: "flex",
                       color: "#374151",
                       marginBottom: "8px",
                       display: "block",
-fontWeight: "600",
+                      fontWeight: "600",
                     }}
                   >
                     First Name
@@ -443,7 +437,7 @@ fontWeight: "600",
                       borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
-backgroundColor: "#ffffff",
+                      backgroundColor: "#ffffff",
                       transition: "all 0.2s ease",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
@@ -451,7 +445,7 @@ backgroundColor: "#ffffff",
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
                         "0 0 0 4px rgba(59, 130, 246, 0.1)";
-e.target.style.transform = "translateY(-1px)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = "#e2e8f0";
@@ -468,7 +462,7 @@ e.target.style.transform = "translateY(-1px)";
                       color: "#374151",
                       marginBottom: "8px",
                       display: "block",
-fontWeight: "600",
+                      fontWeight: "600",
                     }}
                   >
                     Last Name
@@ -485,7 +479,7 @@ fontWeight: "600",
                       borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
-backgroundColor: "#ffffff",
+                      backgroundColor: "#ffffff",
                       transition: "all 0.2s ease",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
@@ -493,7 +487,7 @@ backgroundColor: "#ffffff",
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
                         "0 0 0 4px rgba(59, 130, 246, 0.1)";
-e.target.style.transform = "translateY(-1px)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = "#e2e8f0";
@@ -512,7 +506,7 @@ e.target.style.transform = "translateY(-1px)";
                       color: "#374151",
                       marginBottom: "8px",
                       display: "block",
-fontWeight: "600",
+                      fontWeight: "600",
                     }}
                   >
                     Position
@@ -529,7 +523,7 @@ fontWeight: "600",
                       borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
-backgroundColor: "#ffffff",
+                      backgroundColor: "#ffffff",
                       transition: "all 0.2s ease",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
@@ -537,7 +531,7 @@ backgroundColor: "#ffffff",
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
                         "0 0 0 4px rgba(59, 130, 246, 0.1)";
-e.target.style.transform = "translateY(-1px)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = "#e2e8f0";
@@ -554,7 +548,7 @@ e.target.style.transform = "translateY(-1px)";
                       color: "#374151",
                       marginBottom: "8px",
                       display: "block",
-fontWeight: "600",
+                      fontWeight: "600",
                     }}
                   >
                     Department
@@ -571,7 +565,7 @@ fontWeight: "600",
                       borderRadius: "12px",
                       fontSize: "16px",
                       outline: "none",
-backgroundColor: "#ffffff",
+                      backgroundColor: "#ffffff",
                       transition: "all 0.2s ease",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
                     }}
@@ -579,7 +573,7 @@ backgroundColor: "#ffffff",
                       e.target.style.borderColor = "#3b82f6";
                       e.target.style.boxShadow =
                         "0 0 0 4px rgba(59, 130, 246, 0.1)";
-e.target.style.transform = "translateY(-1px)";
+                      e.target.style.transform = "translateY(-1px)";
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = "#e2e8f0";
@@ -593,72 +587,72 @@ e.target.style.transform = "translateY(-1px)";
               <div style={{ display: "flex", gap: "16px" }}>
                 <div style={{ flex: 1 }}></div>
                 <div style={{ flex: 1 }}></div>
-                </div>
-                
+              </div>
+
               {/* Save/Cancel Buttons */}
               <div
                 style={{
                   display: "flex",
-gap: "12px",
+                  gap: "12px",
                   justifyContent: "center",
                   marginTop: "24px",
                 }}
->
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: "12px 24px",
-                  background:
+              >
+                <button
+                  onClick={handleSave}
+                  style={{
+                    padding: "12px 24px",
+                    background:
                       "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "600",
-boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
                     transition: "all 0.2s ease",
-                }}
-                onMouseOver={(e) => {
-e.target.style.transform = "translateY(-2px)";
-                  e.target.style.boxShadow =
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow =
                       "0 6px 16px rgba(16, 185, 129, 0.4)";
-                }}
-                onMouseOut={(e) => {
-e.target.style.transform = "translateY(0)";
-                  e.target.style.boxShadow =
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow =
                       "0 4px 12px rgba(16, 185, 129, 0.3)";
-                }}
-              >
-                Save
-              </button>
-              <button
-                onClick={handleCancel}
-                style={{
-                  padding: "12px 24px",
-                  backgroundColor: "rgba(255, 255, 255, 0.9)",
-                  color: "#64748b",
-                  border: "1px solid rgba(0, 0, 0, 0.1)",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "600",
-boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  style={{
+                    padding: "12px 24px",
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    color: "#64748b",
+                    border: "1px solid rgba(0, 0, 0, 0.1)",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                     transition: "all 0.2s ease",
-                }}
-                onMouseOver={(e) => {
-e.target.style.transform = "translateY(-2px)";
-                  e.target.style.backgroundColor = "#f8fafc";
-                }}
-                onMouseOut={(e) => {
-e.target.style.transform = "translateY(0)";
-                  e.target.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
-                }}
-              >
-                Cancel
-              </button>
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.backgroundColor = "#f8fafc";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-          </div>
           ) : null}
         </div>
       </div>
@@ -666,11 +660,11 @@ e.target.style.transform = "translateY(0)";
         <div className="stat-card" style={{ position: "relative" }}>
           <div className="stat-title">Check-in/Check-out</div>
           <div className="stat-value">
-{formattedCheckIn} - {formattedCheckOut}
-</div>
+            {formattedCheckIn} - {formattedCheckOut}
+          </div>
           <div className="stat-desc up" style={{ color: "#9ca3af" }}>
-Today
-</div>
+            Today
+          </div>
           <div
             style={{
               position: "absolute",
@@ -694,8 +688,8 @@ Today
           <div className="stat-title">Time at Work</div>
           <div className="stat-value">{getTimeAtWork()}</div>
           <div className="stat-desc up" style={{ color: "#9ca3af" }}>
-Today
-</div>
+            Today
+          </div>
           <div
             style={{
               position: "absolute",
@@ -719,8 +713,8 @@ Today
           <div className="stat-title">Productivity Score</div>
           <div className="stat-value">{getProductivityScore()}</div>
           <div className="stat-desc up" style={{ color: "#9ca3af" }}>
-Weekly
-</div>
+            Weekly
+          </div>
           <div
             style={{
               position: "absolute",
@@ -744,8 +738,8 @@ Weekly
           <div className="stat-title">Total Absences</div>
           <div className="stat-value">{getMonthlyAbsenceCount(records)}</div>
           <div className="stat-desc up" style={{ color: "#9ca3af" }}>
-Monthly
-</div>
+            Monthly
+          </div>
           <div
             style={{
               position: "absolute",
@@ -773,7 +767,7 @@ Monthly
           borderRadius: 15,
           padding: 30,
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-display: "flex",
+          display: "flex",
           flexDirection: "column",
           alignItems: "center",
         }}
@@ -781,11 +775,11 @@ display: "flex",
         <div
           style={{
             display: "flex",
-gap: 8,
-alignItems: "flex-start",
+            gap: 8,
+            alignItems: "flex-start",
             justifyContent: "center",
           }}
->
+        >
           {/* Gün isimleri */}
           <div
             style={{
@@ -823,29 +817,29 @@ alignItems: "flex-start",
           >
             {Array.from({ length: 52 }).map((_, weekIdx) => (
               <div
-key={weekIdx}
-style={{ display: "flex", flexDirection: "column", gap: 2 }}
->
+                key={weekIdx}
+                style={{ display: "flex", flexDirection: "column", gap: 2 }}
+              >
                 {Array.from({ length: 7 }).map((_, dayIdx) => {
                   const yesterday = new Date();
                   yesterday.setDate(today.getDate() - 1);
                   yesterday.setHours(0, 0, 0, 0);
                   const cellDate = new Date(startDate);
                   cellDate.setDate(
-startDate.getDate() + (weekIdx * 7 + dayIdx)
-);
+                    startDate.getDate() + (weekIdx * 7 + dayIdx)
+                  );
                   cellDate.setHours(0, 0, 0, 0);
 
                   if (cellDate > yesterday) {
                     // ✅ Skip rendering future boxes altogether (optional)
                     return (
-<div key={dayIdx} style={{ width: 12, height: 12 }} />
+                      <div key={dayIdx} style={{ width: 12, height: 12 }} />
                     );
                   }
 
                   const dateStr = toLocalISODate(cellDate);
                   const isWeekend =
-cellDate.getDay() === 0 || cellDate.getDay() === 6;
+                    cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
                   let status;
 
