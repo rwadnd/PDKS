@@ -316,7 +316,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         >
           <div style={{ position: "relative" }}>
             <img
-              src={`/${person.id}.jpg`}
+              src={`/${person.per_id}.jpg`}
               alt={person.per_name}
               style={{
                 width: "100px",
