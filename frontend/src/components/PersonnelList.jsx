@@ -9,12 +9,11 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [formData, setFormData] = useState({
-    per_id: "",
-    per_name: "",
-    per_lname: "",
-    per_department: "",
-    per_role: "",
-    per_email: "",
+    firstName: "",
+    lastName: "",
+    perId: "",
+    department: "",
+    role: "",
   });
 
   useEffect(() => {
@@ -59,29 +58,37 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     try {
       setLoading(true);
 
+      console.log("=== FRONTEND DEBUG ===");
+      console.log("selectedImage:", selectedImage);
+      console.log("formData:", formData);
+
       // Form data oluştur
-      const submitData = new FormData();
-      Object.keys(formData).forEach((key) => {
-        submitData.append(key, formData[key]);
-      });
+      const formDataToSend = new FormData();
+      formDataToSend.append("firstName", formData.firstName);
+      formDataToSend.append("lastName", formData.lastName);
+      formDataToSend.append("perId", formData.perId);
+      formDataToSend.append("department", formData.department);
+      formDataToSend.append("role", formData.role);
 
       if (selectedImage) {
-        submitData.append("photo", selectedImage);
+        console.log("Adding photo to form data:", selectedImage);
+        formDataToSend.append("photo", selectedImage);
+      } else {
+        console.log("No selectedImage found");
       }
 
-      await axios.post("http://localhost:5050/api/personnel", submitData, {
+      await axios.post("http://localhost:5050/api/personnel", formDataToSend, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
       setFormData({
-        per_id: "",
-        per_name: "",
-        per_lname: "",
-        per_department: "",
-        per_role: "",
-        per_email: "",
+        firstName: "",
+        lastName: "",
+        perId: "",
+        department: "",
+        role: "",
       });
       setSelectedImage(null);
       setImagePreview(null);
@@ -99,12 +106,11 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
   const handleBack = () => {
     setShowModal(false);
     setFormData({
-      per_id: "",
-      per_name: "",
-      per_lname: "",
-      per_department: "",
-      per_role: "",
-      per_email: "",
+      firstName: "",
+      lastName: "",
+      perId: "",
+      department: "",
+      role: "",
     });
     setSelectedImage(null);
     setImagePreview(null);
@@ -433,9 +439,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                   <input
                     type="text"
                     required
-                    value={formData.per_name}
+                    value={formData.firstName}
                     onChange={(e) =>
-                      handleInputChange("per_name", e.target.value)
+                      handleInputChange("firstName", e.target.value)
                     }
                     style={{
                       width: "93%",
@@ -465,9 +471,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                   <input
                     type="text"
                     required
-                    value={formData.per_lname}
+                    value={formData.lastName}
                     onChange={(e) =>
-                      handleInputChange("per_lname", e.target.value)
+                      handleInputChange("lastName", e.target.value)
                     }
                     style={{
                       width: "90%",
@@ -499,8 +505,8 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 <input
                   type="number"
                   required
-                  value={formData.per_id}
-                  onChange={(e) => handleInputChange("per_id", e.target.value)}
+                  value={formData.perId}
+                  onChange={(e) => handleInputChange("perId", e.target.value)}
                   placeholder="Enter unique ID (e.g., 1, 2, 3...)"
                   style={{
                     width: "70%",
@@ -534,9 +540,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                   <input
                     type="text"
                     required
-                    value={formData.per_department}
+                    value={formData.department}
                     onChange={(e) =>
-                      handleInputChange("per_department", e.target.value)
+                      handleInputChange("department", e.target.value)
                     }
                     style={{
                       width: "93%",
@@ -566,10 +572,8 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                   <input
                     type="text"
                     required
-                    value={formData.per_role}
-                    onChange={(e) =>
-                      handleInputChange("per_role", e.target.value)
-                    }
+                    value={formData.role}
+                    onChange={(e) => handleInputChange("role", e.target.value)}
                     style={{
                       width: "90%",
                       padding: "12px 16px",

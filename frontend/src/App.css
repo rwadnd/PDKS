@@ -73,9 +73,9 @@ html,
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px 24px 16px 24px; /* 32px 40px 0 40px'den 16px 24px 16px 24px'e düşürdüm */
-  height: 96vh; /* Tam ekran yüksekliği */
-  overflow: hidden; /* Scroll'a izin ver */
+  padding: 16px 24px 16px 24px;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .topbar {
@@ -271,9 +271,10 @@ html,
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  max-height: 88%;
   overflow-y: auto;
   padding-right: 8px;
+  flex: 1;
+  max-height: calc(100vh - 200px);
 }
 .personnel-card {
   background: #fff;
