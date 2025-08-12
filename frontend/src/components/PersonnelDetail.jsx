@@ -14,24 +14,29 @@ import {
 const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   if (!person) return null;
 
-
-
   const [avatarUrl, setAvatarUrl] = useState(person.avatar_url || "");
+  const [uploading, setUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null); // NEW: for temp image
+  const [imagePreview, setImagePreview] = useState(null);   // NEW: for preview
 
-const normalizeAvatar = (url, p) => {
-  if (!url) {
-    const initials =
-      (p?.per_name?.[0] || "") + (p?.per_lname?.[0] || "");
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      initials || "?"
-    )}&background=E5E7EB&color=111827`;
-  }
-  if (url.startsWith("http")) return url;
-  return `${url.startsWith("/") ? "" : "/"}${url}`; // serve from /uploads/...
-};
+  const normalizeAvatar = (url, p) => {
+    if (!url) {
+      const initials =
+        (p?.per_name?.[0] || "") + (p?.per_lname?.[0] || "");
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        initials || "?"
 
+      )}&background=E5E7EB&color=111827`;
+    }
+    // If url is relative (starts with /uploads), prepend server address
+    if (url.startsWith("/uploads")) {
+      return `http://localhost:5050${url}`;
+    }
+    if (url.startsWith("http")) return url;
+    return `${url.startsWith("/") ? "" : "/"}${url}`; // serve from /uploads/...
+  };
 
- if (!person.avatar_url) {
+  if (!person.avatar_url) {
     axios
       .get(`http://localhost:5050/api/personnel/${person.per_id}`)
       .then((res) => {
@@ -41,7 +46,6 @@ const normalizeAvatar = (url, p) => {
       .catch((err) => console.error("Failed to fetch personnel details:", err));
   }
 
-
   const [records, setRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -50,6 +54,48 @@ const normalizeAvatar = (url, p) => {
     per_role: person.per_role || "",
     per_department: person.per_department || "",
   });
+
+  // NEW: handle image selection and preview
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    // Optimistic preview
+    const preview = URL.createObjectURL(file);
+    setImagePreview(preview);
+    setSelectedImage(file);
+
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("userId", person.per_id); // for filename uniqueness
+
+      // Upload to /api/profile/:id/avatar (same as Profile.jsx)
+      const res = await fetch(`/api/profile/${person.per_id}/avatar`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) throw new Error(data.message || "Upload failed");
+
+      // data.url like /uploads/xxx.png
+      const display =
+        data.url.startsWith("http") ? data.url : `${data.url.startsWith("/") ? "" : "/"}${data.url}`;
+
+      setAvatarUrl(display);
+      setImagePreview(display);
+      setSelectedImage(null); // clear local file, since it's now uploaded
+      // Optionally update editForm/avatar_url if you want to send it on save
+      setEditForm((prev) => ({ ...prev, avatar_url: data.url }));
+    } catch (e) {
+      alert("Failed to upload image.");
+      setImagePreview(null);
+      setSelectedImage(null);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     axios
@@ -70,20 +116,42 @@ const normalizeAvatar = (url, p) => {
       per_role: person.per_role || "",
       per_department: person.per_department || "",
     });
+    setSelectedImage(null); // reset image selection
+    setImagePreview(null);
   };
 
   const handleSave = async () => {
     try {
-      await axios.put(
+      setUploading(true);
+      const payload = {
+        firstName: editForm.per_name,
+        lastName: editForm.per_lname,
+        perId: person.per_id,
+        department: editForm.per_department,
+        role: editForm.per_role,
+        avatar_url: editForm.avatar_url || "", // send avatar_url as in Profile.jsx
+      };
+      const res = await axios.put(
         `http://localhost:5050/api/personnel/${person.per_id}`,
-        editForm
+        payload,
+        { headers: { "Content-Type": "application/json" } }
       );
-      console.log(editForm);
       setIsEditing(false);
+      setUploading(false);
+      setSelectedImage(null);
+      setImagePreview(null);
+      if (res.data?.person?.avatar_url) {
+        setAvatarUrl(res.data.person.avatar_url);
+      }
       if (onUpdate) {
-        onUpdate({ ...person, ...editForm });
+        onUpdate({
+          ...person,
+          ...editForm,
+          avatar_url: res.data?.person?.avatar_url || avatarUrl,
+        });
       }
     } catch (error) {
+      setUploading(false);
       console.error("Error updating personnel:", error);
       alert("Güncelleme sırasında hata oluştu!");
     }
@@ -344,7 +412,11 @@ const normalizeAvatar = (url, p) => {
         >
           <div style={{ position: "relative" }}>
             <img
-              src={normalizeAvatar(avatarUrl)}
+              src={
+                isEditing
+                  ? imagePreview || normalizeAvatar(avatarUrl)
+                  : normalizeAvatar(avatarUrl)
+              }
               alt={person.per_name}
               style={{
                 width: "100px",
@@ -397,6 +469,56 @@ const normalizeAvatar = (url, p) => {
                 <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </div>
+            {/* NEW: Show upload button when editing */}
+            {isEditing && (
+              <div style={{ marginTop: 12, textAlign: "center" }}>
+                <label
+                  style={{
+                    display: "inline-block",
+                    padding: "8px 16px",
+                    background: "#3b82f6",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    cursor: uploading ? "not-allowed" : "pointer",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    opacity: uploading ? 0.6 : 1,
+                  }}
+                >
+                  {uploading ? "Uploading..." : "Upload Image"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    disabled={uploading}
+                    onChange={handleImageChange}
+                  />
+                </label>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    style={{
+                      marginLeft: 10,
+                      padding: "6px 12px",
+                      background: "#fef2f2",
+                      color: "#dc2626",
+                      border: "1px solid #fecaca",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                    }}
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setImagePreview(null);
+                      setEditForm((prev) => ({ ...prev, avatar_url: "" }));
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <div style={{ textAlign: "center" }}>
             <h2
@@ -628,6 +750,7 @@ const normalizeAvatar = (url, p) => {
               >
                 <button
                   onClick={handleSave}
+                  disabled={uploading}
                   style={{
                     padding: "12px 24px",
                     background:
@@ -635,46 +758,55 @@ const normalizeAvatar = (url, p) => {
                     color: "white",
                     border: "none",
                     borderRadius: "12px",
-                    cursor: "pointer",
+                    cursor: uploading ? "not-allowed" : "pointer",
                     fontSize: "14px",
                     fontWeight: "600",
                     boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
                     transition: "all 0.2s ease",
                   }}
                   onMouseOver={(e) => {
-                    e.target.style.transform = "translateY(-2px)";
-                    e.target.style.boxShadow =
-                      "0 6px 16px rgba(16, 185, 129, 0.4)";
+                    if (!uploading) {
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow =
+                        "0 6px 16px rgba(16, 185, 129, 0.4)";
+                    }
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.transform = "translateY(0)";
-                    e.target.style.boxShadow =
-                      "0 4px 12px rgba(16, 185, 129, 0.3)";
+                    if (!uploading) {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow =
+                        "0 4px 12px rgba(16, 185, 129, 0.3)";
+                    }
                   }}
                 >
-                  Save
+                  {uploading ? "Saving..." : "Save"}
                 </button>
                 <button
                   onClick={handleCancel}
+                  disabled={uploading}
                   style={{
                     padding: "12px 24px",
                     backgroundColor: "rgba(255, 255, 255, 0.9)",
                     color: "#64748b",
                     border: "1px solid rgba(0, 0, 0, 0.1)",
                     borderRadius: "12px",
-                    cursor: "pointer",
+                    cursor: uploading ? "not-allowed" : "pointer",
                     fontSize: "14px",
                     fontWeight: "600",
                     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                     transition: "all 0.2s ease",
                   }}
                   onMouseOver={(e) => {
-                    e.target.style.transform = "translateY(-2px)";
-                    e.target.style.backgroundColor = "#f8fafc";
+                    if (!uploading) {
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.backgroundColor = "#f8fafc";
+                    }
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.transform = "translateY(0)";
-                    e.target.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                    if (!uploading) {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                    }
                   }}
                 >
                   Cancel

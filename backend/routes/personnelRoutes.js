@@ -14,17 +14,20 @@ const {
   createPersonnel,
   updatePersonnel,
   deletePersonnel,
+  updatePersonnelAvatarOnly, // add this import
 } = require("../controllers/personnelController");
 
 // Multer: store to a temp directory; controller will move/rename
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "temp_uploads/"); // temporary
+    cb(null, "public/uploads/personnel"); // change to match profile logic (direct to public/uploads/personnel)
   },
   filename: function (req, file, cb) {
     const timestamp = Date.now();
     const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, `temp_${timestamp}${ext}`);
+    // Use per_id if available for uniqueness
+    const perId = req.body.perId || req.params.id || "unknown";
+    cb(null, `per_${perId}_${timestamp}${ext}`);
   },
 });
 const upload = multer({
@@ -47,6 +50,9 @@ router.post("/", upload.single("photo"), createPersonnel);
 
 // PUT update (accept text fields AND optional photo)
 router.put("/:id", upload.single("photo"), updatePersonnel);
+
+// NEW: Avatar upload route (expects field "avatar")
+router.post("/:id/avatar", upload.single("avatar"), updatePersonnelAvatarOnly);
 
 // DELETE
 router.delete("/:id", deletePersonnel);
