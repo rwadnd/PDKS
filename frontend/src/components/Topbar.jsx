@@ -22,8 +22,11 @@ const Topbar = ({
   const [user, setUser] = useState({});
   // Close dropdown when clicking outside
   useEffect(() => {
+    // at the top of the file
+
+
     axios
-      .get(`http://localhost:5050/api/auth/users/${currentUser.id}`)
+      .get(`http://localhost:5050/api/profile/${currentUser.id}`)
       .then((res) => {
         setUser(res.data.user);
       })
@@ -59,12 +62,24 @@ const Topbar = ({
       document.addEventListener("mousedown", handleClickOutside);
     }
 
+    
+ 
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showDropdown, showNotifications]);
 
   const [loading, setLoading] = useState(false);
+const DEFAULT_AVATAR = "https://randomuser.me/api/portraits/women/44.jpg";
+console.log(user)
+
+    const avatarSrc =
+  user?.avatar_url
+    ? (user.avatar_url.startsWith("http")
+        ? user.avatar_url
+        : `${user.avatar_url.startsWith("/") ? "" : "/"}${user.avatar_url}`)
+    : DEFAULT_AVATAR;
 
   // Approve request
   const approveRequest = async (id) => {
@@ -527,7 +542,7 @@ const Topbar = ({
             onClick={() => setShowDropdown(!showDropdown)}
           >
             <img
-              src="https://randomuser.me/api/portraits/women/44.jpg"
+              src= {avatarSrc}
               alt="User"
               style={{
                 width: "45px",
