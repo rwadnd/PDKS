@@ -10,6 +10,7 @@ exports.getAllRecords = async (req, res) => {
         p.per_lname,
         p.per_department,
         p.per_role
+        p.avatar_url
       FROM pdks_entry pk
       JOIN personnel p ON pk.personnel_per_id = p.per_id
       ORDER BY pk.pdks_date DESC
@@ -46,6 +47,7 @@ exports.getRecordsByDate = async (req, res) => {
   p.per_department,
   p.per_role,
   p.per_status,
+  p.avatar_url,
   e.pdks_date,
   e.pdks_checkInTime,
   e.pdks_checkOutTime

@@ -56,6 +56,24 @@ const isHoliday = (date) => {
   return { isHoliday: false, type: null, message: null };
 };
 
+
+
+  const normalizeAvatar = (avatar_url, person) => {
+    if (!avatar_url) {
+      // basic initials avatar
+      const name =
+        (person?.per_name ? person.per_name[0] : "") +
+        (person?.per_lname ? person.per_lname[0] : "");
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        name || "User"
+      )}&background=E5E7EB&color=111827`;
+    }
+    if (avatar_url.startsWith("http")) return avatar_url;
+    // ensure leading slash so it works with the static /uploads mount
+    return `${avatar_url.startsWith("/") ? "" : "/"}${avatar_url}`;
+  };
+
+
 // Holiday icon and color functions
 const getHolidayIcon = (type) => {
   switch (type) {
@@ -700,8 +718,8 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                   entry.pdks_checkOutTime !== "00:00:00"
                     ? entry.pdks_checkOutTime.slice(0, 5)
                     : "-";
-
                 return (
+                  
                   <div
                     key={i}
                     style={{
@@ -734,10 +752,12 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                         "transparent")
                     }
                   >
+                    
                     {/* Photo */}
+                    
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <img
-                        src={`/${entry.per_id}.jpg`}
+                        src={normalizeAvatar(entry.avatar_url, entry)}
                         alt={`${entry.per_name} ${entry.per_lname}`}
                         style={{
                           width: "40px",
