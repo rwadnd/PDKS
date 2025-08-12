@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const FALLBACK_AVATAR =
+  "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=111827";
+
 const PersonnelList = ({ searchTerm, onSelectPerson }) => {
   const [personnel, setPersonnel] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -42,13 +45,11 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
       const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result);
-      };
+      reader.onload = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
@@ -58,11 +59,6 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     try {
       setLoading(true);
 
-      console.log("=== FRONTEND DEBUG ===");
-      console.log("selectedImage:", selectedImage);
-      console.log("formData:", formData);
-
-      // Form data oluştur
       const formDataToSend = new FormData();
       formDataToSend.append("firstName", formData.firstName);
       formDataToSend.append("lastName", formData.lastName);
@@ -70,19 +66,16 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
       formDataToSend.append("department", formData.department);
       formDataToSend.append("role", formData.role);
 
+      // IMPORTANT: backend expects "avatar"
       if (selectedImage) {
-        console.log("Adding photo to form data:", selectedImage);
-        formDataToSend.append("photo", selectedImage);
-      } else {
-        console.log("No selectedImage found");
+        formDataToSend.append("avatar", selectedImage);
       }
 
       await axios.post("http://localhost:5050/api/personnel", formDataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
+      // reset
       setFormData({
         firstName: "",
         lastName: "",
@@ -93,8 +86,10 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
       setSelectedImage(null);
       setImagePreview(null);
       setShowModal(false);
-      fetchPersonnel(); // Refresh the list
       setError(null);
+
+      // refresh list
+      fetchPersonnel();
     } catch (err) {
       console.error("Error adding personnel:", err);
       setError("Yeni personel eklenirken hata oluştu");
@@ -115,6 +110,21 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     setSelectedImage(null);
     setImagePreview(null);
     setError(null);
+  };
+
+  const normalizeAvatar = (avatar_url, person) => {
+    if (!avatar_url) {
+      // basic initials avatar
+      const name =
+        (person?.per_name ? person.per_name[0] : "") +
+        (person?.per_lname ? person.per_lname[0] : "");
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        name || "User"
+      )}&background=E5E7EB&color=111827`;
+    }
+    if (avatar_url.startsWith("http")) return avatar_url;
+    // ensure leading slash so it works with the static /uploads mount
+    return `${avatar_url.startsWith("/") ? "" : "/"}${avatar_url}`;
   };
 
   return (
@@ -145,17 +155,15 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
             transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#f3f4f6";
-            e.target.style.color = "#374151";
+            e.currentTarget.style.backgroundColor = "#f3f4f6";
+            e.currentTarget.style.color = "#374151";
           }}
           onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "transparent";
-            e.target.style.color = "#6b7280";
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = "#6b7280";
           }}
         >
-          <span
-            style={{ fontSize: "18px", fontWeight: "bold", lineHeight: "1" }}
-          >
+          <span style={{ fontSize: "18px", fontWeight: "bold", lineHeight: "1" }}>
             +
           </span>
           Add New
@@ -177,14 +185,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
             gap: "8px",
           }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
             <line x1="15" y1="9" x2="9" y2="15" />
             <line x1="9" y1="9" x2="15" y2="15" />
@@ -234,31 +235,33 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 entry.per_role?.toLowerCase().includes(searchLower)
               );
             })
-            .map((person) => (
-              <div
-                className="personnel-card"
-                key={person.per_id}
-                onClick={() => {
-                  window.history.pushState(
-                    null,
-                    "",
-                    `/personnel/${person.per_id}`
-                  );
-                  window.dispatchEvent(new PopStateEvent("popstate"));
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <img
-                  className="personnel-avatar"
-                  src={`/${person.per_id}.jpg`}
-                  alt={`${person.per_name} ${person.per_lname}`}
-                />
-                <div className="personnel-name">
-                  {person.per_name} {person.per_lname}
+            .map((person) => {
+              const avatarSrc = normalizeAvatar(person.avatar_url, person);
+              return (
+                <div
+                  className="personnel-card"
+                  key={person.per_id}
+                  onClick={() => {
+                    window.history.pushState(null, "", `/personnel/${person.per_id}`);
+                    window.dispatchEvent(new PopStateEvent("popstate"));
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <img
+                    className="personnel-avatar"
+                    src={avatarSrc}
+                    alt={`${person.per_name} ${person.per_lname}`}
+                    onError={(e) => {
+                      e.currentTarget.src = FALLBACK_AVATAR;
+                    }}
+                  />
+                  <div className="personnel-name">
+                    {person.per_name} {person.per_lname}
+                  </div>
+                  <div className="personnel-role">{person.per_role}</div>
                 </div>
-                <div className="personnel-role">{person.per_role}</div>
-              </div>
-            ))}
+              );
+            })}
         </div>
       )}
 
@@ -267,10 +270,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
         <div
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            top: 0, left: 0, right: 0, bottom: 0,
             background: "rgba(0, 0, 0, 0.5)",
             display: "flex",
             alignItems: "center",
@@ -321,7 +321,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
             </h3>
 
             <form onSubmit={handleSubmit}>
-              {/* Photo Upload Section */}
+              {/* Photo Upload */}
               <div style={{ marginBottom: "24px", textAlign: "center" }}>
                 <div
                   style={{
@@ -334,17 +334,13 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     justifyContent: "center",
                     margin: "0 auto 16px auto",
                     background: imagePreview ? "none" : "#f9fafb",
-                    backgroundImage: imagePreview
-                      ? `url(${imagePreview})`
-                      : "none",
+                    backgroundImage: imagePreview ? `url(${imagePreview})` : "none",
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     cursor: "pointer",
                     position: "relative",
                   }}
-                  onClick={() =>
-                    document.getElementById("photo-upload").click()
-                  }
+                  onClick={() => document.getElementById("photo-upload").click()}
                 >
                   {!imagePreview && (
                     <div style={{ textAlign: "center" }}>
@@ -360,13 +356,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                         <polyline points="7,10 12,15 17,10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "#9ca3af",
-                          marginTop: "4px",
-                        }}
-                      >
+                      <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
                         Upload Photo
                       </div>
                     </div>
@@ -381,9 +371,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    document.getElementById("photo-upload").click()
-                  }
+                  onClick={() => document.getElementById("photo-upload").click()}
                   style={{
                     padding: "8px 16px",
                     background: "#f3f4f6",
@@ -421,9 +409,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 )}
               </div>
 
-              <div
-                style={{ display: "flex", gap: "40px", marginBottom: "16px" }}
-              >
+              <div style={{ display: "flex", gap: "40px", marginBottom: "16px" }}>
                 <div style={{ flex: 1 }}>
                   <label
                     style={{
@@ -440,9 +426,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     type="text"
                     required
                     value={formData.firstName}
-                    onChange={(e) =>
-                      handleInputChange("firstName", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
                     style={{
                       width: "93%",
                       padding: "12px 16px",
@@ -472,9 +456,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     type="text"
                     required
                     value={formData.lastName}
-                    onChange={(e) =>
-                      handleInputChange("lastName", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
                     style={{
                       width: "90%",
                       padding: "12px 16px",
@@ -522,9 +504,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 />
               </div>
 
-              <div
-                style={{ display: "flex", gap: "40px", marginBottom: "32px" }}
-              >
+              <div style={{ display: "flex", gap: "40px", marginBottom: "32px" }}>
                 <div style={{ flex: 1 }}>
                   <label
                     style={{
@@ -541,9 +521,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     type="text"
                     required
                     value={formData.department}
-                    onChange={(e) =>
-                      handleInputChange("department", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("department", e.target.value)}
                     style={{
                       width: "93%",
                       padding: "12px 16px",
@@ -629,8 +607,8 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     transition: "all 0.2s ease",
                     width: "100px",
                   }}
-                  onMouseEnter={(e) => (e.target.style.background = "#e5e7eb")}
-                  onMouseLeave={(e) => (e.target.style.background = "#f3f4f6")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#e5e7eb")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#f3f4f6")}
                 >
                   Cancel
                 </button>
@@ -656,14 +634,10 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     width: "100px",
                   }}
                   onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.target.style.transform = "translateY(-1px)";
-                    }
+                    if (!loading) e.currentTarget.style.transform = "translateY(-1px)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!loading) {
-                      e.target.style.transform = "translateY(0)";
-                    }
+                    if (!loading) e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   {loading ? (
@@ -677,7 +651,7 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                           borderRadius: "50%",
                           animation: "spin 1s linear infinite",
                         }}
-                      ></div>
+                      />
                       Adding...
                     </>
                   ) : (

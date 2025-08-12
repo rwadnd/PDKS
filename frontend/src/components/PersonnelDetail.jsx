@@ -14,6 +14,34 @@ import {
 const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   if (!person) return null;
 
+
+
+  const [avatarUrl, setAvatarUrl] = useState(person.avatar_url || "");
+
+const normalizeAvatar = (url, p) => {
+  if (!url) {
+    const initials =
+      (p?.per_name?.[0] || "") + (p?.per_lname?.[0] || "");
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      initials || "?"
+    )}&background=E5E7EB&color=111827`;
+  }
+  if (url.startsWith("http")) return url;
+  return `${url.startsWith("/") ? "" : "/"}${url}`; // serve from /uploads/...
+};
+
+
+ if (!person.avatar_url) {
+    axios
+      .get(`http://localhost:5050/api/personnel/${person.per_id}`)
+      .then((res) => {
+        // res.data should include avatar_url
+        if (res.data?.avatar_url) setAvatarUrl(res.data.avatar_url);
+      })
+      .catch((err) => console.error("Failed to fetch personnel details:", err));
+  }
+
+
   const [records, setRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -316,7 +344,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         >
           <div style={{ position: "relative" }}>
             <img
-              src={`/${person.per_id}.jpg`}
+              src={normalizeAvatar(avatarUrl)}
               alt={person.per_name}
               style={{
                 width: "100px",
