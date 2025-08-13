@@ -676,7 +676,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               border: "1px solid #e5e7eb",
               overflowX: "hidden",
               overflowY: "scroll",
-              maxHeight: "88vh",
+              maxHeight: "92%",
             }}
           >
             {/* Table Header */}
@@ -834,7 +834,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
-                padding: "24px",
+                padding: "20px",
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",
@@ -902,7 +902,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
-                padding: "24px",
+                padding: "20px",
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",
@@ -961,7 +961,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
-                padding: "24px",
+                padding: "20px",
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",
@@ -1040,7 +1040,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
-                padding: "24px",
+                padding: "20px",
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",

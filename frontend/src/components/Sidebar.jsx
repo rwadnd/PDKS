@@ -27,7 +27,7 @@ const Sidebar = ({ activePage, onChangePage, isOpen }) => (
     // }}
   >
     <div className="logo" style={{ marginBottom: 16 }}>
-      DashStack
+      OnTime
     </div>
     <nav>
       <ul className="sidebar-menu" style={{ marginTop: 0, paddingTop: 0 }}>
@@ -40,7 +40,7 @@ const Sidebar = ({ activePage, onChangePage, isOpen }) => (
           onClick={() => onChangePage("dashboard")}
         >
           <FaTachometerAlt style={{ marginRight: 16, fontSize: 22 }} />{" "}
-          Dashboard
+          Overview
         </li>
         <li
           className={
