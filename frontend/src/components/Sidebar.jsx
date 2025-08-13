@@ -28,7 +28,7 @@ const Sidebar = ({ activePage, onChangePage, isOpen }) => (
     // }}
   >
     <div className="logo" >
-      <img src={logo} alt="" style={{ width: "70%", height: "auto" }} />
+      <img src={logo} alt="" style={{ width: "65%", height: "auto" }} />
     </div>
     <nav>
       <ul className="sidebar-menu" style={{ marginTop: 0, paddingTop: 0 }}>

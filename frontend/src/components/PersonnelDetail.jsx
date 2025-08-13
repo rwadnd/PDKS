@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "../App.css";
 import axios from "axios";
 import {
@@ -18,6 +18,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null); // NEW: for temp image
   const [imagePreview, setImagePreview] = useState(null);   // NEW: for preview
+  const fileInputRef = useRef(); // EKLENDİ
 
   const normalizeAvatar = (url, p) => {
     if (!url) {
@@ -53,6 +54,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     per_lname: person.per_lname || "",
     per_role: person.per_role || "",
     per_department: person.per_department || "",
+    avatar_url: person.avatar_url || "", // EKLENDİ
   });
 
   // NEW: handle image selection and preview
@@ -68,9 +70,8 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("userId", person.per_id); // for filename uniqueness
+      fd.append("userId", person.per_id);
 
-      // Upload to /api/profile/:id/avatar (same as Profile.jsx)
       const res = await fetch(`/api/profile/${person.per_id}/avatar`, {
         method: "POST",
         body: fd,
@@ -79,14 +80,12 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
       if (!res.ok || !data.success) throw new Error(data.message || "Upload failed");
 
-      // data.url like /uploads/xxx.png
       const display =
         data.url.startsWith("http") ? data.url : `${data.url.startsWith("/") ? "" : "/"}${data.url}`;
 
       setAvatarUrl(display);
       setImagePreview(display);
-      setSelectedImage(null); // clear local file, since it's now uploaded
-      // Optionally update editForm/avatar_url if you want to send it on save
+      setSelectedImage(null);
       setEditForm((prev) => ({ ...prev, avatar_url: data.url }));
     } catch (e) {
       alert("Failed to upload image.");
@@ -115,9 +114,11 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       per_lname: person.per_lname || "",
       per_role: person.per_role || "",
       per_department: person.per_department || "",
+      avatar_url: person.avatar_url || "", // avatarı eski haline döndür!
     });
-    setSelectedImage(null); // reset image selection
+    setSelectedImage(null);
     setImagePreview(null);
+    setAvatarUrl(person.avatar_url || ""); // avatarı eski haline döndür!
   };
 
   const handleSave = async () => {
@@ -129,7 +130,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
         perId: person.per_id,
         department: editForm.per_department,
         role: editForm.per_role,
-        avatar_url: editForm.avatar_url || "", // send avatar_url as in Profile.jsx
+        avatar_url: editForm.avatar_url, // Doğrudan editForm'dan al!
       };
       const res = await axios.put(
         `http://localhost:5050/api/personnel/${person.per_id}`,
@@ -140,14 +141,19 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       setUploading(false);
       setSelectedImage(null);
       setImagePreview(null);
-      if (res.data?.person?.avatar_url) {
-        setAvatarUrl(res.data.person.avatar_url);
+
+      // Avatar güncellemesi: Eğer avatar_url boşsa default avatar göster
+      if (!editForm.avatar_url) {
+        setAvatarUrl(""); // avatarUrl'yi boş yap, böylece default avatar gösterilecek
+      } else {
+        setAvatarUrl(res.data?.person?.avatar_url || "");
       }
+
       if (onUpdate) {
         onUpdate({
           ...person,
           ...editForm,
-          avatar_url: res.data?.person?.avatar_url || avatarUrl,
+          avatar_url: res.data?.person?.avatar_url || "",
         });
       }
     } catch (error) {
@@ -410,116 +416,137 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
             flex: "1",
           }}
         >
-          <div style={{ position: "relative" }}>
-            <img
-              src={
-                isEditing
-                  ? imagePreview || normalizeAvatar(avatarUrl)
-                  : normalizeAvatar(avatarUrl)
-              }
-              alt={person.per_name}
-              style={{
-                width: "100px",
-                height: "100px",
-                borderRadius: "50%",
-                border: "2px solid rgba(255, 255, 255, 0.9)",
-                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
-                objectFit: "cover",
-              }}
-            />
-            {/* Edit icon */}
-            <div
-              onClick={handleEdit}
-              style={{
-                position: "absolute",
-                bottom: "8px",
-                right: "8px",
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-                transition: "all 0.2s ease",
-                border: "2px solid #ffffff",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.1)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(0, 0, 0, 0.3)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 2px 8px rgba(0, 0, 0, 0.2)";
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-              >
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </div>
-            {/* NEW: Show upload button when editing */}
-            {isEditing && (
-              <div style={{ marginTop: 12, textAlign: "center" }}>
-                <label
+          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "relative" }}>
+              <img
+                src={
+                  isEditing
+                    ? imagePreview || normalizeAvatar(avatarUrl)
+                    : normalizeAvatar(avatarUrl)
+                }
+                alt={person.per_name}
+                style={{
+                  width: "100px",
+                  height: "100px",
+                  borderRadius: "50%",
+                  border: "2px solid rgba(255, 255, 255, 0.9)",
+                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
+                  objectFit: "cover",
+                }}
+              />
+              {/* Edit icon: sadece düzenleme modunda değilken göster */}
+              {!isEditing && (
+                <div
+                  onClick={handleEdit}
                   style={{
-                    display: "inline-block",
-                    padding: "8px 16px",
-                    background: "#3b82f6",
-                    color: "#fff",
-                    borderRadius: "8px",
-                    cursor: uploading ? "not-allowed" : "pointer",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    opacity: uploading ? 0.6 : 1,
+                    position: "absolute",
+                    bottom: "8px",
+                    right: "3px",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                    transition: "all 0.2s ease",
+                    border: "2px solid #ffffff",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(0, 0, 0, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 8px rgba(0, 0, 0, 0.2)";
                   }}
                 >
-                  {uploading ? "Uploading..." : "Upload Image"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    disabled={uploading}
-                    onChange={handleImageChange}
-                  />
-                </label>
-                {imagePreview && (
-                  <button
-                    type="button"
-                    style={{
-                      marginLeft: 10,
-                      padding: "6px 12px",
-                      background: "#fef2f2",
-                      color: "#dc2626",
-                      border: "1px solid #fecaca",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                    }}
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setImagePreview(null);
-                      setEditForm((prev) => ({ ...prev, avatar_url: "" }));
-                    }}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
                   >
-                    Remove
-                  </button>
-                )}
-              </div>
-            )}
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
+          {/* Upload button: only show in edit mode, below avatar, above name */}
+          {isEditing && (
+            <div style={{ marginTop: "8px", marginBottom: "8px", display: "flex", justifyContent: "center", gap: "10px" }}>
+              <label
+                style={{
+                  display: "inline-block",
+                  width: "140px",
+                  padding: "8px 0",
+                  background: "#3b82f6",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  cursor: uploading ? "not-allowed" : "pointer",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  opacity: uploading ? 0.6 : 1,
+                  border: "none",
+                  boxSizing: "border-box",
+                  height: "40px",
+                  lineHeight: "24px",
+                  textAlign: "center",
+                }}
+              >
+                {uploading ? "Uploading..." : "Upload Image"}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  disabled={uploading}
+                  onChange={handleImageChange}
+                />
+              </label>
+              {/* Eğer mevcutta fotoğraf varsa veya yeni bir fotoğraf seçildiyse remove butonu göster */}
+              {(imagePreview || avatarUrl) && (
+                <button
+                  type="button"
+                  style={{
+                    width: "140px",
+                    padding: "8px 0",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    border: "1px solid #fecaca",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    height: "40px",
+                    lineHeight: "24px",
+                    boxSizing: "border-box",
+                    textAlign: "center",
+                  }}
+                  onClick={() => {
+                    setImagePreview(null);
+                    setSelectedImage(null);
+                    setEditForm((prev) => ({
+                      ...prev,
+                      avatar_url: "",
+                    }));
+                    setAvatarUrl(""); // Fotoğrafı kaldır
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          )}
           <div style={{ textAlign: "center" }}>
             <h2
               style={{
@@ -752,7 +779,8 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   onClick={handleSave}
                   disabled={uploading}
                   style={{
-                    padding: "12px 24px",
+                    width: "140px", // Sabit genişlik
+                    padding: "12px 0",
                     background:
                       "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                     color: "white",
@@ -763,6 +791,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                     fontWeight: "600",
                     boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
                     transition: "all 0.2s ease",
+                    textAlign: "center",
                   }}
                   onMouseOver={(e) => {
                     if (!uploading) {
@@ -785,7 +814,8 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   onClick={handleCancel}
                   disabled={uploading}
                   style={{
-                    padding: "12px 24px",
+                    width: "140px", // Sabit genişlik
+                    padding: "12px 0",
                     backgroundColor: "rgba(255, 255, 255, 0.9)",
                     color: "#64748b",
                     border: "1px solid rgba(0, 0, 0, 0.1)",
@@ -795,6 +825,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                     fontWeight: "600",
                     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                     transition: "all 0.2s ease",
+                    textAlign: "center",
                   }}
                   onMouseOver={(e) => {
                     if (!uploading) {
