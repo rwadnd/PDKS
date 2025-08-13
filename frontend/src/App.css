@@ -38,9 +38,9 @@ html,
 }
 .sidebar .logo {
   font-weight: bold;
-  font-size: 1.4rem;
+
   color: #1e293b;
-  margin-bottom: 32px;
+  margin-bottom: 10px;
   padding-left: 32px;
 }
 .sidebar nav ul {
