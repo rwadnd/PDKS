@@ -56,6 +56,7 @@ const Departments = ({ searchTerm }) => {
       style={{
         padding: "24px",
         backgroundColor: "#f8fafc",
+        overflowY: "scroll"
       }}
     >
       {/* Header */}
