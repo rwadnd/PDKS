@@ -33,17 +33,30 @@ const Calendar = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await axios.get("http://localhost:5050/api/personnel");
+        // Personnel verilerini al
+        const personnelRes = await axios.get(
+          "http://localhost:5050/api/personnel"
+        );
         const deptCounts = {};
-        res.data.forEach((p) => {
+        personnelRes.data.forEach((p) => {
           deptCounts[p.per_department] =
             (deptCounts[p.per_department] || 0) + 1;
         });
-        const total = res.data.length;
+
+        // Department renklerini al
+        const departmentsRes = await axios.get(
+          "http://localhost:5050/api/department/"
+        );
+        const deptColors = {};
+        departmentsRes.data.forEach((dept) => {
+          deptColors[dept.name] = dept.color;
+        });
+
+        const total = personnelRes.data.length;
         const formatted = Object.entries(deptCounts).map(([name, count]) => ({
           name,
           count,
-          color: getDeptColor(name),
+          color: deptColors[name] || getDeptColor(name), // Önce veritabanından, yoksa varsayılandan
           percentage: ((count / total) * 100).toFixed(2) + "%",
         }));
         setDepartmentData(formatted);
@@ -84,19 +97,21 @@ const Calendar = () => {
   }
 
   const getDeptColor = (name) => {
+    // Departments sayfasındaki renkleri kullan
     const colorMap = {
-      IT: "#667eea",
-      QA: "#06b6d4",
-      Finance: "#f59e0b",
+      "merkez yazilim": "#ef4444", // kırmızı
+      IT: "#3b82f6", // mavi
+      QA: "#10b981", // yeşil
+      Finance: "#f59e0b", // turuncu
+      housekeeper: "#8b5cf6", // mor
     };
-    return colorMap[name] || "#8b5cf6";
+    return colorMap[name] || "#6b7280"; // varsayılan gri
   };
 
   const isToday = (d) =>
     d === today.getDate() &&
     sel.month === today.getMonth() &&
     sel.year === today.getFullYear();
-
 
   const cellStyle = (d) => {
     const key = `${sel.month + 1}-${d}`;
@@ -122,9 +137,16 @@ const Calendar = () => {
   };
 
   return (
-    <div style={{ height: "calc(100vh - 120px)", overflowX: "hidden"}}>
+    <div style={{ height: "calc(100vh - 120px)", overflowX: "hidden" }}>
       {/* Ana container - 75% Calendar + 25% Side Card */}
-      <div style={{ display: "flex", gap: "20px", minHeight: "90%", boxSizing: "border-box" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          minHeight: "90%",
+          boxSizing: "border-box",
+        }}
+      >
         {/* Calendar - 75% width */}
         <div
           style={{
@@ -155,8 +177,8 @@ const Calendar = () => {
                 borderBottom: "1px solid #e2e8f0",
                 position: "relative",
                 flexShrink: 0,
-                borderTopLeftRadius: '20px',
-                borderTopRightRadius: '20px'
+                borderTopLeftRadius: "20px",
+                borderTopRightRadius: "20px",
               }}
             >
               <div
@@ -439,7 +461,8 @@ const Calendar = () => {
                                   }}
                                   title={hol}
                                   onMouseOver={(e) => {
-                                    e.target.style.transform = "translateY(-1px)";
+                                    e.target.style.transform =
+                                      "translateY(-1px)";
                                   }}
                                   onMouseOut={(e) => {
                                     e.target.style.transform = "translateY(0)";
@@ -470,7 +493,7 @@ const Calendar = () => {
               borderRadius: "20px",
               border: "1px solid #e2e8f0",
               padding: "20px 20px 20px 20px",
-    
+
               display: "flex",
               flexDirection: "column",
             }}
