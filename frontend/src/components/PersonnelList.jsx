@@ -61,10 +61,17 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     try {
       setLoading(true);
 
+      // Generate automatic ID (max ID + 1)
+      const maxId =
+        personnel.length > 0
+          ? Math.max(...personnel.map((p) => parseInt(p.per_id) || 0))
+          : 0;
+      const newId = (maxId + 1).toString();
+
       const formDataToSend = new FormData();
       formDataToSend.append("firstName", formData.firstName);
       formDataToSend.append("lastName", formData.lastName);
-      formDataToSend.append("perId", formData.perId);
+      formDataToSend.append("perId", newId);
       formDataToSend.append("department", formData.department);
       formDataToSend.append("role", formData.role);
 
@@ -81,7 +88,6 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
       setFormData({
         firstName: "",
         lastName: "",
-        perId: "",
         department: "",
         role: "",
       });
@@ -105,7 +111,6 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     setFormData({
       firstName: "",
       lastName: "",
-      perId: "",
       department: "",
       role: "",
     });
@@ -581,38 +586,6 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     onBlur={(e) => (e.target.style.borderColor = "#e2e8f0")}
                   />
                 </div>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "6px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    color: "#374151",
-                  }}
-                >
-                  Personnel ID *
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formData.perId}
-                  onChange={(e) => handleInputChange("perId", e.target.value)}
-                  placeholder="Enter unique ID (e.g., 1, 2, 3...)"
-                  style={{
-                    width: "70%",
-                    padding: "12px 16px",
-                    border: "2px solid #e2e8f0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                    transition: "border-color 0.2s ease",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-                  onBlur={(e) => (e.target.style.borderColor = "#e2e8f0")}
-                />
               </div>
 
               <div
