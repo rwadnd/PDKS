@@ -1,10 +1,4 @@
-import React from "react";
-import {
-  FaTachometerAlt,
-  FaRegHeart,
-  FaRegComments,
-  FaListUl,
-} from "react-icons/fa";
+import { FaTachometerAlt, FaRegHeart, FaRegComments } from "react-icons/fa";
 import { PiTableLight } from "react-icons/pi";
 import "../App.css";
 import logo from "../../public/Logo1.png"
@@ -19,13 +13,6 @@ const Sidebar = ({ activePage, onChangePage, isOpen }) => (
         window.dispatchEvent(event);
       }
     }}
-    // onMouseLeave={() => {
-    //   // Hover'dan çıkınca kapat
-    //   if (isOpen) {
-    //     const event = new CustomEvent("sidebarHover", { detail: false });
-    //     window.dispatchEvent(event);
-    //   }
-    // }}
   >
     <div className="logo" >
       <img src={logo} alt="" style={{ width: "65%", height: "auto" }} />

@@ -1,29 +1,16 @@
 import "../App.css";
-import { FaSearch, FaCog, FaBell, FaBars } from "react-icons/fa";
-import React, { useEffect, useState } from "react";
+import { FaSearch, FaBell } from "react-icons/fa";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 
-const Topbar = ({
-  activePage,
-  searchTerm,
-  onSearchChange,
-  hideSearch,
-  currentUser,
-  onLogout,
-  onToggleSidebar,
-  sidebarOpen,
-  onChangePage,
-  leaveRequests,
-  setLeaveRequests,
-}) => {
+const Topbar = ({ searchTerm, onSearchChange, hideSearch, currentUser, onLogout, onToggleSidebar, onChangePage, leaveRequests, setLeaveRequests }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [user, setUser] = useState({});
   // Close dropdown when clicking outside
   useEffect(() => {
     // at the top of the file
-
 
     axios
       .get(`http://localhost:5050/api/profile/${currentUser.id}`)
@@ -70,7 +57,6 @@ const Topbar = ({
     };
   }, [showDropdown, showNotifications]);
 
-  const [loading, setLoading] = useState(false);
 const DEFAULT_AVATAR = "https://randomuser.me/api/portraits/women/44.jpg";
 console.log(user)
 
@@ -124,10 +110,6 @@ console.log(user)
   // Format date
   const formatDate = (dateString) =>
     format(new Date(dateString), "dd MMM yyyy");
-
-  if (loading) {
-    return <div style={{ padding: "20px" }}>Loading leave requests...</div>;
-  }
 
   const handleLogout = () => {
     onLogout();
@@ -231,32 +213,6 @@ console.log(user)
             marginRight: "20px",
           }}
         >
-          {/* Settings Icon */}
-          {/* <div
-            id="settings-container"
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "50%",
-              backgroundColor: "#f1f5f9",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              color: "#3b82f6",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#e0e7ff";
-              e.target.style.transform = "scale(1.05)";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#f1f5f9";
-              e.target.style.transform = "scale(1)";
-            }}
-          >
-            <FaCog />
-          </div> */}
 
           {/* Notifications Icon */}
           <div
