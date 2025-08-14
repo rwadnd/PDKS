@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { FaClock, FaChartLine, FaUserTimes, FaCalendarAlt, FaUmbrellaBeach, FaHome } from "react-icons/fa";
 import { FiInbox, FiAward } from "react-icons/fi";
+import React from "react";
 
 // Official holidays (2025)
 const OFFICIAL_HOLIDAYS_2025 = [
@@ -292,9 +293,253 @@ const EmptyStateMessage = ({ isHoliday, holidayInfo }) => {
   );
 };
 
+const Modal = ({ title, items, onClose }) => (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.2)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 9999,
+    }}
+    onClick={onClose}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "12px",
+        padding: "32px",
+        minWidth: "320px",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+      }}
+      onClick={e => e.stopPropagation()}
+    >
+      <h2 style={{ marginBottom: "16px", fontSize: "20px" }}>{title}</h2>
+      {items.length === 0 ? (
+        <div style={{ color: "#6b7280" }}>No personnel found.</div>
+      ) : (
+        <ul style={{ padding: 0, margin: 0, listStyle: "none" }}>
+          {items.map((person, idx) => (
+            <li key={idx} style={{ marginBottom: "8px", color: "#374151" }}>
+              {person}
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        style={{
+          marginTop: "24px",
+          padding: "8px 16px",
+          borderRadius: "8px",
+          border: "none",
+          background: "#3b82f6",
+          color: "#fff",
+          cursor: "pointer",
+        }}
+        onClick={onClose}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+);
+
+const getStatusDotColor = (person, isAbsent = false) => {
+  if (!isAbsent) {
+    // On time: green
+    return "#1dbf73";
+  }
+  // Absent: yellow if leave, else red
+  if (person.per_status === "OnLeave" || person.per_status === "OnSickLeave") {
+    return "#ffc107";
+  }
+  return "#c62116ff";
+};
+
+const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+    }}
+    onClick={onClose}
+  >
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "20px",
+        padding: "32px",
+        width: "90%",
+        maxWidth: "800px",
+        maxHeight: "80vh",
+        overflowY: "auto",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+        }}
+      >
+        <h2
+          style={{
+            fontSize: "24px",
+            fontWeight: "700",
+            color: "#1e293b",
+            margin: 0,
+          }}
+        >
+          {title}
+        </h2>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            fontSize: "24px",
+            cursor: "pointer",
+            color: "#64748b",
+            padding: "4px",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Personnel Table Header */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "60px 2fr 1.5fr 1.5fr 80px",
+          gap: "32px",
+          padding: "16px",
+          backgroundColor: "#f9fafb",
+          borderRadius: "12px",
+          marginBottom: "16px",
+          fontWeight: "600",
+          fontSize: "14px",
+          color: "#374151",
+        }}
+      >
+        <div>Photo</div>
+        <div>Personnel Name</div>
+        <div>Department</div>
+        <div>Role</div>
+        <div style={{ justifySelf: "center" }}>Status</div>
+      </div>
+
+      {personnelList.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "40px",
+            color: "#64748b",
+            fontSize: "16px",
+          }}
+        >
+          No personnel found
+        </div>
+      ) : (
+        personnelList.map((person, idx) => (
+          <div
+            key={idx}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "60px 2fr 1.5fr 1.5fr 80px",
+              gap: "32px",
+              padding: "16px",
+              borderBottom: "1px solid #f1f5f9",
+              alignItems: "center",
+              transition: "background-color 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = "#f9fafb";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = "transparent";
+            }}
+          >
+            {/* Photo */}
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <img
+                src={
+                  person.avatar_url ||
+                  `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`
+                }
+                alt={`${person.per_name} ${person.per_lname}`}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: "2px solid #e5e7eb",
+                }}
+                onError={(e) => {
+                  e.target.src = `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`;
+                }}
+              />
+            </div>
+            {/* Name */}
+            <div
+              style={{
+                fontWeight: "500",
+                color: "#111827",
+                textAlign: "left",
+              }}
+            >
+              {person.per_name} {person.per_lname}
+            </div>
+            {/* Department */}
+            <div style={{ color: "#6b7280", textAlign: "left" }}>
+              {person.per_department || "-"}
+            </div>
+            {/* Role */}
+            <div style={{ color: "#6b7280", textAlign: "left" }}>
+              {person.per_role || "-"}
+            </div>
+            {/* Status */}
+            <div style={{ justifySelf: "center", alignSelf: "center" }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: getStatusDotColor(person, isAbsent),
+                }}
+              />
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+);
+
 const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [modal, setModal] = useState({ open: false, title: "", items: [] });
+  const [showPersonnelModal, setShowPersonnelModal] = useState(false);
+  const [personnelModalTitle, setPersonnelModalTitle] = useState("");
+  const [personnelModalList, setPersonnelModalList] = useState([]);
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
   const holidayInfo = isHoliday(today);
@@ -369,6 +614,27 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
       entry.per_role?.toLowerCase().includes(searchLower)
     );
   });
+
+  // On time personnel
+  const onTimePersonnel = todayEntries
+    .filter((entry) => {
+      const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
+      return hours <= 8 && minutes <= 30;
+    })
+    .map((entry) => `${entry.per_name} ${entry.per_lname}`);
+
+  // On Time Personnel List (full objects)
+  const onTimePersonnelList = todayEntries
+    .filter((entry) => {
+      const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
+      return hours <= 8 && minutes <= 30;
+    });
+
+  // Absent Personnel List (full objects)
+  const absentPersonnelList = records.filter(
+    (record) =>
+      !presentToday.includes(`${record.per_name} ${record.per_lname}`)
+  );
 
   return (
     <div style={{ display: "flex", gap: "24px", height: "88%" }}>
@@ -457,7 +723,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 style={{
                   fontSize: "21px",
                   fontWeight: "700",
-                  color: "#00123B",
+                  color: "#374151",
                   marginBottom: "8px",
                 }}
               >
@@ -908,6 +1174,12 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                setPersonnelModalTitle("On Time Personnel");
+                setPersonnelModalList(onTimePersonnelList);
+                setShowPersonnelModal(true);
               }}
             >
               <div
@@ -987,6 +1259,12 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                setPersonnelModalTitle("Absent Personnel");
+                setPersonnelModalList(absentPersonnelList);
+                setShowPersonnelModal(true);
               }}
             >
               <div
@@ -1041,6 +1319,21 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
             </div>
           </div>
         </>
+      )}
+      {modal.open && (
+        <Modal
+          title={modal.title}
+          items={modal.items}
+          onClose={() => setModal({ open: false, title: "", items: [] })}
+        />
+      )}
+      {showPersonnelModal && (
+        <PersonnelModal
+          title={personnelModalTitle}
+          personnelList={personnelModalList}
+          onClose={() => setShowPersonnelModal(false)}
+          isAbsent={personnelModalTitle === "Absent Personnel"}
+        />
       )}
     </div>
   );

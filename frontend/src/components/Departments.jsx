@@ -38,16 +38,28 @@ const Departments = ({ searchTerm }) => {
   });
 
   useEffect(() => {
-    // Check if we have departments in localStorage
+    // Önce localStorage'dan oku
     const savedDepartments = localStorage.getItem("departments");
     if (savedDepartments) {
       setDepartments(JSON.parse(savedDepartments));
     }
 
-    // Always fetch from API to get latest data
+    // Sonra API'dan güncel veriyi çek
     axios.get("http://localhost:5050/api/department/").then((res) => {
-      setDepartments(res.data);
-      localStorage.setItem("departments", JSON.stringify(res.data));
+      if (savedDepartments) {
+        const localList = JSON.parse(savedDepartments);
+        // API'dan gelen yeni departmanları ekle (localStorage sırasını koru)
+        const apiIds = res.data.map((d) => d.id);
+        const merged = [
+          ...localList.filter((d) => apiIds.includes(d.id)),
+          ...res.data.filter((d) => !localList.some((ld) => ld.id === d.id)),
+        ];
+        setDepartments(merged);
+        localStorage.setItem("departments", JSON.stringify(merged));
+      } else {
+        setDepartments(res.data);
+        localStorage.setItem("departments", JSON.stringify(res.data));
+      }
     });
   }, []);
 
@@ -799,8 +811,7 @@ const Departments = ({ searchTerm }) => {
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = "#e2e8f0";
-                      e.target.style.boxShadow =
-                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                      e.target.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.05)";
                     }}
                   />
                 </div>
