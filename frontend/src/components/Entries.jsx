@@ -328,6 +328,7 @@ const EmptyStateMessage = ({ isHoliday, holidayInfo }) => {
 
 const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
   const [stats, setStats] = useState({
     onTimeToday: 0,
     absentToday: 0,
@@ -720,38 +721,31 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                     : "-";
                 return (
                   
-                  <div
-                    key={i}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "80px 1fr 120px 120px 120px 120px 80px",
-                      gap: "16px",
-                      padding: "20px",
-                      borderBottom: "1px solid #f3f4f6",
-                      alignItems: "center",
-                      transition: "background-color 0.2s ease",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      if (onSelectPerson && setPreviousPage) {
-                        setPreviousPage("entries");
-                        window.history.pushState(
-                          null,
-                          "",
-                          `/personnel/${entry.per_id}`
-                        );
-                        window.dispatchEvent(new PopStateEvent("popstate"));
-                      }
-                    }}
-                    onMouseOver={(e) =>
-                      (e.target.parentElement.style.backgroundColor = "#f9fafb")
-                    }
-                    onMouseOut={(e) =>
-                      (e.target.parentElement.style.backgroundColor =
-                        "transparent")
-                    }
-                  >
+                <div
+  key={i}
+  style={{
+    display: "grid",
+    gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+    gap: "16px",
+    padding: "20px",
+    borderBottom: "1px solid #f3f4f6",
+    alignItems: "center",
+    transition: "background-color 0.15s ease",
+    cursor: "pointer",
+    backgroundColor: hoveredIndex === i ? "#f9fafb" : "white", // <-- controlled
+  }}
+  onClick={(e) => {
+    // use currentTarget to avoid child click quirks
+    if (onSelectPerson && setPreviousPage) {
+      setPreviousPage("entries");
+      window.history.pushState(null, "", `/personnel/${entry.per_id}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }}
+  onMouseEnter={() => setHoveredIndex(i)}   // <-- non-bubbling
+  onMouseLeave={() => setHoveredIndex(null)}// <-- non-bubbling
+>
+
                     
                     {/* Photo */}
                     
