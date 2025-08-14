@@ -210,3 +210,21 @@ exports.deletePersonnel = async (req, res) => {
     res.status(500).json({ error: "Failed to delete personnel" });
   }
 };
+
+// Soft delete personnel (change status to Inactive)
+exports.softDeletePersonnel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Update status to Inactive instead of deleting
+    await db.query(
+      "UPDATE Personnel SET per_status = 'Inactive' WHERE per_id = ?",
+      [id]
+    );
+    
+    res.json({ message: "Personnel deactivated successfully" });
+  } catch (err) {
+    console.error("Error deactivating personnel:", err);
+    res.status(500).json({ error: "Failed to deactivate personnel" });
+  }
+};

@@ -3,18 +3,13 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 
-
-
-
-
-
 const {
   getAllPersonnel,
   getPersonnelById,
   createPersonnel,
   updatePersonnel,
   deletePersonnel,
-  updatePersonnelAvatarOnly, // add this import
+  softDeletePersonnel,
 } = require("../controllers/personnelController");
 
 // Multer: store to a temp directory; controller will move/rename
@@ -51,8 +46,8 @@ router.post("/", upload.single("photo"), createPersonnel);
 // PUT update (accept text fields AND optional photo)
 router.put("/:id", upload.single("photo"), updatePersonnel);
 
-// NEW: Avatar upload route (expects field "avatar")
-router.post("/:id/avatar", upload.single("avatar"), updatePersonnelAvatarOnly);
+// Hard delete (permanently remove)
+router.put("/:id/deactivate", deletePersonnel);
 
 // DELETE
 router.delete("/:id", deletePersonnel);
