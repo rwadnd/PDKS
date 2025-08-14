@@ -362,7 +362,9 @@ const PersonnelList = ({ searchTerm }) => {
                       <div className="personnel-name">
                         {person.per_name} {person.per_lname}
                       </div>
-                      <div className="personnel-role">{person.per_role}</div>
+                      <div className="personnel-role">
+                        {person.per_department} / {person.per_role}
+                      </div>
                     </div>
                   </div>
                 </div>
