@@ -104,3 +104,21 @@ exports.overview = async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 };
+
+// GET all departments
+exports.getAllDepartments = async (req, res) => {
+  try {
+    const [departments] = await db.query(`
+      SELECT DISTINCT per_department 
+      FROM Personnel 
+      WHERE per_department IS NOT NULL AND per_department != ''
+      ORDER BY per_department
+    `);
+    
+    const departmentList = departments.map(dept => dept.per_department);
+    res.json(departmentList);
+  } catch (err) {
+    console.error("Error fetching departments:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+};

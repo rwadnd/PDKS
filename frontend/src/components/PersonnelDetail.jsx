@@ -57,6 +57,8 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     avatar_url: person.avatar_url || "", // EKLENDİ
   });
 
+  const [departments, setDepartments] = useState([]);
+
   // NEW: handle image selection and preview
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -96,7 +98,18 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     }
   };
 
+  // Fetch departments for dropdown
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get("http://localhost:5050/api/department/list");
+      setDepartments(response.data);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
   useEffect(() => {
+    fetchDepartments();
     axios
       .get(`http://localhost:5050/api/pdks/${person.per_id}`)
       .then((res) => setRecords(res.data))
@@ -686,7 +699,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       fontWeight: "600",
                     }}
                   >
-                    Position
+                    Role
                   </label>
                   <input
                     type="text"
@@ -730,8 +743,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   >
                     Department
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={editForm.per_department}
                     onChange={(e) =>
                       handleInputChange("per_department", e.target.value)
@@ -745,20 +757,22 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       backgroundColor: "#ffffff",
                       transition: "all 0.2s ease",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                      width: "100%",
+                      appearance: "none",
+                      backgroundImage:
+                        'url(\'data:image/svg+xml;charset=US-ASCII,<svg width="12" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l5 5 5-5" stroke="%236b7280" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>\')',
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                      paddingRight: "40px",
                     }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "#3b82f6";
-                      e.target.style.boxShadow =
-                        "0 0 0 4px rgba(59, 130, 246, 0.1)";
-                      e.target.style.transform = "translateY(-1px)";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "#e2e8f0";
-                      e.target.style.boxShadow =
-                        "0 2px 4px rgba(0, 0, 0, 0.05)";
-                      e.target.style.transform = "translateY(0)";
-                    }}
-                  />
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
