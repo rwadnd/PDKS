@@ -27,6 +27,8 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     try {
       setLoading(true);
       const res = await axios.get("http://localhost:5050/api/personnel");
+      console.log("Fetched personnel:", res.data);
+      // Show all personnel
       setPersonnel(res.data);
       setError(null);
     } catch (err) {
@@ -59,10 +61,17 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     try {
       setLoading(true);
 
+      // Generate automatic ID (max ID + 1)
+      const maxId =
+        personnel.length > 0
+          ? Math.max(...personnel.map((p) => parseInt(p.per_id) || 0))
+          : 0;
+      const newId = (maxId + 1).toString();
+
       const formDataToSend = new FormData();
       formDataToSend.append("firstName", formData.firstName);
       formDataToSend.append("lastName", formData.lastName);
-      formDataToSend.append("perId", formData.perId);
+      formDataToSend.append("perId", newId);
       formDataToSend.append("department", formData.department);
       formDataToSend.append("role", formData.role);
 
@@ -79,7 +88,6 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
       setFormData({
         firstName: "",
         lastName: "",
-        perId: "",
         department: "",
         role: "",
       });
@@ -103,13 +111,38 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
     setFormData({
       firstName: "",
       lastName: "",
-      perId: "",
       department: "",
       role: "",
     });
     setSelectedImage(null);
     setImagePreview(null);
     setError(null);
+  };
+
+  const handleDeletePersonnel = async (personId, personName) => {
+    console.log("=== DELETE DEBUG ===");
+    console.log("Person ID:", personId);
+    console.log("Person Name:", personName);
+
+    if (window.confirm(`Are you sure you want to deactivate ${personName}?`)) {
+      console.log("User confirmed deletion");
+      try {
+        console.log(
+          "Sending request to:",
+          `http://localhost:5050/api/personnel/${personId}/deactivate`
+        );
+        const response = await axios.put(
+          `http://localhost:5050/api/personnel/${personId}/deactivate`
+        );
+        console.log("Response:", response.data);
+        fetchPersonnel(); // Refresh the list
+      } catch (err) {
+        console.error("Error deactivating personnel:", err);
+        setError("Personnel deactivation failed");
+      }
+    } else {
+      console.log("User cancelled deletion");
+    }
   };
 
   const normalizeAvatar = (avatar_url, person) => {
@@ -163,7 +196,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
             e.currentTarget.style.color = "#6b7280";
           }}
         >
-          <span style={{ fontSize: "18px", fontWeight: "bold", lineHeight: "1" }}>
+          <span
+            style={{ fontSize: "18px", fontWeight: "bold", lineHeight: "1" }}
+          >
             +
           </span>
           Add New
@@ -185,7 +220,14 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
             gap: "8px",
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="15" y1="9" x2="9" y2="15" />
             <line x1="9" y1="9" x2="15" y2="15" />
@@ -238,27 +280,80 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
             .map((person) => {
               const avatarSrc = normalizeAvatar(person.avatar_url, person);
               return (
-                <div
-                  className="personnel-card"
-                  key={person.per_id}
-                  onClick={() => {
-                    window.history.pushState(null, "", `/personnel/${person.per_id}`);
-                    window.dispatchEvent(new PopStateEvent("popstate"));
-                  }}
-                  style={{ cursor: "pointer" }}
-                >
-                  <img
-                    className="personnel-avatar"
-                    src={avatarSrc}
-                    alt={`${person.per_name} ${person.per_lname}`}
-                    onError={(e) => {
-                      e.currentTarget.src = FALLBACK_AVATAR;
-                    }}
-                  />
-                  <div className="personnel-name">
-                    {person.per_name} {person.per_lname}
+                <div key={person.per_id} style={{ position: "relative" }}>
+                  <div
+                    className="personnel-card"
+                    style={{ cursor: "pointer", position: "relative" }}
+                  >
+                    {/* Delete Button (appears on hover) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        console.log("Delete button clicked!");
+                        handleDeletePersonnel(
+                          person.per_id,
+                          `${person.per_name} ${person.per_lname}`
+                        );
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        background: "transparent",
+                        color: "#6b7280",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "32px",
+                        height: "32px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "16px",
+                        zIndex: 1000,
+                        transition: "all 0.2s ease",
+                        opacity: 0, // Hidden by default
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.opacity = "1";
+                        e.target.style.backgroundColor = "#f3f4f6";
+                        e.target.style.color = "#374151";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.opacity = "0";
+                        e.target.style.backgroundColor = "transparent";
+                        e.target.style.color = "#6b7280";
+                      }}
+                      title="Deactivate Personnel"
+                    >
+                      ✕
+                    </button>
+
+                    <div
+                      onClick={() => {
+                        window.history.pushState(
+                          null,
+                          "",
+                          `/personnel/${person.per_id}`
+                        );
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                      }}
+                    >
+                      <img
+                        className="personnel-avatar"
+                        src={avatarSrc}
+                        alt={`${person.per_name} ${person.per_lname}`}
+                        onError={(e) => {
+                          e.currentTarget.src = FALLBACK_AVATAR;
+                        }}
+                      />
+                      <div className="personnel-name">
+                        {person.per_name} {person.per_lname}
+                      </div>
+                      <div className="personnel-role">{person.per_role}</div>
+                    </div>
                   </div>
-                  <div className="personnel-role">{person.per_role}</div>
                 </div>
               );
             })}
@@ -270,7 +365,10 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
         <div
           style={{
             position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             background: "rgba(0, 0, 0, 0.5)",
             display: "flex",
             alignItems: "center",
@@ -334,13 +432,17 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     justifyContent: "center",
                     margin: "0 auto 16px auto",
                     background: imagePreview ? "none" : "#f9fafb",
-                    backgroundImage: imagePreview ? `url(${imagePreview})` : "none",
+                    backgroundImage: imagePreview
+                      ? `url(${imagePreview})`
+                      : "none",
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     cursor: "pointer",
                     position: "relative",
                   }}
-                  onClick={() => document.getElementById("photo-upload").click()}
+                  onClick={() =>
+                    document.getElementById("photo-upload").click()
+                  }
                 >
                   {!imagePreview && (
                     <div style={{ textAlign: "center" }}>
@@ -356,7 +458,13 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                         <polyline points="7,10 12,15 17,10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
-                      <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#9ca3af",
+                          marginTop: "4px",
+                        }}
+                      >
                         Upload Photo
                       </div>
                     </div>
@@ -371,7 +479,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 />
                 <button
                   type="button"
-                  onClick={() => document.getElementById("photo-upload").click()}
+                  onClick={() =>
+                    document.getElementById("photo-upload").click()
+                  }
                   style={{
                     padding: "8px 16px",
                     background: "#f3f4f6",
@@ -409,7 +519,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 )}
               </div>
 
-              <div style={{ display: "flex", gap: "40px", marginBottom: "16px" }}>
+              <div
+                style={{ display: "flex", gap: "40px", marginBottom: "16px" }}
+              >
                 <div style={{ flex: 1 }}>
                   <label
                     style={{
@@ -426,7 +538,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     type="text"
                     required
                     value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
                     style={{
                       width: "93%",
                       padding: "12px 16px",
@@ -456,7 +570,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     type="text"
                     required
                     value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
                     style={{
                       width: "90%",
                       padding: "12px 16px",
@@ -472,39 +588,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                 </div>
               </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "6px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    color: "#374151",
-                  }}
-                >
-                  Personnel ID *
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formData.perId}
-                  onChange={(e) => handleInputChange("perId", e.target.value)}
-                  placeholder="Enter unique ID (e.g., 1, 2, 3...)"
-                  style={{
-                    width: "70%",
-                    padding: "12px 16px",
-                    border: "2px solid #e2e8f0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                    transition: "border-color 0.2s ease",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-                  onBlur={(e) => (e.target.style.borderColor = "#e2e8f0")}
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: "40px", marginBottom: "32px" }}>
+              <div
+                style={{ display: "flex", gap: "40px", marginBottom: "32px" }}
+              >
                 <div style={{ flex: 1 }}>
                   <label
                     style={{
@@ -521,7 +607,9 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     type="text"
                     required
                     value={formData.department}
-                    onChange={(e) => handleInputChange("department", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("department", e.target.value)
+                    }
                     style={{
                       width: "93%",
                       padding: "12px 16px",
@@ -607,8 +695,12 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     transition: "all 0.2s ease",
                     width: "100px",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#e5e7eb")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#e5e7eb")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#f3f4f6")
+                  }
                 >
                   Cancel
                 </button>
@@ -634,10 +726,12 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                     width: "100px",
                   }}
                   onMouseEnter={(e) => {
-                    if (!loading) e.currentTarget.style.transform = "translateY(-1px)";
+                    if (!loading)
+                      e.currentTarget.style.transform = "translateY(-1px)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!loading) e.currentTarget.style.transform = "translateY(0)";
+                    if (!loading)
+                      e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   {loading ? (

@@ -75,7 +75,7 @@ html,
   flex-direction: column;
   padding: 16px 24px 16px 24px;
   height: 100vh;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .topbar {
@@ -287,9 +287,17 @@ html,
   align-items: center;
   text-align: center;
   transition: box-shadow 0.2s;
+  position: relative;
 }
+
 .personnel-card:hover {
   box-shadow: 0 4px 16px #dbeafe;
+}
+
+/* Show delete button on card hover */
+.personnel-card:hover + button,
+.personnel-card:hover button {
+  opacity: 1 !important;
 }
 .personnel-avatar {
   width: 72px;
