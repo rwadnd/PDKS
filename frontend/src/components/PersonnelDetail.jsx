@@ -699,7 +699,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                       fontWeight: "600",
                     }}
                   >
-                    Position
+                    Role
                   </label>
                   <input
                     type="text"
