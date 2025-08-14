@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 const FALLBACK_AVATAR =
   "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=111827";
 
-const PersonnelList = ({ searchTerm, onSelectPerson }) => {
+const PersonnelList = ({ searchTerm }) => {
   const [personnel, setPersonnel] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);

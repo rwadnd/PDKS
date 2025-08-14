@@ -1,22 +1,13 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import "../App.css";
 import axios from "axios";
-import {
-  FiClock,
-  FiActivity,
-  FiTrendingUp,
-  FiCalendar,
-  FiBattery,
-  FiArrowLeft,
-  FiChevronLeft,
-} from "react-icons/fi";
+import { FiClock, FiActivity, FiTrendingUp, FiCalendar, FiChevronLeft } from "react-icons/fi";
 
 const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   if (!person) return null;
 
   const [avatarUrl, setAvatarUrl] = useState(person.avatar_url || "");
   const [uploading, setUploading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null); // NEW: for temp image
   const [imagePreview, setImagePreview] = useState(null);   // NEW: for preview
   const fileInputRef = useRef(); // EKLENDİ
 
@@ -66,7 +57,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
     // Optimistic preview
     const preview = URL.createObjectURL(file);
     setImagePreview(preview);
-    setSelectedImage(file);
+
 
     setUploading(true);
     try {
@@ -87,12 +78,12 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
 
       setAvatarUrl(display);
       setImagePreview(display);
-      setSelectedImage(null);
+
       setEditForm((prev) => ({ ...prev, avatar_url: data.url }));
     } catch (e) {
       alert("Failed to upload image.");
       setImagePreview(null);
-      setSelectedImage(null);
+
     } finally {
       setUploading(false);
     }
@@ -129,7 +120,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       per_department: person.per_department || "",
       avatar_url: person.avatar_url || "", // avatarı eski haline döndür!
     });
-    setSelectedImage(null);
+
     setImagePreview(null);
     setAvatarUrl(person.avatar_url || ""); // avatarı eski haline döndür!
   };
@@ -152,7 +143,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
       );
       setIsEditing(false);
       setUploading(false);
-      setSelectedImage(null);
+
       setImagePreview(null);
 
       // Avatar güncellemesi: Eğer avatar_url boşsa default avatar göster
@@ -203,24 +194,24 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   const formattedCheckIn =
     todayRecord?.pdks_checkInTime && todayRecord.pdks_checkInTime !== "00:00:00"
       ? new Date(
-          `${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`
-        ).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
+        `${todayRecord.pdks_date}T${todayRecord.pdks_checkInTime}`
+      ).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
       : "-";
 
   const formattedCheckOut =
     todayRecord?.pdks_checkOutTime &&
-    todayRecord.pdks_checkOutTime !== "00:00:00"
+      todayRecord.pdks_checkOutTime !== "00:00:00"
       ? new Date(
-          `${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`
-        ).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })
+        `${todayRecord.pdks_date}T${todayRecord.pdks_checkOutTime}`
+      ).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
       : "-";
 
   const getTimeAtWork = () => {
@@ -545,13 +536,10 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                     textAlign: "center",
                   }}
                   onClick={() => {
-                    setImagePreview(null);
-                    setSelectedImage(null);
-                    setEditForm((prev) => ({
-                      ...prev,
-                      avatar_url: "",
-                    }));
-                    setAvatarUrl(""); // Fotoğrafı kaldır
+                    setImagePreview(null);                     // clear UI preview
+
+                    setEditForm((prev) => ({ ...prev, avatar_url: null })); // IMPORTANT: null (not "")
+                    setAvatarUrl("");                          // show initials avatar in UI
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
                 >

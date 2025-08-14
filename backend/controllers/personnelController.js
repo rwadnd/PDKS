@@ -106,44 +106,65 @@ exports.createPersonnel = async (req, res) => {
   }
 };
 
-// PUT update personnel (JSON or multipart with "avatar")
+
 exports.updatePersonnel = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Accept either client naming (firstName/lastName/perId) or DB naming (per_name/per_lname) during update
-    const per_name = req.body.per_name || req.body.firstName || null;
-    const per_lname = req.body.per_lname || req.body.lastName || null;
-    const per_role = req.body.per_role || req.body.role || null;
-    const per_department = req.body.per_department || req.body.department || null;
-    const per_status = req.body.per_status || req.body.status || null;
-    // Accept avatar_url from JSON (for direct URL update)
-    const avatar_url = req.body.avatar_url || null;
+    // Accept either client naming (firstName/lastName/department/role/status)
+    // or DB naming (per_name/per_lname/per_department/per_role/per_status).
+    // Use 'undefined' as "not provided", so we only update provided fields.
+    const per_name       = req.body.per_name       ?? req.body.firstName;
+    const per_lname      = req.body.per_lname      ?? req.body.lastName;
+    const per_role       = req.body.per_role       ?? req.body.role;
+    const per_department = req.body.per_department ?? req.body.department;
+    const per_status     = req.body.per_status     ?? req.body.status;
+
+    // IMPORTANT: avatar_url can be string OR null/"" to clear it.
+    // We need to detect if the client actually sent the key.
+    const hasAvatarInBody = Object.prototype.hasOwnProperty.call(req.body, "avatar_url");
+    const rawAvatarFromBody = hasAvatarInBody ? req.body.avatar_url : undefined;
 
     // Check existence
-    const [existing] = await db.query("SELECT * FROM Personnel WHERE per_id = ?", [id]);
+    const [existing] = await db.query("SELECT avatar_url FROM Personnel WHERE per_id = ?", [id]);
     if (existing.length === 0) {
       return res.status(404).json({ error: "Personnel not found" });
     }
+    const oldAvatar = existing[0].avatar_url;
 
-    // If file uploaded, compute new avatar_url
-    let newAvatarUrl = null;
+    // Compute the new avatar value
+    // Priority: uploaded file > explicit avatar_url in body > unchanged
+    let avatarProvided = false;
+    let newAvatarUrl = undefined; // undefined means "don't touch this column"
+
     if (req.file) {
-      newAvatarUrl = fileToPublicUrl(req.file, id);
-    } else if (avatar_url) {
-      newAvatarUrl = avatar_url;
+      avatarProvided = true;
+      newAvatarUrl = fileToPublicUrl(req.file, id); // e.g. "/uploads/..."
+    } else if (hasAvatarInBody) {
+      avatarProvided = true;
+      // Interpret null / "" / "null" (string) as a request to clear the avatar
+      if (rawAvatarFromBody === null || rawAvatarFromBody === "" || rawAvatarFromBody === "null") {
+        newAvatarUrl = null; // this will write SQL NULL
+      } else {
+        newAvatarUrl = rawAvatarFromBody; // a string (absolute or /uploads/...)
+      }
     }
 
-    // Build dynamic query pieces
+    // Build dynamic query
     const fields = [];
     const params = [];
 
-    if (per_name !== null) { fields.push("per_name = ?"); params.push(per_name); }
-    if (per_lname !== null) { fields.push("per_lname = ?"); params.push(per_lname); }
-    if (per_role !== null) { fields.push("per_role = ?"); params.push(per_role); }
-    if (per_department !== null) { fields.push("per_department = ?"); params.push(per_department); }
-    if (per_status !== null) { fields.push("per_status = ?"); params.push(per_status); }
-    if (newAvatarUrl) { fields.push("avatar_url = ?"); params.push(newAvatarUrl); }
+    if (per_name       !== undefined) { fields.push("per_name = ?");       params.push(per_name); }
+    if (per_lname      !== undefined) { fields.push("per_lname = ?");      params.push(per_lname); }
+    if (per_role       !== undefined) { fields.push("per_role = ?");       params.push(per_role); }
+    if (per_department !== undefined) { fields.push("per_department = ?"); params.push(per_department); }
+    if (per_status     !== undefined) { fields.push("per_status = ?");     params.push(per_status); }
+
+    // Avatar update: include the column even if value is NULL
+    if (avatarProvided) {
+      fields.push("avatar_url = ?");
+      params.push(newAvatarUrl); // can be string OR null
+    }
 
     if (fields.length === 0) {
       return res.status(400).json({ error: "No fields to update" });
@@ -151,8 +172,23 @@ exports.updatePersonnel = async (req, res) => {
 
     params.push(id);
     const sql = `UPDATE Personnel SET ${fields.join(", ")} WHERE per_id = ?`;
-
     await db.query(sql, params);
+
+    // OPTIONAL: Remove old file if it changed and was stored locally
+    const avatarChanged = avatarProvided && oldAvatar !== newAvatarUrl;
+    if (
+      avatarChanged &&
+      oldAvatar &&
+      typeof oldAvatar === "string" &&
+      oldAvatar.startsWith("/uploads/")
+    ) {
+      const filePath = path.join(__dirname, "..", oldAvatar);
+      fs.unlink(filePath, (err) => {
+        if (err && err.code !== "ENOENT") {
+          console.warn("Failed to remove old avatar:", err.message);
+        }
+      });
+    }
 
     // Return updated row
     const [updated] = await db.query("SELECT * FROM Personnel WHERE per_id = ?", [id]);
@@ -163,35 +199,7 @@ exports.updatePersonnel = async (req, res) => {
   }
 };
 
-// POST /api/personnel/:id/avatar (upload avatar only)
-// Expects file field to be named "avatar"
-exports.updatePersonnelAvatarOnly = async (req, res) => {
-  try {
-    const { id } = req.params;
 
-    const [existing] = await db.query("SELECT per_id FROM Personnel WHERE per_id = ?", [id]);
-    if (existing.length === 0) {
-      return res.status(404).json({ error: "Personnel not found" });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    const avatarUrl = fileToPublicUrl(req.file, id);
-
-    await db.query("UPDATE Personnel SET avatar_url = ? WHERE per_id = ?", [
-      avatarUrl,
-      id,
-    ]);
-
-    // Return avatar_url for frontend consistency
-    return res.json({ success: true, avatar_url: avatarUrl });
-  } catch (err) {
-    console.error("updatePersonnelAvatarOnly error:", err);
-    res.status(500).json({ error: "Avatar update failed" });
-  }
-};
 
 // DELETE personnel
 exports.deletePersonnel = async (req, res) => {
