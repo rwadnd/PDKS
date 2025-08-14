@@ -164,3 +164,69 @@ exports.createDepartment = async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 };
+
+// DELETE department
+exports.deleteDepartment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if department has personnel
+    const [personnel] = await db.query(
+      "SELECT COUNT(*) as count FROM Personnel WHERE per_department = (SELECT name FROM departments WHERE id = ?)",
+      [id]
+    );
+
+    if (personnel[0].count > 0) {
+      return res.status(400).json({
+        error: "Cannot delete department. It has personnel assigned to it.",
+      });
+    }
+
+    // Delete department
+    const [result] = await db.query("DELETE FROM departments WHERE id = ?", [
+      id,
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+
+    res.json({ message: "Department deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting department:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+};
+
+// PUT update department
+exports.updateDepartment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, shortName, color } = req.body;
+
+    if (!name || !shortName) {
+      return res.status(400).json({ error: "Name and shortName are required" });
+    }
+
+    // Update department
+    const [result] = await db.query(
+      "UPDATE departments SET name = ?, short_name = ?, color = ? WHERE id = ?",
+      [name, shortName, color || "#3b82f6", id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+
+    // Get updated department
+    const [updatedDept] = await db.query(
+      "SELECT * FROM departments WHERE id = ?",
+      [id]
+    );
+
+    res.json(updatedDept[0]);
+  } catch (err) {
+    console.error("Error updating department:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+};
