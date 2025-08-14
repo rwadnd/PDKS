@@ -1,14 +1,22 @@
-const db = require('../db/connection');
+const db = require("../db/connection");
 
 exports.overview = async (req, res) => {
   try {
-    const [departments] = await db.query(`
+    // Get departments from departments table
+    const [departmentRows] = await db.query(`
+      SELECT id, name, short_name, color
+      FROM departments
+      ORDER BY name
+    `);
+
+    // Get personnel count per department
+    const [personnelRows] = await db.query(`
       SELECT per_department, per_id
       FROM Personnel
     `);
 
     const deptMap = {};
-    for (const row of departments) {
+    for (const row of personnelRows) {
       if (!deptMap[row.per_department]) deptMap[row.per_department] = [];
       deptMap[row.per_department].push(row.per_id);
     }
@@ -25,16 +33,23 @@ exports.overview = async (req, res) => {
     const earliestDateStr = weekStartDates[0].toISOString().split("T")[0];
 
     // Fetch entries only once
-    const [entries] = await db.query(`
+    const [entries] = await db.query(
+      `
       SELECT personnel_per_id, pdks_date, pdks_checkInTime, pdks_checkOutTime
       FROM pdks_entry
       WHERE pdks_date >= ?
-    `, [earliestDateStr]);
+    `,
+      [earliestDateStr]
+    );
 
     const result = [];
 
-    for (const [department, ids] of Object.entries(deptMap)) {
-      const deptEntries = entries.filter(e => ids.includes(e.personnel_per_id));
+    for (const deptRow of departmentRows) {
+      const department = deptRow.name;
+      const ids = deptMap[department] || [];
+      const deptEntries = entries.filter((e) =>
+        ids.includes(e.personnel_per_id)
+      );
       let totalMinutesLastWeek = 0;
       const weeklyTotals = Array(7).fill(0);
 
@@ -44,7 +59,13 @@ exports.overview = async (req, res) => {
         const inTimeStr = entry.pdks_checkInTime;
         const outTimeStr = entry.pdks_checkOutTime;
 
-        if (!inTimeStr || !outTimeStr || inTimeStr === "00:00:00" || outTimeStr === "00:00:00") continue;
+        if (
+          !inTimeStr ||
+          !outTimeStr ||
+          inTimeStr === "00:00:00" ||
+          outTimeStr === "00:00:00"
+        )
+          continue;
 
         const checkIn = new Date(`${dateStr}T${inTimeStr}`);
         const checkOut = new Date(`${dateStr}T${outTimeStr}`);
@@ -65,36 +86,23 @@ exports.overview = async (req, res) => {
       }
 
       const peopleCount = ids.length;
-      const avgHours = peopleCount > 0 ? Math.round((totalMinutesLastWeek / 60) / 5 / peopleCount) : 0;
-      const chart = weeklyTotals.map(min => Math.round(min / 60));
-
-      const color =
-        department === "IT"
-          ? "#06b6d4"
-          : department === "Finance"
-          ? "#3dd406ff"
-          : department === "QA"
-          ? "#ab06d4ff"
-          : "#f59e0b";
+      const avgHours =
+        peopleCount > 0
+          ? Math.round(totalMinutesLastWeek / 60 / 5 / peopleCount)
+          : 0;
+      const chart = weeklyTotals.map((min) => Math.round(min / 60));
 
       result.push({
-        id:
-          department === "IT"
-            ? 1
-            : department === "Finance"
-            ? 2
-            : department === "QA"
-            ? 3
-            : 4,
-        name: department,
-        shortName: department.slice(0, 3).toUpperCase(),
+        id: deptRow.id,
+        name: deptRow.name,
+        shortName: deptRow.short_name,
         people: peopleCount,
         hours: avgHours,
         change: "+0%",
         trend: "neutral",
         chart,
-        color,
-        gradient: color,
+        color: deptRow.color,
+        gradient: deptRow.color,
       });
     }
 
@@ -109,16 +117,50 @@ exports.overview = async (req, res) => {
 exports.getAllDepartments = async (req, res) => {
   try {
     const [departments] = await db.query(`
-      SELECT DISTINCT per_department 
-      FROM Personnel 
-      WHERE per_department IS NOT NULL AND per_department != ''
-      ORDER BY per_department
+      SELECT name 
+      FROM departments 
+      ORDER BY name
     `);
-    
-    const departmentList = departments.map(dept => dept.per_department);
+
+    const departmentList = departments.map((dept) => dept.name);
     res.json(departmentList);
   } catch (err) {
     console.error("Error fetching departments:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+};
+
+// POST create new department
+exports.createDepartment = async (req, res) => {
+  try {
+    const { name, shortName, color } = req.body;
+
+    if (!name || !shortName) {
+      return res.status(400).json({ error: "Name and shortName are required" });
+    }
+
+    // Insert into departments table
+    const [result] = await db.query(
+      "INSERT INTO departments (name, short_name, color) VALUES (?, ?, ?)",
+      [name, shortName, color || "#3b82f6"]
+    );
+
+    const newDepartment = {
+      id: result.insertId,
+      name: name,
+      shortName: shortName,
+      people: 0,
+      hours: 0,
+      change: "+0%",
+      trend: "neutral",
+      chart: [0, 0, 0, 0, 0, 0, 0],
+      color: color || "#3b82f6",
+      gradient: color || "#3b82f6",
+    };
+
+    res.status(201).json(newDepartment);
+  } catch (err) {
+    console.error("Error creating department:", err);
     res.status(500).json({ error: "Database error" });
   }
 };

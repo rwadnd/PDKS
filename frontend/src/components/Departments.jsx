@@ -1,18 +1,78 @@
-import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
-import { FaUsers, FaClock, FaChartBar, FaBuilding } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
+import {
+  FaUsers,
+  FaClock,
+  FaChartBar,
+  FaBuilding,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa";
 import "../App.css";
 import axios from "axios";
 
 const Departments = ({ searchTerm }) => {
   const [departments, setDepartments] = useState([]);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    shortName: "",
+    color: "#3b82f6",
+    gradient: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+  });
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5050/api/department/")
-      .then((res) => setDepartments(res.data));
+    // Check if we have departments in localStorage
+    const savedDepartments = localStorage.getItem("departments");
+    if (savedDepartments) {
+      setDepartments(JSON.parse(savedDepartments));
+    }
+
+    // Always fetch from API to get latest data
+    axios.get("http://localhost:5050/api/department/").then((res) => {
+      setDepartments(res.data);
+      localStorage.setItem("departments", JSON.stringify(res.data));
+    });
   }, []);
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(
+        "http://localhost:5050/api/department/",
+        formData
+      );
+      if (response.status === 201) {
+        const newDepartments = [...departments, response.data];
+        setDepartments(newDepartments);
+        localStorage.setItem("departments", JSON.stringify(newDepartments));
+        setShowModal(false);
+        setFormData({
+          name: "",
+          shortName: "",
+          color: "#3b82f6",
+          gradient: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+        });
+      }
+    } catch (error) {
+      console.error("Error adding department:", error);
+      alert("Error adding department");
+    }
+  };
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -40,7 +100,7 @@ const Departments = ({ searchTerm }) => {
       style={{
         padding: "24px",
         backgroundColor: "#f8fafc",
-        overflowY: "scroll"
+        overflowY: "scroll",
       }}
     >
       {/* Header */}
@@ -76,19 +136,59 @@ const Departments = ({ searchTerm }) => {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            padding: "12px 20px",
-            backgroundColor: "#ffffff",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
           }}
         >
-          <FaChartBar style={{ color: "#64748b" }} />
-          <span
-            style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 20px",
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            }}
           >
-            {departments.length} Departments
-          </span>
+            <FaChartBar style={{ color: "#64748b" }} />
+            <span
+              style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}
+            >
+              {departments.length} Departments
+            </span>
+          </div>
+
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "12px 20px",
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              color: "#64748b",
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "600",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = "translateY(-1px)";
+              e.target.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.15)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+            }}
+          >
+            <span style={{ fontSize: "16px", backgroundColor: "transparent" }}>
+              +
+            </span>
+            Add New
+          </button>
         </div>
       </div>
 
@@ -281,7 +381,11 @@ const Departments = ({ searchTerm }) => {
                       margin={{ top: 30, right: 10, left: 10, bottom: 20 }}
                       isAnimationActive={false}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" isAnimationActive={false} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                        isAnimationActive={false}
+                      />
                       <XAxis
                         dataKey="name"
                         tick={{ fontSize: 12, fill: "#64748b" }}
@@ -298,7 +402,10 @@ const Departments = ({ searchTerm }) => {
                         tickLine={false}
                         isAnimationActive={false}
                       />
-                      <Tooltip content={<CustomTooltip />} isAnimationActive={false}/>
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        isAnimationActive={false}
+                      />
                       <Bar
                         isAnimationActive={false}
                         dataKey="value"
@@ -322,6 +429,250 @@ const Departments = ({ searchTerm }) => {
             );
           })}
       </div>
+
+      {/* Add New Department Modal */}
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              padding: "32px",
+              width: "90%",
+              maxWidth: "500px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "24px",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "700",
+                  color: "#1e293b",
+                  margin: 0,
+                }}
+              >
+                Add New Department
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#64748b",
+                  padding: "4px",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                  }}
+                >
+                  Department Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  required
+                  style={{
+                    width: "90%",
+                    padding: "14px 16px",
+                    border: "2px solid #e2e8f0",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                    outline: "none",
+                    backgroundColor: "#ffffff",
+                    transition: "all 0.2s ease",
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#3b82f6";
+                    e.target.style.boxShadow =
+                      "0 0 0 4px rgba(59, 130, 246, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#e2e8f0";
+                    e.target.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.05)";
+                  }}
+                />
+              </div>
+
+              <div
+                style={{ marginBottom: "20px", display: "flex", gap: "16px" }}
+              >
+                <div style={{ flex: 1 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      color: "#374151",
+                    }}
+                  >
+                    Short Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.shortName}
+                    onChange={(e) =>
+                      handleInputChange("shortName", e.target.value)
+                    }
+                    required
+                    style={{
+                      width: "80%",
+                      padding: "14px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      outline: "none",
+                      backgroundColor: "#ffffff",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#3b82f6";
+                      e.target.style.boxShadow =
+                        "0 0 0 4px rgba(59, 130, 246, 0.1)";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.boxShadow =
+                        "0 2px 4px rgba(0, 0, 0, 0.05)";
+                    }}
+                  />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      color: "#374151",
+                    }}
+                  >
+                    Color
+                  </label>
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => handleInputChange("color", e.target.value)}
+                    style={{
+                      width: "90%",
+                      height: "50px",
+                      padding: "14px 16px",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
+                      cursor: "pointer",
+                      outline: "none",
+                      backgroundColor: "#ffffff",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  justifyContent: "center",
+                  marginTop: "24px",
+                }}
+              >
+                <button
+                  type="submit"
+                  style={{
+                    width: "140px",
+                    padding: "12px 0",
+                    background:
+                      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                    transition: "all 0.2s ease",
+                    textAlign: "center",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow =
+                      "0 6px 16px rgba(16, 185, 129, 0.4)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow =
+                      "0 4px 12px rgba(16, 185, 129, 0.3)";
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    width: "140px",
+                    padding: "12px 0",
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    color: "#64748b",
+                    border: "1px solid rgba(0, 0, 0, 0.1)",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                    transition: "all 0.2s ease",
+                    textAlign: "center",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

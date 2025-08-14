@@ -1,15 +1,18 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const {
   overview,
   getAllDepartments,
-} = require('../controllers/departmentController');
+  createDepartment,
+} = require("../controllers/departmentController");
 
 // GET all
-router.get('/', overview);
+router.get("/", overview);
 
 // GET all departments list
-router.get('/list', getAllDepartments);
+router.get("/list", getAllDepartments);
 
+// POST create new department
+router.post("/", createDepartment);
 
 module.exports = router;
