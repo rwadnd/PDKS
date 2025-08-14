@@ -26,6 +26,9 @@ const Departments = ({ searchTerm }) => {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPersonnelModal, setShowPersonnelModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [departmentPersonnel, setDepartmentPersonnel] = useState([]);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -115,6 +118,21 @@ const Departments = ({ searchTerm }) => {
       color: department.color,
     });
     setShowEditModal(true);
+  };
+
+  const handleShowPersonnel = async (department) => {
+    try {
+      setSelectedDepartment(department);
+      const response = await axios.get("http://localhost:5050/api/personnel");
+      const personnel = response.data.filter(
+        (p) => p.per_department === department.name
+      );
+      setDepartmentPersonnel(personnel);
+      setShowPersonnelModal(true);
+    } catch (error) {
+      console.error("Error fetching personnel:", error);
+      alert("Error loading personnel data");
+    }
   };
 
   const handleUpdateDepartment = async (e) => {
@@ -500,6 +518,15 @@ const Departments = ({ searchTerm }) => {
                       backgroundColor: "#f8fafc",
                       borderRadius: "12px",
                       border: "1px solid #e2e8f0",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onClick={() => handleShowPersonnel(dep)}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = "translateY(0)";
                     }}
                   >
                     <div
@@ -1116,6 +1143,181 @@ const Departments = ({ searchTerm }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Personnel Modal */}
+      {showPersonnelModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowPersonnelModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              padding: "32px",
+              width: "90%",
+              maxWidth: "800px",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "24px",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "700",
+                  color: "#1e293b",
+                  margin: 0,
+                }}
+              >
+                {selectedDepartment?.name} Personnel
+              </h2>
+              <button
+                onClick={() => setShowPersonnelModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#64748b",
+                  padding: "4px",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Personnel Table */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "60px 22fr 150px 120px",
+                gap: "74px",
+                padding: "16px",
+                backgroundColor: "#f9fafb",
+                borderRadius: "12px",
+                marginBottom: "16px",
+                fontWeight: "600",
+                fontSize: "14px",
+                color: "#374151",
+              }}
+            >
+              <div>Photo</div>
+              <div>Personnel Name</div>
+              <div>Role</div>
+              <div style={{ justifySelf: "center" }}>Status</div>
+            </div>
+
+            {departmentPersonnel.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "40px",
+                  color: "#64748b",
+                  fontSize: "16px",
+                }}
+              >
+                No personnel found in this department
+              </div>
+            ) : (
+              departmentPersonnel.map((person, index) => (
+                <div
+                  key={person.per_id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "60px 22fr 150px 120px",
+                    gap: "74px",
+                    padding: "16px",
+                    borderBottom: "1px solid #f1f5f9",
+                    alignItems: "center",
+                    transition: "background-color 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = "#f9fafb";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = "transparent";
+                  }}
+                >
+                  {/* Photo */}
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <img
+                      src={
+                        person.avatar_url ||
+                        `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`
+                      }
+                      alt={`${person.per_name} ${person.per_lname}`}
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: "2px solid #e5e7eb",
+                      }}
+                      onError={(e) => {
+                        e.target.src = `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`;
+                      }}
+                    />
+                  </div>
+
+                  {/* Name */}
+                  <div
+                    style={{
+                      fontWeight: "500",
+                      color: "#111827",
+                      textAlign: "left",
+                    }}
+                  >
+                    {person.per_name} {person.per_lname}
+                  </div>
+
+                  {/* Role */}
+                  <div style={{ color: "#6b7280", textAlign: "left" }}>
+                    {person.per_role || "Intern"}
+                  </div>
+
+                  {/* Status */}
+                  <div
+                    style={{
+                      justifySelf: "center",
+                      alignSelf: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        backgroundColor: "#1dbf73",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
