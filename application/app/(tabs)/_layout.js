@@ -2,7 +2,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, StyleSheet, Platform, StatusBar } from 'react-native';
-import MyRequests from './myRequests';
 
 const BACKGROUND_COLOR = '#eef0f6ff';
 

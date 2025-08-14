@@ -102,6 +102,10 @@ const LeaveRequests = ({
     return true;
   });
 
+  const sortedRequests = [...filteredRequests].sort(
+  (a, b) => new Date(b.request_date) - new Date(a.request_date)
+);
+
   const pendingCount = leaveRequests.filter(
     (request) => request.status === "Pending"
   ).length;
@@ -449,7 +453,7 @@ const LeaveRequests = ({
           width: "100%",
         }}
       >
-        {filteredRequests.length === 0 || leaveRequests.length === 0 ? (
+        {sortedRequests.length === 0 || leaveRequests.length === 0 ? (
           <div
             style={{
               textAlign: "center",
@@ -475,7 +479,7 @@ const LeaveRequests = ({
             </p>
           </div>
         ) : (
-          filteredRequests.map((request) => (
+          sortedRequests.map((request) => (
             <div
               key={request.request_id}
               style={{
@@ -711,4 +715,4 @@ const LeaveRequests = ({
   );
 };
 
-export default LeaveRequests;
+export default LeaveRequests;                                                                                   

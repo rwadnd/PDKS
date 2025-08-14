@@ -173,15 +173,6 @@ const App = () => {
             />
           ) : (
             <PersonnelList
-              onSelectPerson={(person) => {
-                setPreviousPage("personnel"); // 👈 store previous
-                window.history.pushState(
-                  null,
-                  "",
-                  `/personnel/${person.per_id}`
-                );
-                window.dispatchEvent(new PopStateEvent("popstate"));
-              }}
               searchTerm={searchTerm}
             />
           ))}

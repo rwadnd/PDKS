@@ -48,20 +48,20 @@ const isHoliday = (date) => {
 
 
 
-  const normalizeAvatar = (avatar_url, person) => {
-    if (!avatar_url) {
-      // basic initials avatar
-      const name =
-        (person?.per_name ? person.per_name[0] : "") +
-        (person?.per_lname ? person.per_lname[0] : "");
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        name || "User"
-      )}&background=E5E7EB&color=111827`;
-    }
-    if (avatar_url.startsWith("http")) return avatar_url;
-    // ensure leading slash so it works with the static /uploads mount
-    return `${avatar_url.startsWith("/") ? "" : "/"}${avatar_url}`;
-  };
+const normalizeAvatar = (avatar_url, person) => {
+  if (!avatar_url) {
+    // basic initials avatar
+    const name =
+      (person?.per_name ? person.per_name[0] : "") +
+      (person?.per_lname ? person.per_lname[0] : "");
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      name || "User"
+    )}&background=E5E7EB&color=111827`;
+  }
+  if (avatar_url.startsWith("http")) return avatar_url;
+  // ensure leading slash so it works with the static /uploads mount
+  return `${avatar_url.startsWith("/") ? "" : "/"}${avatar_url}`;
+};
 
 // Status dot logic
 const statusDot = (status, checkInTime) => {
@@ -323,9 +323,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const averageCheckInMinutes =
     checkInTimes.length > 0
       ? Math.round(
-          checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
-            checkInTimes.length
-        )
+        checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
+        checkInTimes.length
+      )
       : 0;
 
   const averageCheckInHours = Math.floor(averageCheckInMinutes / 60);
@@ -659,45 +659,44 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               filteredRecords.map((entry, i) => {
                 const formattedCheckIn =
                   entry.pdks_checkInTime &&
-                  entry.pdks_checkInTime !== "00:00:00"
+                    entry.pdks_checkInTime !== "00:00:00"
                     ? entry.pdks_checkInTime.slice(0, 5)
                     : "-";
 
                 const formattedCheckOut =
                   entry.pdks_checkOutTime &&
-                  entry.pdks_checkOutTime !== "00:00:00"
+                    entry.pdks_checkOutTime !== "00:00:00"
                     ? entry.pdks_checkOutTime.slice(0, 5)
                     : "-";
                 return (
-                  
-                <div
-  key={i}
-  style={{
-    display: "grid",
-    gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
-    gap: "16px",
-    padding: "20px",
-    borderBottom: "1px solid #f3f4f6",
-    alignItems: "center",
-    transition: "background-color 0.15s ease",
-    cursor: "pointer",
-    backgroundColor: hoveredIndex === i ? "#f9fafb" : "white", // <-- controlled
-  }}
-  onClick={(e) => {
-    // use currentTarget to avoid child click quirks
-    if (onSelectPerson && setPreviousPage) {
-      setPreviousPage("entries");
-      window.history.pushState(null, "", `/personnel/${entry.per_id}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }
-  }}
-  onMouseEnter={() => setHoveredIndex(i)}   // <-- non-bubbling
-  onMouseLeave={() => setHoveredIndex(null)}// <-- non-bubbling
->
 
-                    
+                  <div
+                    key={i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+                      gap: "16px",
+                      padding: "20px",
+                      borderBottom: "1px solid #f3f4f6",
+                      alignItems: "center",
+                      transition: "background-color 0.15s ease",
+                      cursor: "pointer",
+                      backgroundColor: hoveredIndex === i ? "#f9fafb" : "white", // <-- controlled
+                    }}
+                    onClick={(e) => {
+                      // use currentTarget to avoid child click quirks
+                      if (onSelectPerson && setPreviousPage) {
+                        setPreviousPage("entries");
+                        window.history.pushState(null, "", `/personnel/${entry.per_id}`);
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredIndex(i)}   // <-- non-bubbling
+                    onMouseLeave={() => setHoveredIndex(null)}// <-- non-bubbling
+                  >
+
                     {/* Photo */}
-                    
+
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <img
                         src={normalizeAvatar(entry.avatar_url, entry)}
@@ -831,11 +830,11 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {lastEntryRecord
                   ? `${new Date(
-                      `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
-                    ).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })} • ${lastEntryRecord.per_department}`
+                    `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })} • ${lastEntryRecord.per_department}`
                   : "No recent activity"}
               </div>
             </div>
@@ -964,16 +963,16 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {todayEntries.length > 0
                   ? `${Math.round(
-                      (todayEntries.filter((entry) => {
-                        const [hours, minutes] = entry.pdks_checkInTime
-                          .split(":")
-                          .map(Number);
-                        // On time: before 9:00 AM
-                        return hours <= 8 && minutes <= 30;
-                      }).length /
-                        todayEntries.length) *
-                        100
-                    )}% of today's entries`
+                    (todayEntries.filter((entry) => {
+                      const [hours, minutes] = entry.pdks_checkInTime
+                        .split(":")
+                        .map(Number);
+                      // On time: before 9:00 AM
+                      return hours <= 8 && minutes <= 30;
+                    }).length /
+                      todayEntries.length) *
+                    100
+                  )}% of today's entries`
                   : "No entries today"}
               </div>
             </div>
@@ -1034,9 +1033,8 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               </div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {absentToday.length > 0
-                  ? `${absentToday.slice(0, 2).join(", ")}${
-                      absentToday.length > 2 ? "..." : ""
-                    }`
+                  ? `${absentToday.slice(0, 2).join(", ")}${absentToday.length > 2 ? "..." : ""
+                  }`
                   : "All personnel present"}
               </div>
             </div>

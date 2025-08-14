@@ -357,9 +357,10 @@ console.log(user)
                   </div>
                 </div>
               ) : (
-                leaveRequests
+                [...leaveRequests]
                   .filter((r) => r.status === "Pending") // Only show pending requests as notifications
-                  .map((request) => {
+                  .sort((a, b) => new Date(b.request_date) - new Date(a.request_date))
+          .map((request) => {
                     const start = new Date(request.request_start_date);
                     const end = new Date(request.request_end_date);
                     const days =
