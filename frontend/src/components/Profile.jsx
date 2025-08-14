@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FaEdit, FaUser, FaEnvelope, FaLock } from "react-icons/fa";
 
 const DEFAULT_AVATAR = "https://randomuser.me/api/portraits/women/44.jpg";
 
-const Profile = ({ onBack, currentUser }) => {
+const Profile = ({ currentUser }) => {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",

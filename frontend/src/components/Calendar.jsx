@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { FaCalendarAlt, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import axios from "axios";
 import { useMemo } from "react";
 
@@ -97,29 +97,6 @@ const Calendar = () => {
     sel.month === today.getMonth() &&
     sel.year === today.getFullYear();
 
-  const getHolidayColor = (holidayName) => {
-    const colors = {
-      "Yılbaşı Tatili": { bg: "transparent", border: "transparent" },
-      "Ramazan Bayramı": { bg: "transparent", border: "transparent" },
-      "Ulusal Egemenlik ve Çocuk Bayramı": {
-        bg: "transparent",
-        border: "transparent",
-      },
-      "İşçi Bayramı": { bg: "transparent", border: "transparent" },
-      "Atatürk'ü Anma, Gençlik ve Spor Bayramı": {
-        bg: "transparent",
-        border: "transparent",
-      },
-      "Kurban Bayramı": { bg: "transparent", border: "transparent" },
-      "Demokrasi ve Milli Birlik Günü": {
-        bg: "transparent",
-        border: "transparent",
-      },
-      "Zafer Bayramı": { bg: "transparent", border: "transparent" },
-      "Cumhuriyet Bayramı": { bg: "transparent", border: "transparent" },
-    };
-    return colors[holidayName] || { bg: "transparent", border: "transparent" };
-  };
 
   const cellStyle = (d) => {
     const key = `${sel.month + 1}-${d}`;

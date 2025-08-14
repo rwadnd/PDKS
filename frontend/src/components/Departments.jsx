@@ -1,22 +1,6 @@
-import React, { useEffect, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LabelList,
-} from "recharts";
-import {
-  FaUsers,
-  FaClock,
-  FaChartBar,
-  FaBuilding,
-  FaArrowUp,
-  FaArrowDown,
-} from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from "recharts";
+import { FaUsers, FaClock, FaChartBar, FaBuilding } from "react-icons/fa";
 import "../App.css";
 import axios from "axios";
 

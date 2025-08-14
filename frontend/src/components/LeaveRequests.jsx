@@ -1,11 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  FaCheck,
-  FaTimes,
-  FaClock,
-  FaUser,
-  FaCalendarAlt,
-} from "react-icons/fa";
+import { useState } from "react";
+import { FaCheck, FaTimes, FaClock, FaUser, FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
 
 const LeaveRequests = ({
@@ -14,7 +8,7 @@ const LeaveRequests = ({
   setLeaveRequests,
 }) => {
   const [filter, setFilter] = useState("Pending"); // all, pending, approved, rejected
-  const [loading, setLoading] = useState(false);
+
 
   const approveRequest = async (id) => {
     try {
@@ -126,20 +120,6 @@ const LeaveRequests = ({
     });
   };
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "400px",
-        }}
-      >
-        <div>Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div

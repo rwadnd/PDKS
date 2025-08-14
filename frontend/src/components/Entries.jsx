@@ -1,17 +1,7 @@
 import "../App.css";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  FaUser,
-  FaClock,
-  FaUsers,
-  FaChartLine,
-  FaUserTimes,
-  FaCalendarAlt,
-  FaUmbrellaBeach,
-  FaCoffee,
-  FaHome,
-} from "react-icons/fa";
+import { FaClock, FaChartLine, FaUserTimes, FaCalendarAlt, FaUmbrellaBeach, FaHome } from "react-icons/fa";
 import { FiInbox, FiAward } from "react-icons/fi";
 
 // Official holidays (2025)
@@ -72,30 +62,6 @@ const isHoliday = (date) => {
     // ensure leading slash so it works with the static /uploads mount
     return `${avatar_url.startsWith("/") ? "" : "/"}${avatar_url}`;
   };
-
-
-// Holiday icon and color functions
-const getHolidayIcon = (type) => {
-  switch (type) {
-    case "weekend":
-      return <FaHome style={{ fontSize: "24px", color: "#3b82f6" }} />;
-    case "official":
-      return <FaUmbrellaBeach style={{ fontSize: "24px", color: "#f59e0b" }} />;
-    default:
-      return <FaCalendarAlt style={{ fontSize: "24px", color: "#10b981" }} />;
-  }
-};
-
-const getHolidayColor = (type) => {
-  switch (type) {
-    case "weekend":
-      return "#dbeafe";
-    case "official":
-      return "#fef3c7";
-    default:
-      return "#d1fae5";
-  }
-};
 
 // Status dot logic
 const statusDot = (status, checkInTime) => {
@@ -329,26 +295,9 @@ const EmptyStateMessage = ({ isHoliday, holidayInfo }) => {
 const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [stats, setStats] = useState({
-    onTimeToday: 0,
-    absentToday: 0,
-    absentNames: [],
-    totalPersonnel: 0,
-  });
-
-
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
   const holidayInfo = isHoliday(today);
-
-  useEffect(() => {
-    axios
-      .get("http://localhost:5050/api/pdks/today-stats")
-      .then((res) => {
-        setStats(res.data);
-      })
-      .catch((err) => console.error("Failed to load stats:", err));
-  }, []);
 
   useEffect(() => {
     axios

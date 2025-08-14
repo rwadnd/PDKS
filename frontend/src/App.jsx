@@ -226,7 +226,6 @@ const App = () => {
         )}
         {activePage === "profile" && (
           <Profile
-            onBack={() => changePage("dashboard")}
             currentUser={currentUser}
           />
         )}
