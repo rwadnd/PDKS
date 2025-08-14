@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import StatCards from "./components/StatCards";
@@ -89,15 +89,6 @@ const App = () => {
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
-
-  const fetchPersonById = async (id) => {
-    try {
-      const res = await axios.get(`http://localhost:5050/api/personnel/${id}`);
-      setSelectedPerson(res.data);
-    } catch (error) {
-      console.error("Error fetching person by ID:", error);
-    }
-  };
 
   const changePage = (page) => {
     setActivePage(page);
