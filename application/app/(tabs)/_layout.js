@@ -2,6 +2,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, StyleSheet, Platform, StatusBar } from 'react-native';
+import MyRequests from './myRequests';
 
 const BACKGROUND_COLOR = '#eef0f6ff';
 
@@ -30,6 +31,7 @@ export default function TabLayout() {
             const icons = {
               index: 'qr-code-outline',
               LeaveRequest: 'document-text-outline',
+              MyRequests: 'create-outline'
             };
             return (
               <Ionicons
@@ -44,6 +46,7 @@ export default function TabLayout() {
       >
         <Tabs.Screen name="index" options={{ title: 'QR' }} />
         <Tabs.Screen name="LeaveRequest" options={{ title: 'Leave Request' }} />
+         <Tabs.Screen name="myRequests" options={{ title: 'My Request' }} />
       </Tabs>
     </SafeAreaView>
   );
