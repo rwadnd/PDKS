@@ -633,7 +633,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+                gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr",
                 gap: "16px",
                 padding: "20px",
                 backgroundColor: "#f9fafb",
@@ -647,9 +647,10 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div>Personnel Name</div>
               <div>Department</div>
               <div>Role</div>
-              <div>Check-in Time</div>
-              <div>Check-out Time</div>
-              <div>Status</div>
+              <div>Check-in</div>
+              <div>Check-out</div>
+              <div
+              style={{ display: "flex", justifyContent: "center" }}>Status</div>
             </div>
 
             {/* Table Content */}
@@ -674,7 +675,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                     key={i}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "80px 1fr 120px 120px 120px 120px 80px",
+                    gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr",
                       gap: "16px",
                       padding: "20px",
                       borderBottom: "1px solid #f3f4f6",
@@ -697,7 +698,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
 
                     {/* Photo */}
 
-                    <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "start" }}>
                       <img
                         src={normalizeAvatar(entry.avatar_url, entry)}
                         alt={`${entry.per_name} ${entry.per_lname}`}
