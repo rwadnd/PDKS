@@ -350,12 +350,13 @@ const Departments = ({ searchTerm }) => {
                   style={{
                     position: "relative",
                     display: "flex",
-                    flexDirection: "column",
+                    flexDirection: "row",
                     alignItems: "center",
+                    gap: "16px",
                     marginBottom: "24px",
                   }}
                 >
-                  {/* Delete Button - Top Left */}
+                  {/* Delete Button - Top Right */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -364,7 +365,7 @@ const Departments = ({ searchTerm }) => {
                     style={{
                       position: "absolute",
                       top: "-8px",
-                      left: "-8px",
+                      right: "-8px",
                       width: "28px",
                       height: "28px",
                       backgroundColor: "transparent",
@@ -417,7 +418,7 @@ const Departments = ({ searchTerm }) => {
                     style={{
                       position: "absolute",
                       top: "-8px",
-                      right: "-8px",
+                      right: "20px",
                       width: "32px",
                       height: "32px",
                       backgroundColor: "transparent",
@@ -470,7 +471,7 @@ const Departments = ({ searchTerm }) => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginBottom: "12px",
+                      flexShrink: 0,
                     }}
                   >
                     <FaBuilding
@@ -479,7 +480,7 @@ const Departments = ({ searchTerm }) => {
                   </div>
 
                   {/* Department Name and Short Name */}
-                  <div style={{ textAlign: "center" }}>
+                  <div style={{ textAlign: "left", flex: 1 }}>
                     <div
                       style={{
                         fontSize: "20px",
