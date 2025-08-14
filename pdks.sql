@@ -24,6 +24,34 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Tablo için tablo yapısı `departments`
+--
+
+CREATE TABLE `departments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `short_name` varchar(10) NOT NULL,
+  `color` varchar(10) DEFAULT '#3b82f6',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Tablo döküm verisi `departments`
+--
+
+INSERT INTO `departments` (`id`, `name`, `short_name`, `color`) VALUES
+(1, 'IT', 'IT', '#06b6d4'),
+(2, 'Finance', 'FIN', '#3dd406ff'),
+(3, 'QA', 'QA', '#ab06d4ff'),
+(4, 'housekeeper', 'HK', '#f59e0b'),
+(5, 'OSB Teknokent', 'OSB', '#8b5cf6');
+
+-- --------------------------------------------------------
+
+--
 -- Tablo için tablo yapısı `admin_users`
 --
 
@@ -582,6 +610,13 @@ INSERT INTO `personnel` (`per_id`, `per_name`, `per_lname`, `per_department`, `p
 --
 
 --
+-- Tablo için indeksler `departments`
+--
+ALTER TABLE `departments`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
 -- Tablo için indeksler `admin_users`
 --
 ALTER TABLE `admin_users`
@@ -611,6 +646,12 @@ ALTER TABLE `personnel`
 --
 -- Dökümü yapılmış tablolar için AUTO_INCREMENT değeri
 --
+
+--
+-- Tablo için AUTO_INCREMENT değeri `departments`
+--
+ALTER TABLE `departments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Tablo için AUTO_INCREMENT değeri `admin_users`
