@@ -4,7 +4,7 @@ import { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const API_BASE_URL = "http://192.168.1.141:5050";
+const API_BASE_URL = "http://192.168.1.142:5050";
 
 export default function MyRequests() {
   const [employeeId, setEmployeeId] = useState("");

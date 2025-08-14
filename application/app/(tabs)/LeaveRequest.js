@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Scro
 import { Ionicons } from '@expo/vector-icons';
 
 // API base URL'sini burada tanımlayın
-const API_BASE_URL = 'http://192.168.1.141:5050'; 
+const API_BASE_URL = 'http://192.168.1.142:5050'; 
 
 export default function LeaveRequestScreen() {
   const [employeeId, setEmployeeId] = useState('');
