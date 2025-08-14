@@ -1,16 +1,7 @@
 // app/LeaveRequest.js
 import axios from "axios";
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-  ActivityIndicator,
-} from "react-native";
+import { useState } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const API_BASE_URL = "http://192.168.1.141:5050";
@@ -19,12 +10,12 @@ export default function MyRequests() {
   const [employeeId, setEmployeeId] = useState("");
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [deletingId, setDeletingId] = useState(null); // NEW: track row being deleted
+  const [deletingId, setDeletingId] = useState(null); // track row being deleted
 
   const fetchLeaves = async () => {
     const idNum = parseInt(employeeId, 10);
     if (!idNum || idNum <= 0) {
-      Alert.alert("Hata", "Lütfen geçerli bir Personel ID giriniz.");
+      Alert.alert("Error", "Please enter a valid Personnel ID.");
       return;
     }
 
@@ -33,35 +24,35 @@ export default function MyRequests() {
       const res = await axios.get(`${API_BASE_URL}/api/leave/${idNum}`);
       setLeaves(res.data || []);
       if (!res.data || res.data.length === 0) {
-        Alert.alert("Bilgi", "Bu ID için izin kaydı bulunamadı.");
+        Alert.alert("Information", "No leave record found for this ID.");
       }
     } catch (err) {
       console.error("Failed to retrieve leave requests:", err?.response?.data || err.message);
-      Alert.alert("Hata", "İzin kayıtları alınamadı. Lütfen tekrar deneyin.");
+      Alert.alert("Error", "Failed to retrieve leave requests. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // NEW: delete handler with confirm + optimistic UI update
+  // delete handler with confirm + optimistic UI update
   const handleDelete = (leaveId) => {
     Alert.alert(
-      "Silinsin mi?",
-      "Bu izin kaydını kalıcı olarak silmek istediğinize emin misiniz?",
+      "Delete it?",
+      "Are you sure you want to permanently delete this leave record?",
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Sil",
+          text: "Delete",
           style: "destructive",
           onPress: async () => {
             try {
               setDeletingId(leaveId);
               await axios.delete(`${API_BASE_URL}/api/leave/${leaveId}`);
               setLeaves((prev) => prev.filter((l) => l.request_id !== leaveId));
-              Alert.alert("Başarılı", "İzin kaydı silindi.");
+              Alert.alert("Success", "Leave record deleted.");
             } catch (err) {
               console.error("Delete failed:", err?.response?.data || err.message);
-              Alert.alert("Hata", "Kayıt silinemedi. Lütfen tekrar deneyin.");
+              Alert.alert("Error", "Record could not be deleted. Please try again.");
             } finally {
               setDeletingId(null);
             }
@@ -104,13 +95,11 @@ export default function MyRequests() {
             <Text style={styles.line}>
               From: {item.request_start_date}  To: {item.request_end_date}
             </Text>
-            {/* NOTE: if your column is request_status, prefer item.request_status */}
             <Text style={styles.line}>Status: {item.status ?? item.request_status ?? "—"}</Text>
 
             <View style={styles.footerRow}>
               <Text style={styles.lineMuted}>Personnel ID: {item.personnel_per_id}</Text>
 
-              {/* NEW: Delete button */}
               {item.request_id ? (
                 <TouchableOpacity
                   style={[styles.delBtn, deletingId === item.request_id && { opacity: 0.6 }]}
