@@ -30,8 +30,8 @@ const Departments = ({ searchTerm }) => {
   const [formData, setFormData] = useState({
     name: "",
     shortName: "",
-    color: "#3b82f6",
-    gradient: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+    color: "#ffffff",
+    gradient: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
   });
 
   useEffect(() => {
@@ -238,7 +238,15 @@ const Departments = ({ searchTerm }) => {
           </div>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setFormData({
+                name: "",
+                shortName: "",
+                color: "#ffffff",
+                gradient: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+              });
+              setShowModal(true);
+            }}
             style={{
               display: "flex",
               alignItems: "center",
@@ -796,6 +804,9 @@ const Departments = ({ searchTerm }) => {
                       backgroundColor: "#ffffff",
                       transition: "all 0.2s ease",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.click();
                     }}
                   />
                 </div>
