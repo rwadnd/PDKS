@@ -14,13 +14,14 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    perId: "",
     department: "",
     role: "",
   });
+  const [departments, setDepartments] = useState([]);
 
   useEffect(() => {
     fetchPersonnel();
+    fetchDepartments();
   }, []);
 
   const fetchPersonnel = async () => {
@@ -36,6 +37,16 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
       setError("Personel listesi yüklenirken hata oluştu");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await axios.get("http://localhost:5050/api/department/list");
+      console.log("Fetched departments:", res.data);
+      setDepartments(res.data);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
     }
   };
 
@@ -603,25 +614,39 @@ const PersonnelList = ({ searchTerm, onSelectPerson }) => {
                   >
                     Department *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.department}
-                    onChange={(e) =>
-                      handleInputChange("department", e.target.value)
-                    }
-                    style={{
-                      width: "93%",
-                      padding: "12px 16px",
-                      border: "2px solid #e2e8f0",
-                      borderRadius: "8px",
-                      fontSize: "14px",
-                      outline: "none",
-                      transition: "border-color 0.2s ease",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-                    onBlur={(e) => (e.target.style.borderColor = "#e2e8f0")}
-                  />
+                  <div style={{ position: "relative", width: "103%" }}>
+                    <select
+                      required
+                      value={formData.department}
+                      onChange={(e) =>
+                        handleInputChange("department", e.target.value)
+                      }
+                      style={{
+                        width: "103%",
+                        padding: "12px 16px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        outline: "none",
+                        transition: "all 0.2s ease",
+                        backgroundColor: "white",
+                        cursor: "pointer",
+                        appearance: "none",
+                        backgroundImage:
+                          'url(\'data:image/svg+xml;charset=US-ASCII,<svg width="12" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l5 5 5-5" stroke="%236b7280" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>\')',
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 12px center",
+                        paddingRight: "40px",
+                      }}
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label
