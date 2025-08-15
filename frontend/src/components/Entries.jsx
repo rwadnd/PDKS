@@ -361,177 +361,222 @@ const getStatusDotColor = (person, isAbsent = false) => {
   return "#c62116ff";
 };
 
-const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-    }}
-    onClick={onClose}
-  >
+const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
+  // Check if modal is for On Time or Late
+  const showCheckInTime =
+    title === "On Time Today" || title === "Late Personnel" || title === "Late Today";
+
+  return (
     <div
       style={{
-        backgroundColor: "#ffffff",
-        borderRadius: "20px",
-        padding: "32px",
-        width: "90%",
-        maxWidth: "800px",
-        maxHeight: "80vh",
-        overflowY: "auto",
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
       }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={onClose}
     >
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
+          backgroundColor: "#ffffff",
+          borderRadius: "20px",
+          padding: "32px",
+          width: "90%",
+          maxWidth: "850px",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <h2
-          style={{
-            fontSize: "24px",
-            fontWeight: "700",
-            color: "#1e293b",
-            margin: 0,
-          }}
-        >
-          {title}
-        </h2>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            fontSize: "24px",
-            cursor: "pointer",
-            color: "#64748b",
-            padding: "4px",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* Personnel Table Header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "60px 2fr 1.5fr 1.5fr 80px",
-          gap: "32px",
-          padding: "16px",
-          backgroundColor: "#f9fafb",
-          borderRadius: "12px",
-          marginBottom: "16px",
-          fontWeight: "600",
-          fontSize: "14px",
-          color: "#374151",
-        }}
-      >
-        <div>Photo</div>
-        <div>Personnel Name</div>
-        <div>Department</div>
-        <div>Role</div>
-        <div style={{ justifySelf: "center" }}>Status</div>
-      </div>
-
-      {personnelList.length === 0 ? (
         <div
           style={{
-            textAlign: "center",
-            padding: "40px",
-            color: "#64748b",
-            fontSize: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "24px",
           }}
         >
-          No personnel found
-        </div>
-      ) : (
-        personnelList.map((person, idx) => (
-          <div
-            key={idx}
+          <h2
             style={{
-              display: "grid",
-              gridTemplateColumns: "60px 2fr 1.5fr 1.5fr 80px",
-              gap: "32px",
-              padding: "16px",
-              borderBottom: "1px solid #f1f5f9",
-              alignItems: "center",
-              transition: "background-color 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#f9fafb";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "transparent";
+              fontSize: "24px",
+              fontWeight: "700",
+              color: "#1e293b",
+              margin: 0,
             }}
           >
-            {/* Photo */}
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <img
-                src={
-                  person.avatar_url ||
-                  `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`
-                }
-                alt={`${person.per_name} ${person.per_lname}`}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  border: "2px solid #e5e7eb",
-                }}
-                onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`;
-                }}
-              />
-            </div>
-            {/* Name */}
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "24px",
+              cursor: "pointer",
+              color: "#64748b",
+              padding: "4px",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Personnel Table Header */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isAbsent
+              ? "60px 2fr 1.5fr 1.5fr 80px"
+              : showCheckInTime
+              ? "60px 2fr 1.5fr 1.5fr 1fr"
+              : "60px 2fr 1.5fr 1.5fr 80px",
+            gap: "32px",
+            padding: "16px",
+            backgroundColor: "#f9fafb",
+            borderRadius: "12px",
+            marginBottom: "16px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#374151",
+          }}
+        >
+          <div>Photo</div>
+          <div>Personnel Name</div>
+          <div>Department</div>
+          <div>Role</div>
+          {isAbsent ? (
+            <div style={{ justifySelf: "center" }}>Status</div>
+          ) : showCheckInTime ? (
+            <div>Check-in Time</div>
+          ) : (
+            <div style={{ justifySelf: "center" }}>Status</div>
+          )}
+        </div>
+
+        {personnelList.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px",
+              color: "#64748b",
+              fontSize: "16px",
+            }}
+          >
+            No personnel found
+          </div>
+        ) : (
+          personnelList.map((person, idx) => (
             <div
+              key={idx}
               style={{
-                fontWeight: "500",
-                color: "#111827",
-                textAlign: "left",
+                display: "grid",
+                gridTemplateColumns: isAbsent
+                  ? "60px 2fr 1.5fr 1.5fr 80px"
+                  : showCheckInTime
+                  ? "60px 2fr 1.5fr 1.5fr 1fr"
+                  : "60px 2fr 1.5fr 1.5fr 80px",
+                gap: "32px",
+                padding: "16px",
+                borderBottom: "1px solid #f1f5f9",
+                alignItems: "center",
+                transition: "background-color 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#f9fafb";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "transparent";
               }}
             >
-              {person.per_name} {person.per_lname}
-            </div>
-            {/* Department */}
-            <div style={{ color: "#6b7280", textAlign: "left" }}>
-              {person.per_department || "-"}
-            </div>
-            {/* Role */}
-            <div style={{ color: "#6b7280", textAlign: "left" }}>
-              {person.per_role || "-"}
-            </div>
-            {/* Status */}
-            <div style={{ justifySelf: "center", alignSelf: "center" }}>
-              <span
+              {/* Photo */}
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <img
+                  src={
+                    person.avatar_url ||
+                    `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`
+                  }
+                  alt={`${person.per_name} ${person.per_lname}`}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #e5e7eb",
+                  }}
+                  onError={(e) => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${person.per_name}+${person.per_lname}&background=E5E7EB&color=111827`;
+                  }}
+                />
+              </div>
+              {/* Name */}
+              <div
                 style={{
-                  display: "inline-block",
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
-                  backgroundColor: getStatusDotColor(person, isAbsent),
+                  fontWeight: "500",
+                  color: "#111827",
+                  textAlign: "left",
                 }}
-              />
+              >
+                {person.per_name} {person.per_lname}
+              </div>
+              {/* Department */}
+              <div style={{ color: "#6b7280", textAlign: "left" }}>
+                {person.per_department || "-"}
+              </div>
+              {/* Role */}
+              <div style={{ color: "#6b7280", textAlign: "left" }}>
+                {person.per_role || "-"}
+              </div>
+              {/* Status or Check-in Time */}
+              {isAbsent ? (
+                <div style={{ justifySelf: "center", alignSelf: "center" }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      backgroundColor:
+                        person.per_status === "OnLeave" ||
+                        person.per_status === "OnSickLeave"
+                          ? "#ffc107"
+                          : "#c62116ff",
+                    }}
+                  />
+                </div>
+              ) : showCheckInTime ? (
+                <div style={{ color: "#374151", textAlign: "center" }}>
+                  {person.pdks_checkInTime &&
+                  person.pdks_checkInTime !== "00:00:00"
+                    ? person.pdks_checkInTime.slice(0, 5)
+                    : "-"}
+                </div>
+              ) : (
+                <div style={{ justifySelf: "center", alignSelf: "center" }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      backgroundColor: getStatusDotColor(person, isAbsent),
+                    }}
+                  />
+                </div>
+              )}
             </div>
-          </div>
-        ))
-      )}
+          ))
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
@@ -636,8 +681,15 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
       !presentToday.includes(`${record.per_name} ${record.per_lname}`)
   );
 
+  // Geç kalanlar (Late Personnel) listesi
+  const latePersonnelList = todayEntries.filter((entry) => {
+    const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
+    // 08:30'dan sonra gelenler
+    return hours > 8 || (hours === 8 && minutes > 30);
+  });
+
   return (
-    <div style={{ display: "flex", gap: "24px", height: "88%" }}>
+    <div style={{ display: "flex", gap: "24px", height: "88%", overflow: "hidden" }}>
       {holidayInfo.isHoliday && holidayInfo.type === "official" ? (
         // Official Holiday Design - Two Cards
         <>
@@ -1035,78 +1087,10 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               width: "300px",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              gap: "18px",
             }}
           >
-            {/* Last Entry Card */}
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                padding: "20px",
-                boxShadow:
-                  "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                border: "1px solid #e5e7eb",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "16px",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      color: "#6b7280",
-                      fontWeight: "500",
-                    }}
-                  >
-                    Last Entry
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "20px",
-                      fontWeight: "600",
-                      color: "#111827",
-                    }}
-                  >
-                    {lastEntryRecord
-                      ? `${lastEntryRecord.per_name} ${lastEntryRecord.per_lname}`
-                      : "No entries"}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "50%",
-                    backgroundColor: "#3b82f6",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#ffffff",
-                  }}
-                >
-                  <FaClock size={20} />
-                </div>
-              </div>
-              <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                {lastEntryRecord
-                  ? `${new Date(
-                    `${lastEntryRecord.pdks_date}T${lastEntryRecord.pdks_checkInTime}`
-                  ).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })} • ${lastEntryRecord.per_department}`
-                  : "No recent activity"}
-              </div>
-            </div>
-
-            {/* Average Check-in Time Card */}
+            {/* 1. Average Check-in Time Card */}
             <div
               style={{
                 backgroundColor: "#ffffff",
@@ -1161,11 +1145,11 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 </div>
               </div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                All time average
+                Today's average
               </div>
             </div>
 
-            {/* On Time Card */}
+            {/* 2. On Time Today Card */}
             <div
               style={{
                 backgroundColor: "#ffffff",
@@ -1177,7 +1161,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 cursor: "pointer",
               }}
               onClick={() => {
-                setPersonnelModalTitle("On Time Personnel");
+                setPersonnelModalTitle("On Time Today");
                 setPersonnelModalList(onTimePersonnelList);
                 setShowPersonnelModal(true);
               }}
@@ -1212,7 +1196,6 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                         const [hours, minutes] = entry.pdks_checkInTime
                           .split(":")
                           .map(Number);
-                        // On time: before 9:00 AM
                         return hours <= 8 && minutes <= 30;
                       }).length
                     }
@@ -1236,21 +1219,20 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {todayEntries.length > 0
                   ? `${Math.round(
-                    (todayEntries.filter((entry) => {
-                      const [hours, minutes] = entry.pdks_checkInTime
-                        .split(":")
-                        .map(Number);
-                      // On time: before 9:00 AM
-                      return hours <= 8 && minutes <= 30;
-                    }).length /
-                      todayEntries.length) *
-                    100
-                  )}% of today's entries`
+                      (todayEntries.filter((entry) => {
+                        const [hours, minutes] = entry.pdks_checkInTime
+                          .split(":")
+                          .map(Number);
+                        return hours <= 8 && minutes <= 30;
+                      }).length /
+                        todayEntries.length) *
+                        100
+                    )}% of today's entries`
                   : "No entries today"}
               </div>
             </div>
 
-            {/* Absent Personnel Card */}
+            {/* 3. Late Personnel Card */}
             <div
               style={{
                 backgroundColor: "#ffffff",
@@ -1262,7 +1244,76 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 cursor: "pointer",
               }}
               onClick={() => {
-                setPersonnelModalTitle("Absent Personnel");
+                setPersonnelModalTitle("Late Today");
+                setPersonnelModalList(latePersonnelList);
+                setShowPersonnelModal(true);
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "16px",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#6b7280",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Late Today
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "20px",
+                      fontWeight: "600",
+                      color: "#111827",
+                    }}
+                  >
+                    {latePersonnelList.length}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    backgroundColor: "#f59e0b",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffffff",
+                  }}
+                >
+                  <FaClock size={20} />
+                </div>
+              </div>
+              <div style={{ fontSize: "14px", color: "#6b7280" }}>
+                {todayEntries.length > 0
+                  ? `${Math.round(
+                      (latePersonnelList.length / todayEntries.length) * 100
+                    )}% of today's entries`
+                  : "No entries today"}
+              </div>
+            </div>
+
+            {/* 4. Absent Today Card */}
+            <div
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: "16px",
+                padding: "20px",
+                boxShadow:
+                  "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                border: "1px solid #e5e7eb",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                setPersonnelModalTitle("Absent Today");
                 setPersonnelModalList(absentPersonnelList);
                 setShowPersonnelModal(true);
               }}
@@ -1311,9 +1362,8 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 </div>
               </div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                {absentToday.length > 0
-                  ? `${absentToday.slice(0, 2).join(", ")}${absentToday.length > 2 ? "..." : ""
-                  }`
+                {allPersonnel.length > 0
+                  ? `${Math.round((absentToday.length / allPersonnel.length) * 100)}% of total personnel`
                   : "All personnel present"}
               </div>
             </div>
@@ -1332,7 +1382,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
           title={personnelModalTitle}
           personnelList={personnelModalList}
           onClose={() => setShowPersonnelModal(false)}
-          isAbsent={personnelModalTitle === "Absent Personnel"}
+          isAbsent={personnelModalTitle === "Absent Today"}
         />
       )}
     </div>
