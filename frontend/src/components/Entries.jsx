@@ -1,5 +1,15 @@
 import "../App.css";
 import { useEffect, useState, useMemo, useCallback } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as ReTooltip,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
 import axios from "axios";
 import {
   FaClock,
@@ -985,6 +995,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [modal, setModal] = useState({ open: false, title: "", items: [] });
+  const [avgModalOpen, setAvgModalOpen] = useState(false);
+  const [avgTimeframe, setAvgTimeframe] = useState("weekly");
+  const [weeklyChartData, setWeeklyChartData] = useState([]);
   const [showPersonnelModal, setShowPersonnelModal] = useState(false);
   const [personnelModalTitle, setPersonnelModalTitle] = useState("");
   const [personnelModalList, setPersonnelModalList] = useState([]);
@@ -1026,6 +1039,106 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const averageCheckInTime = `${averageCheckInHours
     .toString()
     .padStart(2, "0")}:${averageCheckInMins.toString().padStart(2, "0")}`;
+
+  // Prepare weekly chart data from existing records (last 7 days)
+  const past7Dates = Array.from({ length: 7 }).map((_, idx) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (6 - idx));
+    return d;
+  });
+
+  const weeklyData = past7Dates.map((d) => {
+    const dayStr = d.toISOString().slice(0, 10);
+    const dayRecords = records.filter(
+      (r) => r.pdks_date?.slice(0, 10) === dayStr
+    );
+    const mins = dayRecords
+      .filter((r) => r.pdks_checkInTime && r.pdks_checkInTime !== "00:00:00")
+      .map((r) => {
+        const [h, m] = r.pdks_checkInTime.split(":").map(Number);
+        return h * 60 + m;
+      });
+    const avg = mins.length
+      ? Math.round(mins.reduce((a, b) => a + b, 0) / mins.length)
+      : 0;
+    return {
+      name: d.toLocaleDateString(undefined, { weekday: "short" }),
+      value: avg ? Math.max(0, avg - 480) : 0,
+      fill: "#10b981",
+    };
+  });
+
+  // Prepare monthly (last 30 days) chart structure
+  const past30Dates = Array.from({ length: 30 }).map((_, idx) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (29 - idx));
+    return d;
+  });
+
+  // Monthly: group by week (4-5 bars instead of 30). Using ISO week index within month
+  const monthlyData = (() => {
+    const byWeek = new Map();
+    past30Dates.forEach((d) => {
+      const dayStr = d.toISOString().slice(0, 10);
+      const recordsForDay = records.filter(
+        (r) => r.pdks_date?.slice(0, 10) === dayStr
+      );
+      const dayMins = recordsForDay
+        .filter((r) => r.pdks_checkInTime && r.pdks_checkInTime !== "00:00:00")
+        .map((r) => {
+          const [h, m] = r.pdks_checkInTime.split(":").map(Number);
+          return h * 60 + m;
+        });
+      const avg = dayMins.length
+        ? Math.round(dayMins.reduce((a, b) => a + b, 0) / dayMins.length)
+        : 0;
+      // Week key within month (1..5)
+      const firstOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+      const weekIndex =
+        Math.floor((d.getDate() + firstOfMonth.getDay() - 1) / 7) + 1;
+      const key = `W${weekIndex}`;
+      if (!byWeek.has(key)) byWeek.set(key, []);
+      byWeek.get(key).push(avg);
+    });
+    const bars = Array.from(byWeek.entries()).map(([key, arr]) => {
+      const avg = arr.length
+        ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+        : 0;
+      return {
+        name: key,
+        value: avg ? Math.max(0, avg - 480) : 0,
+        fill: "#10b981",
+      };
+    });
+    return bars;
+  })();
+
+  // Chart data source and simple availability check
+  const chartBase = avgTimeframe === "monthly" ? monthlyData : weeklyData;
+  const chartData =
+    weeklyChartData && weeklyChartData.length ? weeklyChartData : chartBase;
+  const nonZeroDays = chartData.filter((d) => (d?.value || 0) > 0).length;
+  const yMax = useMemo(() => {
+    const maxVal = chartData.reduce((m, d) => Math.max(m, d?.value || 0), 0);
+    const rounded = Math.ceil(maxVal / 10) * 10;
+    return Math.max(60, rounded || 60);
+  }, [chartData]);
+
+  const exportAvgCsv = useCallback(() => {
+    const headers = ["Label", "Avg Late (m)"];
+    const rows = chartData.map((d) => [String(d.name), String(d.value)]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `avg-checkin_${avgTimeframe}_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [chartData, avgTimeframe]);
 
   const todayEntries = records.filter((record) => {
     return (
@@ -1509,7 +1622,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 boxShadow:
                   "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                 border: "1px solid #e5e7eb",
+                cursor: "pointer",
               }}
+              onClick={() => setAvgModalOpen(true)}
             >
               <div
                 style={{
@@ -1796,6 +1911,154 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
           onClose={() => setShowPersonnelModal(false)}
           isAbsent={personnelModalTitle === "Absent Today"}
         />
+      )}
+      {avgModalOpen && (
+        <div
+          onClick={() => setAvgModalOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              width: 720,
+              maxWidth: "90vw",
+              padding: 24,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 0,
+              }}
+            >
+              <h3 style={{ margin: 0, color: "#111827" }}>
+                {avgTimeframe === "monthly" ? "Monthly" : "Weekly"} Average
+                Check-in
+              </h3>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  onClick={exportAvgCsv}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    background: "#f8fafc",
+                    color: "#374151",
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                  title="Export CSV"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => setAvgModalOpen(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: 22,
+                    cursor: "pointer",
+                    color: "#64748b",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div style={{ height: 260, paddingBottom: 20 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginBottom: 2,
+                  paddingBottom: 6,
+                }}
+              >
+                <button
+                  onClick={() => setAvgTimeframe("weekly")}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    background: avgTimeframe === "weekly" ? "#111827" : "#fff",
+                    color: avgTimeframe === "weekly" ? "#fff" : "#111827",
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setAvgTimeframe("monthly")}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    background: avgTimeframe === "monthly" ? "#111827" : "#fff",
+                    color: avgTimeframe === "monthly" ? "#fff" : "#111827",
+                    cursor: "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  Month
+                </button>
+              </div>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 4, right: 18, left: 4, bottom: 16 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    axisLine={false}
+                    tickLine={false}
+                    padding={{ left: 8, right: 8 }}
+                    interval={0}
+                  />
+                  <YAxis
+                    domain={[0, yMax]}
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <ReTooltip
+                    cursor={{ fill: "rgba(2,6,23,0.04)" }}
+                    formatter={(v) => [`${v}m late`, "Avg after 08:00"]}
+                  />
+                  <Bar
+                    dataKey="value"
+                    radius={[6, 6, 0, 0]}
+                    fill="#10b981"
+                    opacity={0.85}
+                  >
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      formatter={(v) => `${v}m`}
+                      style={{ fill: "#64748b", fontSize: 12 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
