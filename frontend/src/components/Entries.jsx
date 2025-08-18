@@ -1,7 +1,14 @@
 import "../App.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "axios";
-import { FaClock, FaChartLine, FaUserTimes, FaCalendarAlt, FaUmbrellaBeach, FaHome } from "react-icons/fa";
+import {
+  FaClock,
+  FaChartLine,
+  FaUserTimes,
+  FaCalendarAlt,
+  FaUmbrellaBeach,
+  FaHome,
+} from "react-icons/fa";
 import { FiInbox, FiAward } from "react-icons/fi";
 import React from "react";
 
@@ -47,8 +54,6 @@ const isHoliday = (date) => {
   return { isHoliday: false, type: null, message: null };
 };
 
-
-
 const normalizeAvatar = (avatar_url, person) => {
   if (!avatar_url) {
     // basic initials avatar
@@ -90,6 +95,219 @@ const statusDot = (status, checkInTime) => {
         backgroundColor: color,
       }}
     />
+  );
+};
+
+// Helpers for lateness severity (08:00 baseline, 10-min buckets)
+const getMinutesLateFromEight = (timeStr) => {
+  if (!timeStr || timeStr === "00:00:00") return 0;
+  const [h, m] = timeStr.split(":").map(Number);
+  const minutes = h * 60 + m;
+  return Math.max(0, minutes - 480);
+};
+
+const getLatenessSeverity = (timeStr) => {
+  const late = getMinutesLateFromEight(timeStr);
+  const bucket = Math.min(5, Math.floor(late / 10)); // 0..5 within 08:00–09:00
+  const levels = [
+    { label: "Low", color: "#10b981" },
+    { label: "Mild", color: "#84cc16" },
+    { label: "Moderate", color: "#f59e0b" },
+    { label: "Elevated", color: "#f97316" },
+    { label: "High", color: "#ef4444" },
+    { label: "Critical", color: "#991b1b" },
+  ];
+  return levels[bucket];
+};
+
+// --- Semicircle SVG gauge (Low → High) ---
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const rad = (Math.PI / 180) * angleDeg;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, r, startAngle);
+  const end = polarToCartesian(cx, cy, r, endAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+  return [
+    "M",
+    start.x,
+    start.y,
+    "A",
+    r,
+    r,
+    0,
+    largeArcFlag,
+    1,
+    end.x,
+    end.y,
+  ].join(" ");
+}
+
+const SeverityGauge = ({ minutes = 0, width = 110, stroke = 9 }) => {
+  const clamped = Math.max(0, Math.min(60, minutes));
+  const cx = width / 2;
+  const cy = width / 2;
+  const r = width / 2 - stroke;
+  const gap = 4;
+  const severityLabels = [
+    "Low",
+    "Mild",
+    "Moderate",
+    "Elevated",
+    "High",
+    "Critical",
+  ];
+  const severityLabel = severityLabels[Math.min(5, Math.floor(clamped / 10))];
+  const segments = [
+    { from: -180, to: -150, color: "#22c55e" },
+    { from: -150, to: -120, color: "#84cc16" },
+    { from: -120, to: -90, color: "#eab308" },
+    { from: -90, to: -60, color: "#f59e0b" },
+    { from: -60, to: -30, color: "#f97316" },
+    { from: -30, to: 0, color: "#ef4444" },
+  ];
+  const angle = -180 + (clamped / 60) * 180;
+  const needleOuter = polarToCartesian(cx, cy, r, angle);
+  const needleInner = polarToCartesian(cx, cy, r * 0.5, angle);
+
+  return (
+    <svg
+      width={width}
+      height={width / 2 + 8}
+      viewBox={`0 0 ${width} ${width / 2 + 8}`}
+    >
+      <title>{severityLabel}</title>
+      <path
+        d={describeArc(cx, cy, r, -180, 0)}
+        stroke="#f3f4f6"
+        strokeWidth={stroke}
+        fill="none"
+        strokeLinecap="round"
+      />
+      {segments.map((s, i) => (
+        <path
+          key={i}
+          d={describeArc(cx, cy, r, s.from + gap / 2, s.to - gap / 2)}
+          stroke={s.color}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="butt"
+        />
+      ))}
+      {[-150, -120, -90, -60, -30].map((a, i) => {
+        const p1 = polarToCartesian(cx, cy, r, a);
+        const p2 = polarToCartesian(cx, cy, r - stroke, a);
+        return (
+          <line
+            key={i}
+            x1={p1.x}
+            y1={p1.y}
+            x2={p2.x}
+            y2={p2.y}
+            stroke="#ffffff"
+            strokeWidth={2}
+          />
+        );
+      })}
+      <line
+        x1={needleInner.x}
+        y1={needleInner.y}
+        x2={needleOuter.x}
+        y2={needleOuter.y}
+        stroke="#374151"
+        strokeWidth={3}
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={5}
+        fill="#374151"
+        stroke="#fff"
+        strokeWidth={2}
+      />
+    </svg>
+  );
+};
+
+// Small wrapper to show a custom tooltip with severity label on hover
+const GaugeWithTooltip = ({ timeStr }) => {
+  const [hover, setHover] = useState(false);
+  const minutes = getMinutesLateFromEight(timeStr);
+  const labels = ["Low", "Mild", "Moderate", "Elevated", "High", "Critical"];
+  const severity = labels[Math.min(5, Math.floor(Math.max(0, minutes) / 10))];
+
+  return (
+    <div
+      style={{ position: "relative", display: "inline-block" }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <SeverityGauge minutes={minutes} />
+      {hover && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            marginBottom: 8,
+            background: "#111827",
+            color: "#fff",
+            fontSize: 12,
+            padding: "4px 8px",
+            borderRadius: 6,
+            whiteSpace: "nowrap",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
+            pointerEvents: "none",
+          }}
+        >
+          {severity}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SeverityBar = ({ timeStr }) => {
+  const late = getMinutesLateFromEight(timeStr);
+  const clamped = Math.max(0, Math.min(60, late));
+  const pct = (clamped / 60) * 100;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: 140,
+          height: 12,
+          borderRadius: 999,
+          background:
+            "linear-gradient(90deg,#10b981 0%,#84cc16 20%,#f59e0b 40%,#f97316 60%,#ef4444 80%,#991b1b 100%)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: -6,
+            left: `calc(${pct}% - 8px)`,
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            background: "#475569",
+            border: "2px solid #ffffff",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
+          }}
+        />
+      </div>
+    </div>
   );
 };
 
@@ -317,7 +535,7 @@ const Modal = ({ title, items, onClose }) => (
         minWidth: "320px",
         boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
       }}
-      onClick={e => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <h2 style={{ marginBottom: "16px", fontSize: "20px" }}>{title}</h2>
       {items.length === 0 ? (
@@ -364,7 +582,100 @@ const getStatusDotColor = (person, isAbsent = false) => {
 const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
   // Check if modal is for On Time or Late
   const showCheckInTime =
-    title === "On Time Today" || title === "Late Personnel" || title === "Late Today";
+    title === "On Time Today" ||
+    title === "Late Personnel" ||
+    title === "Late Today";
+
+  const isLateToday = title === "Late Today";
+
+  const [search, setSearch] = useState("");
+  const [lateThreshold, setLateThreshold] = useState("08:30");
+  const [sortDesc, setSortDesc] = useState(true);
+
+  const toMinutes = useCallback((t) => {
+    if (!t) return 0;
+    const parts = t.length === 5 ? `${t}:00` : t;
+    const [h, m] = parts.split(":").map(Number);
+    return h * 60 + m;
+  }, []);
+
+  // Derive current view based on controls (memoized)
+  const computeViewList = useMemo(() => {
+    let list = Array.isArray(personnelList) ? [...personnelList] : [];
+    if (isLateToday) {
+      const thr = `${lateThreshold}:00`;
+      list = list.filter(
+        (p) =>
+          p.pdks_checkInTime &&
+          p.pdks_checkInTime !== "00:00:00" &&
+          toMinutes(p.pdks_checkInTime) > toMinutes(thr)
+      );
+    }
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          `${p.per_name || ""} ${p.per_lname || ""}`
+            .toLowerCase()
+            .includes(s) || (p.per_department || "").toLowerCase().includes(s)
+      );
+    }
+    if (isLateToday) {
+      list.sort((a, b) => {
+        const la = getMinutesLateFromEight(a.pdks_checkInTime);
+        const lb = getMinutesLateFromEight(b.pdks_checkInTime);
+        return sortDesc ? lb - la : la - lb;
+      });
+    }
+    return list;
+  }, [personnelList, isLateToday, lateThreshold, search, sortDesc, toMinutes]);
+
+  const exportToCSV = useCallback(() => {
+    const view = computeViewList;
+    const headers = [
+      "Name",
+      "Department",
+      "Role",
+      "Status",
+      "Check-in",
+      "Check-out",
+    ];
+    const rows = (view || []).map((p) => {
+      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+      const dept = p.per_department || "";
+      const role = p.per_role || "";
+      const checkIn =
+        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+          ? p.pdks_checkInTime.slice(0, 5)
+          : "-";
+      const checkOut =
+        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+          ? p.pdks_checkOutTime.slice(0, 5)
+          : "-";
+      let status = p.per_status || "-";
+      if (showCheckInTime && checkIn !== "-") {
+        const [h, m] = (p.pdks_checkInTime || "00:00:00")
+          .split(":")
+          .map(Number);
+        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+      }
+      const fields = [name, dept, role, status, checkIn, checkOut];
+      return fields.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `${title.replace(/\s+/g, "_")}_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [computeViewList, showCheckInTime, title]);
+
+  // removed duplicate declaration
 
   return (
     <div
@@ -413,26 +724,98 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           >
             {title}
           </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "24px",
-              cursor: "pointer",
-              color: "#64748b",
-              padding: "4px",
-            }}
-          >
-            ✕
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {isLateToday && (
+              <>
+                <select
+                  value={lateThreshold}
+                  onChange={(e) => setLateThreshold(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    backgroundColor: "#ffffff",
+                    color: "#111827",
+                    minWidth: 155,
+                    boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
+                    appearance: "none",
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 10px center",
+                    paddingRight: 32,
+                    fontSize: 12,
+                    outline: "none",
+                  }}
+                >
+                  <option value="08:30">Threshold 08:30</option>
+                  <option value="08:45">Threshold 08:45</option>
+                  <option value="09:00">Threshold 09:00</option>
+                </select>
+                <button
+                  onClick={() => setSortDesc(!sortDesc)}
+                  style={{
+                    padding: "6px 8px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    background: "#fff",
+                    fontSize: 12,
+                  }}
+                  title="Sort by minutes late"
+                >
+                  {sortDesc ? "Sort: Late ↓" : "Sort: Late ↑"}
+                </button>
+              </>
+            )}
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              style={{
+                padding: "6px 10px",
+                border: "1px solid #e5e7eb",
+                borderRadius: 8,
+                fontSize: 12,
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={exportToCSV}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+                background: "#f8fafc",
+                color: "#374151",
+                cursor: "pointer",
+                fontSize: 14,
+              }}
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: 24,
+                cursor: "pointer",
+                color: "#64748b",
+                padding: 4,
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Personnel Table Header */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isAbsent
+            gridTemplateColumns: isLateToday
+              ? "60px 2fr 1.5fr 1.5fr 1fr 1fr"
+              : isAbsent
               ? "60px 2fr 1.5fr 1.5fr 80px"
               : showCheckInTime
               ? "60px 2fr 1.5fr 1.5fr 1fr"
@@ -451,7 +834,12 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           <div>Personnel Name</div>
           <div>Department</div>
           <div>Role</div>
-          {isAbsent ? (
+          {isLateToday ? (
+            <>
+              <div>Minutes Late</div>
+              <div>Severity</div>
+            </>
+          ) : isAbsent ? (
             <div style={{ justifySelf: "center" }}>Status</div>
           ) : showCheckInTime ? (
             <div>Check-in Time</div>
@@ -460,7 +848,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           )}
         </div>
 
-        {personnelList.length === 0 ? (
+        {computeViewList.length === 0 ? (
           <div
             style={{
               textAlign: "center",
@@ -472,12 +860,14 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
             No personnel found
           </div>
         ) : (
-          personnelList.map((person, idx) => (
+          computeViewList.map((person, idx) => (
             <div
               key={idx}
               style={{
                 display: "grid",
-                gridTemplateColumns: isAbsent
+                gridTemplateColumns: isLateToday
+                  ? "60px 2fr 1.5fr 1.5fr 1fr 1fr"
+                  : isAbsent
                   ? "60px 2fr 1.5fr 1.5fr 80px"
                   : showCheckInTime
                   ? "60px 2fr 1.5fr 1.5fr 1fr"
@@ -533,8 +923,21 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
               <div style={{ color: "#6b7280", textAlign: "left" }}>
                 {person.per_role || "-"}
               </div>
-              {/* Status or Check-in Time */}
-              {isAbsent ? (
+              {/* Status / Check-in / Late Buckets */}
+              {isLateToday ? (
+                <>
+                  <div style={{ color: "#374151", textAlign: "center" }}>
+                    {Math.max(
+                      0,
+                      getMinutesLateFromEight(person.pdks_checkInTime)
+                    )}
+                    m
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <GaugeWithTooltip timeStr={person.pdks_checkInTime} />
+                  </div>
+                </>
+              ) : isAbsent ? (
                 <div style={{ justifySelf: "center", alignSelf: "center" }}>
                   <span
                     style={{
@@ -613,9 +1016,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const averageCheckInMinutes =
     checkInTimes.length > 0
       ? Math.round(
-        checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
-        checkInTimes.length
-      )
+          checkInTimes.reduce((sum, minutes) => sum + minutes, 0) /
+            checkInTimes.length
+        )
       : 0;
 
   const averageCheckInHours = Math.floor(averageCheckInMinutes / 60);
@@ -669,27 +1072,31 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
     .map((entry) => `${entry.per_name} ${entry.per_lname}`);
 
   // On Time Personnel List (full objects)
-  const onTimePersonnelList = todayEntries
-    .filter((entry) => {
-      const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
-      return hours <= 8 && minutes <= 30;
-    });
+  const onTimePersonnelList = todayEntries.filter((entry) => {
+    const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
+    return hours <= 8 && minutes <= 30;
+  });
 
   // Absent Personnel List (full objects)
   const absentPersonnelList = records.filter(
-    (record) =>
-      !presentToday.includes(`${record.per_name} ${record.per_lname}`)
+    (record) => !presentToday.includes(`${record.per_name} ${record.per_lname}`)
   );
 
   // Geç kalanlar (Late Personnel) listesi
   const latePersonnelList = todayEntries.filter((entry) => {
     const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
-    // 08:30'dan sonra gelenler
     return hours > 8 || (hours === 8 && minutes > 30);
   });
 
   return (
-    <div style={{ display: "flex", gap: "24px", height: "88%", overflow: "hidden" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: "24px",
+        height: "88%",
+        overflow: "hidden",
+      }}
+    >
       {holidayInfo.isHoliday && holidayInfo.type === "official" ? (
         // Official Holiday Design - Two Cards
         <>
@@ -967,8 +1374,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               <div>Role</div>
               <div>Check-in</div>
               <div>Check-out</div>
-              <div
-              style={{ display: "flex", justifyContent: "center" }}>Status</div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                Status
+              </div>
             </div>
 
             {/* Table Content */}
@@ -978,22 +1386,21 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               filteredRecords.map((entry, i) => {
                 const formattedCheckIn =
                   entry.pdks_checkInTime &&
-                    entry.pdks_checkInTime !== "00:00:00"
+                  entry.pdks_checkInTime !== "00:00:00"
                     ? entry.pdks_checkInTime.slice(0, 5)
                     : "-";
 
                 const formattedCheckOut =
                   entry.pdks_checkOutTime &&
-                    entry.pdks_checkOutTime !== "00:00:00"
+                  entry.pdks_checkOutTime !== "00:00:00"
                     ? entry.pdks_checkOutTime.slice(0, 5)
                     : "-";
                 return (
-
                   <div
                     key={i}
                     style={{
                       display: "grid",
-                    gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr",
+                      gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr",
                       gap: "16px",
                       padding: "20px",
                       borderBottom: "1px solid #f3f4f6",
@@ -1006,14 +1413,17 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                       // use currentTarget to avoid child click quirks
                       if (onSelectPerson && setPreviousPage) {
                         setPreviousPage("entries");
-                        window.history.pushState(null, "", `/personnel/${entry.per_id}`);
+                        window.history.pushState(
+                          null,
+                          "",
+                          `/personnel/${entry.per_id}`
+                        );
                         window.dispatchEvent(new PopStateEvent("popstate"));
                       }
                     }}
-                    onMouseEnter={() => setHoveredIndex(i)}   // <-- non-bubbling
-                    onMouseLeave={() => setHoveredIndex(null)}// <-- non-bubbling
+                    onMouseEnter={() => setHoveredIndex(i)} // <-- non-bubbling
+                    onMouseLeave={() => setHoveredIndex(null)} // <-- non-bubbling
                   >
-
                     {/* Photo */}
 
                     <div style={{ display: "flex", justifyContent: "start" }}>
@@ -1363,7 +1773,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               </div>
               <div style={{ fontSize: "14px", color: "#6b7280" }}>
                 {allPersonnel.length > 0
-                  ? `${Math.round((absentToday.length / allPersonnel.length) * 100)}% of total personnel`
+                  ? `${Math.round(
+                      (absentToday.length / allPersonnel.length) * 100
+                    )}% of total personnel`
                   : "All personnel present"}
               </div>
             </div>
