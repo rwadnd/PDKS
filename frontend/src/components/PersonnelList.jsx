@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  FiPlus,
+  FiUsers,
+  FiLayers,
+  FiBriefcase,
+  FiX,
+  FiClock,
+} from "react-icons/fi";
+import { FaBuilding } from "react-icons/fa";
 
 const FALLBACK_AVATAR =
   "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=111827";
@@ -18,15 +27,44 @@ const PersonnelList = ({ searchTerm }) => {
     role: "",
   });
   const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [todayMap, setTodayMap] = useState({});
+  const [onLeaveMap, setOnLeaveMap] = useState({});
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     fetchPersonnel();
     fetchDepartments();
+    fetchToday();
+    fetchLeavesToday();
   }, []);
 
-  const fetchPersonnel = async () => {
+  // Auto refresh every 60s; pause when modal is open or tab hidden
+  useEffect(() => {
+    let timer;
+    const tick = () => {
+      if (document.hidden || showModal) return; // pause if tab hidden or modal open
+      refreshSilently();
+    };
+    timer = setInterval(tick, 60000);
+    return () => clearInterval(timer);
+  }, [showModal]);
+
+  // After we know today's check-ins, make sure anyone who checked-in is not marked as onLeave
+  useEffect(() => {
+    if (!todayMap) return;
+    setOnLeaveMap((prev) => {
+      const next = { ...prev };
+      Object.keys(todayMap).forEach((id) => {
+        if (todayMap[id]?.in) delete next[id];
+      });
+      return next;
+    });
+  }, [todayMap]);
+
+  const fetchPersonnel = async (quiet = false) => {
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       const res = await axios.get("http://localhost:5050/api/personnel");
       console.log("Fetched personnel:", res.data);
       // Show all personnel
@@ -36,7 +74,7 @@ const PersonnelList = ({ searchTerm }) => {
       console.error("Error fetching personnel:", err);
       setError("Personel listesi yüklenirken hata oluştu");
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   };
 
@@ -47,6 +85,71 @@ const PersonnelList = ({ searchTerm }) => {
       setDepartments(res.data);
     } catch (err) {
       console.error("Error fetching departments:", err);
+    }
+  };
+
+  // helper: refresh silently in background
+  const refreshSilently = async () => {
+    try {
+      await Promise.all([
+        fetchPersonnel(true),
+        fetchToday(),
+        fetchLeavesToday(),
+      ]);
+      setLastUpdated(new Date());
+    } catch (e) {
+      // ignore background errors
+    }
+  };
+
+  // Fetch today's check-in/check-out per user
+  const getLocalDateString = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`; // YYYY-MM-DD local
+  };
+
+  const fetchToday = async () => {
+    try {
+      const today = getLocalDateString();
+      const res = await axios.get(
+        `http://localhost:5050/api/pdks/by-date/${today}`
+      );
+      // Build map: per_id -> { checkIn, checkOut }
+      const map = {};
+      (res.data || []).forEach((r) => {
+        map[r.per_id] = {
+          in: r.pdks_checkInTime,
+          out: r.pdks_checkOutTime,
+        };
+      });
+      setTodayMap(map);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Fetch approved leave intervals and mark who is on leave today
+  const fetchLeavesToday = async () => {
+    try {
+      const res = await axios.get("http://localhost:5050/api/leave");
+      const rows = res.data || [];
+      const todayStr = getLocalDateString();
+      const map = {};
+      for (const r of rows) {
+        if (r.status !== "Approved") continue;
+        if (!r.request_start_date || !r.request_end_date) continue;
+        const startStr = String(r.request_start_date).slice(0, 10); // YYYY-MM-DD
+        const endStr = String(r.request_end_date).slice(0, 10);
+        if (startStr <= todayStr && todayStr <= endStr) {
+          map[r.personnel_per_id] = true;
+        }
+      }
+      setOnLeaveMap(map);
+    } catch (e) {
+      // ignore
     }
   };
 
@@ -173,17 +276,79 @@ const PersonnelList = ({ searchTerm }) => {
 
   return (
     <div style={{ position: "relative" }}>
-      {/* Add Button */}
+      {/* Top Bar: Department Filter + Add Button */}
       <div
         style={{
           display: "flex",
           justifyContent: "flex-end",
-          marginBottom: "24px",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: "16px",
           padding: "0 8px",
         }}
       >
+        <select
+          value={selectedDepartment || ""}
+          onChange={(e) => setSelectedDepartment(e.target.value || null)}
+          style={{
+            padding: "12px 16px",
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            backgroundColor: "#ffffff",
+            color: "#111827",
+            minWidth: 240,
+            height: "40px",
+            boxShadow: "0 2px 8px rgba(2, 6, 23, 0.05)",
+            appearance: "none",
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 14px center",
+            paddingRight: "40px",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = "#cbd5e1";
+            e.target.style.boxShadow = "0 3px 10px rgba(2, 6, 23, 0.08)";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#e5e7eb";
+            e.target.style.boxShadow = "0 2px 8px rgba(2, 6, 23, 0.05)";
+          }}
+        >
+          <option value="">All Departments</option>
+          {departments.map((dept) => (
+            <option key={dept} value={dept}>
+              {dept}
+            </option>
+          ))}
+        </select>
+        {selectedDepartment && (
+          <button
+            onClick={() => setSelectedDepartment(null)}
+            style={{
+              padding: "8px 12px",
+              background: "#f3f4f6",
+              color: "#374151",
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            Clear
+          </button>
+        )}
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setShowModal(true);
+            if (selectedDepartment) {
+              setFormData((prev) => ({
+                ...prev,
+                department: selectedDepartment,
+              }));
+            }
+          }}
           style={{
             padding: "8px 16px",
             background: "transparent",
@@ -207,11 +372,7 @@ const PersonnelList = ({ searchTerm }) => {
             e.currentTarget.style.color = "#6b7280";
           }}
         >
-          <span
-            style={{ fontSize: "18px", fontWeight: "bold", lineHeight: "1" }}
-          >
-            +
-          </span>
+          <FiPlus size={18} />
           Add New
         </button>
       </div>
@@ -247,6 +408,25 @@ const PersonnelList = ({ searchTerm }) => {
         </div>
       )}
 
+      {/* Last updated */}
+      {lastUpdated && (
+        <div
+          style={{
+            textAlign: "right",
+            color: "#9ca3af",
+            fontSize: 12,
+            marginBottom: 6,
+            paddingRight: 8,
+          }}
+        >
+          Last updated:{" "}
+          {lastUpdated.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && !showModal && (
         <div
@@ -274,74 +454,37 @@ const PersonnelList = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Personnel Grid */}
+      {/* Personnel Grid with Department filter */}
       {!loading && (
-        <div className="personnel-grid">
-          {personnel
-            .filter((entry) => {
-              if (!searchTerm) return true;
-              const searchLower = searchTerm.toLowerCase();
-              return (
-                entry.per_name?.toLowerCase().includes(searchLower) ||
-                entry.per_lname?.toLowerCase().includes(searchLower) ||
-                entry.per_department?.toLowerCase().includes(searchLower) ||
-                entry.per_role?.toLowerCase().includes(searchLower)
-              );
-            })
-            .map((person) => {
-              const avatarSrc = normalizeAvatar(person.avatar_url, person);
-              return (
-                <div key={person.per_id} style={{ position: "relative" }}>
-                  <div
-                    className="personnel-card"
-                    style={{ cursor: "pointer", position: "relative" }}
-                  >
-                    {/* Delete Button (appears on hover) */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        console.log("Delete button clicked!");
-                        handleDeletePersonnel(
-                          person.per_id,
-                          `${person.per_name} ${person.per_lname}`
-                        );
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: "8px",
-                        right: "8px",
-                        background: "transparent",
-                        color: "#6b7280",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: "32px",
-                        height: "32px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "16px",
-                        zIndex: 1000,
-                        transition: "all 0.2s ease",
-                        opacity: 0, // Hidden by default
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.opacity = "1";
-                        e.target.style.backgroundColor = "#f3f4f6";
-                        e.target.style.color = "#374151";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.opacity = "0";
-                        e.target.style.backgroundColor = "transparent";
-                        e.target.style.color = "#6b7280";
-                      }}
-                      title="Deactivate Personnel"
-                    >
-                      ✕
-                    </button>
-
+        <div>
+          <div className="personnel-grid">
+            {personnel
+              .filter((entry) =>
+                selectedDepartment
+                  ? entry.per_department === selectedDepartment
+                  : true
+              )
+              .filter((entry) => {
+                if (!searchTerm) return true;
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                  entry.per_name?.toLowerCase().includes(searchLower) ||
+                  entry.per_lname?.toLowerCase().includes(searchLower) ||
+                  entry.per_department?.toLowerCase().includes(searchLower) ||
+                  entry.per_role?.toLowerCase().includes(searchLower)
+                );
+              })
+              .map((person) => {
+                const avatarSrc = normalizeAvatar(person.avatar_url, person);
+                return (
+                  <div key={person.per_id} style={{ position: "relative" }}>
                     <div
+                      className="personnel-card person-card"
+                      style={{
+                        cursor: "pointer",
+                        position: "relative",
+                        gap: 16,
+                      }}
                       onClick={() => {
                         window.history.pushState(
                           null,
@@ -350,26 +493,121 @@ const PersonnelList = ({ searchTerm }) => {
                         );
                         window.dispatchEvent(new PopStateEvent("popstate"));
                       }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          window.history.pushState(
+                            null,
+                            "",
+                            `/personnel/${person.per_id}`
+                          );
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                        }
+                      }}
                     >
-                      <img
-                        className="personnel-avatar"
-                        src={avatarSrc}
-                        alt={`${person.per_name} ${person.per_lname}`}
-                        onError={(e) => {
-                          e.currentTarget.src = FALLBACK_AVATAR;
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleDeletePersonnel(
+                            person.per_id,
+                            `${person.per_name} ${person.per_lname}`
+                          );
                         }}
-                      />
-                      <div className="personnel-name">
-                        {person.per_name} {person.per_lname}
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          background: "transparent",
+                          color: "#6b7280",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: 32,
+                          height: 32,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                          zIndex: 1000,
+                          transition: "all 0.2s ease",
+                          opacity: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.opacity = "1";
+                          e.target.style.backgroundColor = "#f3f4f6";
+                          e.target.style.color = "#374151";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.opacity = "0";
+                          e.target.style.backgroundColor = "transparent";
+                          e.target.style.color = "#6b7280";
+                        }}
+                        title="Deactivate Personnel"
+                      >
+                        <FiX size={16} />
+                      </button>
+
+                      <div>
+                        <img
+                          className="personnel-avatar"
+                          src={avatarSrc}
+                          alt={`${person.per_name} ${person.per_lname}`}
+                          onError={(e) => {
+                            e.currentTarget.src = FALLBACK_AVATAR;
+                          }}
+                        />
                       </div>
-                      <div className="personnel-role">
-                        {person.per_department} / {person.per_role}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          flex: 1,
+                        }}
+                      >
+                        <div className="personnel-name">
+                          {person.per_name} {person.per_lname}
+                        </div>
+                        <div className="personnel-role">
+                          {person.per_department} / {person.per_role}
+                        </div>
+                        <div className="meta-row">
+                          {onLeaveMap[person.per_id] ? (
+                            <span className="chip status-chip status-onleave">
+                              OnLeave
+                            </span>
+                          ) : todayMap[person.per_id]?.in ? (
+                            <span className="chip status-chip status-active">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="chip status-chip status-absent">
+                              Absent
+                            </span>
+                          )}
+                          {todayMap[person.per_id]?.in && (
+                            <span className="chip time-chip">
+                              <FiClock size={12} />
+                              {new Date(
+                                `${new Date().toISOString().split("T")[0]}T${
+                                  todayMap[person.per_id].in
+                                }`
+                              ).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              })}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+          </div>
         </div>
       )}
 
