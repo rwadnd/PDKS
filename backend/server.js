@@ -7,7 +7,6 @@ const multer = require("multer");
 
 const personnelRoutes = require("./routes/personnelRoutes");
 const pdksRoutes = require("./routes/pdksRoutes");
-const authRoutes = require("./routes/authRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const profileRoutes = require("./routes/profileRoutes");
@@ -51,7 +50,6 @@ app.post("/api/upload/profile", upload.single("file"), (req, res) => {
 // API routes
 app.use("/api/personnel", personnelRoutes);
 app.use("/api/pdks", pdksRoutes);
-app.use("/api/auth", authRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/profile", profileRoutes);

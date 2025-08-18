@@ -42,4 +42,6 @@ router.get("/:id", profileController.getUserProfile);
 // Update profile
 router.put("/:id", profileController.updateUserProfile);
 
+router.post("/login", profileController.adminLogin);
+
 module.exports = router;
