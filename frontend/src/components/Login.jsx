@@ -27,7 +27,7 @@ const Login = ({ onLogin }) => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5050/api/auth/login",
+        "http://localhost:5050/api/profile/login",
         formData
       );
 

@@ -112,7 +112,65 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
+
+
+
+
+// Admin Login
+const adminLogin = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Username and password are required",
+      });
+    }
+
+    const [rows] = await dbConfig.execute(
+      "SELECT * FROM admin_users WHERE username = ? AND password = ? AND is_active = 1",
+      [username, password]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid username or password",
+      });
+    }
+
+    const user = rows[0];
+
+    // Update last login time
+    await dbConfig.execute(
+      "UPDATE admin_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+      [user.id]
+    );
+
+    // Remove password from response
+    delete user.password;
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      user: user,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+
+
+
 module.exports = {
   getUserProfile,
   updateUserProfile,
+  adminLogin
 };
