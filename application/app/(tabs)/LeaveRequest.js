@@ -1,19 +1,29 @@
 // app/LeaveRequest.js
 import axios from 'axios';
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// API base URL'sini burada tanımlayın
-const API_BASE_URL = 'http://192.168.1.142:5050'; 
+import { auth, db } from '../../firebase'; // <-- adjust path if needed
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+
+// API base URL
+const API_BASE_URL = 'http://192.168.1.142:5050';
 
 export default function LeaveRequestScreen() {
+  // Derived from Firestore users/{uid}
   const [employeeId, setEmployeeId] = useState('');
+  const [loadingEmployeeId, setLoadingEmployeeId] = useState(true);
+
+  // Form state
   const [leaveType, setLeaveType] = useState('');
   const [reason, setReason] = useState('');
   const [showReasonInput, setShowReasonInput] = useState(false);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+
+  // UI state
   const [showLeaveTypeModal, setShowLeaveTypeModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [currentDateType, setCurrentDateType] = useState('start');
@@ -24,6 +34,37 @@ export default function LeaveRequestScreen() {
   const [showDayPicker, setShowDayPicker] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
 
+  // Load employee id from Firestore using session uid
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      try {
+        setLoadingEmployeeId(true);
+        if (!u) {
+          setEmployeeId('');
+          Alert.alert('Not signed in', 'Please log in to submit a leave request.');
+          return;
+        }
+        const ref = doc(db, 'users', u.uid);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          setEmployeeId('');
+          Alert.alert('Profile missing', 'Your profile was not found in Firestore.');
+          return;
+        }
+        const data = snap.data() || {};
+        // Your screenshot used "ID" (uppercase). Fallback to "id" if you rename later.
+        const emp = data.ID ?? data.id ?? '';
+        setEmployeeId(String(emp || ''));
+      } catch (err) {
+        console.error('Failed to load employee ID:', err);
+        Alert.alert('Error', 'Failed to load your employee ID.');
+      } finally {
+        setLoadingEmployeeId(false);
+      }
+    });
+    return () => unsub();
+  }, []);
+
   const handleLeaveSubmit = async () => {
     if (!employeeId || !leaveType || (leaveType === 'Other' && !reason) || !startDate || !endDate) {
       Alert.alert('Missing Info', 'Please fill in all fields.');
@@ -31,67 +72,57 @@ export default function LeaveRequestScreen() {
     }
 
     try {
-      // Tarih formatını YYYY-MM-DD şekline çeviriyoruz
       const formattedStartDate = startDate.toISOString().split('T')[0];
       const formattedEndDate = endDate.toISOString().split('T')[0];
 
-      const response = await axios.post(`${API_BASE_URL}/api/leave/`, {
-        personnel_per_id: parseInt(employeeId),
+      await axios.post(`${API_BASE_URL}/api/leave/`, {
+        personnel_per_id: Number(employeeId) || employeeId, // send number if numeric
         request_start_date: formattedStartDate,
         request_end_date: formattedEndDate,
         request_type: leaveType,
-        request_other: leaveType === 'Other' ? reason : null
+        request_other: leaveType === 'Other' ? reason : null,
       });
 
       Alert.alert('Success', 'Leave request submitted successfully!');
-      
-      // Formu temizle
-      setEmployeeId('');
+      // Reset form (keep employeeId)
       setLeaveType('');
       setReason('');
       setStartDate(null);
       setEndDate(null);
       setShowReasonInput(false);
     } catch (error) {
-      console.error('Error submitting leave request:', error);
+      console.error('Error submitting leave request:', error?.response?.data || error);
       Alert.alert('Error', 'Failed to submit leave request. Please try again.');
     }
   };
 
   const leaveTypes = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Other'];
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
   ];
-  const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() + i);
-  const days = Array.from({length: 31}, (_, i) => i + 1);
-
+  const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   const handleLeaveTypeSelect = (type) => {
     setLeaveType(type);
     setShowReasonInput(type === 'Other');
-    if (type !== 'Other') {
-      setReason('');
-    }
+    if (type !== 'Other') setReason('');
     setShowLeaveTypeModal(false);
   };
 
   const handleDateConfirm = () => {
     const selectedDate = new Date(selectedYear, selectedMonth - 1, selectedDay);
-    if (currentDateType === 'start') {
-      setStartDate(selectedDate);
-    } else {
-      setEndDate(selectedDate);
-    }
+    if (currentDateType === 'start') setStartDate(selectedDate);
+    else setEndDate(selectedDate);
+
     setShowDateModal(false);
     setShowMonthPicker(false);
     setShowDayPicker(false);
     setShowYearPicker(false);
   };
 
-  const formatDate = (date) => {
-    return date ? date.toLocaleDateString() : '';
-  };
+  const formatDate = (date) => (date ? date.toLocaleDateString() : '');
 
   const openDatePicker = (dateType) => {
     setCurrentDateType(dateType);
@@ -105,21 +136,17 @@ export default function LeaveRequestScreen() {
   };
 
   const renderDatePickerModal = () => (
-    <Modal
-      visible={showDateModal}
-      transparent={true}
-      animationType="slide"
-    >
+    <Modal visible={showDateModal} transparent animationType="slide">
       <View style={styles.modalContainer}>
-        <View style={[styles.modalContent, {height: 400}]}>
+        <View style={[styles.modalContent, { height: 400 }]}>
           <Text style={styles.modalTitle}>
             Select {currentDateType === 'start' ? 'Start' : 'End'} Date
           </Text>
-          
-          {/* Month Dropdown */}
+
+          {/* Month */}
           <View style={styles.dropdownContainer}>
             <Text style={styles.dropdownLabel}>Month:</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => {
                 setShowMonthPicker(!showMonthPicker);
@@ -128,41 +155,32 @@ export default function LeaveRequestScreen() {
               }}
             >
               <Text>{months[selectedMonth - 1]}</Text>
-              <Ionicons 
-                name={showMonthPicker ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#777" 
-              />
+              <Ionicons name={showMonthPicker ? 'chevron-up' : 'chevron-down'} size={20} color="#777" />
             </TouchableOpacity>
             {showMonthPicker && (
-            <View style={[styles.dropdownOptions, styles.monthDropdownOptions]}>
-              <ScrollView>
-                {months.map((month, index) => (
-                  <TouchableOpacity
-                    key={month}
-                    style={[
-                      styles.dropdownOption,
-                      selectedMonth === index + 1 && styles.selectedOption
-                    ]}
-                    onPress={() => {
-                      setSelectedMonth(index + 1);
-                      setShowMonthPicker(false);
-                    }}
-                  >
-                    <Text style={selectedMonth === index + 1 && {color: '#fff'}}>
-                      {month}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+              <View style={[styles.dropdownOptions, styles.monthDropdownOptions]}>
+                <ScrollView>
+                  {months.map((month, index) => (
+                    <TouchableOpacity
+                      key={month}
+                      style={[styles.dropdownOption, selectedMonth === index + 1 && styles.selectedOption]}
+                      onPress={() => {
+                        setSelectedMonth(index + 1);
+                        setShowMonthPicker(false);
+                      }}
+                    >
+                      <Text style={selectedMonth === index + 1 && { color: '#fff' }}>{month}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
-          {/* Day Dropdown */}
+          {/* Day */}
           <View style={styles.dropdownContainer}>
             <Text style={styles.dropdownLabel}>Day:</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => {
                 setShowDayPicker(!showDayPicker);
@@ -171,41 +189,32 @@ export default function LeaveRequestScreen() {
               }}
             >
               <Text>{selectedDay}</Text>
-              <Ionicons 
-                name={showDayPicker ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#777" 
-              />
+              <Ionicons name={showDayPicker ? 'chevron-up' : 'chevron-down'} size={20} color="#777" />
             </TouchableOpacity>
             {showDayPicker && (
-            <View style={[styles.dropdownOptions, styles.dayDropdownOptions]}>
-              <ScrollView>
-                {days.map((day) => (
-                  <TouchableOpacity
-                    key={day}
-                    style={[
-                      styles.dropdownOption,
-                      selectedDay === day && styles.selectedOption
-                    ]}
-                    onPress={() => {
-                      setSelectedDay(day);
-                      setShowDayPicker(false);
-                    }}
-                  >
-                    <Text style={selectedDay === day && {color: '#fff'}}>
-                      {day}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+              <View style={[styles.dropdownOptions, styles.dayDropdownOptions]}>
+                <ScrollView>
+                  {days.map((day) => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.dropdownOption, selectedDay === day && styles.selectedOption]}
+                      onPress={() => {
+                        setSelectedDay(day);
+                        setShowDayPicker(false);
+                      }}
+                    >
+                      <Text style={selectedDay === day && { color: '#fff' }}>{day}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
-          {/* Year Dropdown */}
+          {/* Year */}
           <View style={styles.dropdownContainer}>
             <Text style={styles.dropdownLabel}>Year:</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => {
                 setShowYearPicker(!showYearPicker);
@@ -214,49 +223,34 @@ export default function LeaveRequestScreen() {
               }}
             >
               <Text>{selectedYear}</Text>
-              <Ionicons 
-                name={showYearPicker ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#777" 
-              />
+              <Ionicons name={showYearPicker ? 'chevron-up' : 'chevron-down'} size={20} color="#777" />
             </TouchableOpacity>
             {showYearPicker && (
-            <View style={[styles.dropdownOptions, styles.yearDropdownOptions]}>
-              <ScrollView>
-                {years.map((year) => (
-                  <TouchableOpacity
-                    key={year}
-                    style={[
-                      styles.dropdownOption,
-                      selectedYear === year && styles.selectedOption
-                    ]}
-                    onPress={() => {
-                      setSelectedYear(year);
-                      setShowYearPicker(false);
-                    }}
-                  >
-                    <Text style={selectedYear === year && {color: '#fff'}}>
-                      {year}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+              <View style={[styles.dropdownOptions, styles.yearDropdownOptions]}>
+                <ScrollView>
+                  {years.map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[styles.dropdownOption, selectedYear === year && styles.selectedOption]}
+                      onPress={() => {
+                        setSelectedYear(year);
+                        setShowYearPicker(false);
+                      }}
+                    >
+                      <Text style={selectedYear === year && { color: '#fff' }}>{year}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           <View style={styles.modalButtonContainer}>
-            <TouchableOpacity
-              style={[styles.modalButton, {backgroundColor: 'red'}]}
-              onPress={() => setShowDateModal(false)}
-            >
-              <Text style={{color: '#fff'}}>Cancel</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: 'red' }]} onPress={() => setShowDateModal(false)}>
+              <Text style={{ color: '#fff' }}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, {backgroundColor: '#135796'}]}
-              onPress={handleDateConfirm}
-            >
-              <Text style={{color: '#fff'}}>OK</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#135796' }]} onPress={handleDateConfirm}>
+              <Text style={{ color: '#fff' }}>OK</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -268,22 +262,18 @@ export default function LeaveRequestScreen() {
     <View style={styles.container}>
       <Text style={styles.header}>Attendance Control System</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Employee ID"
-        placeholderTextColor="#777"
-        keyboardType="numeric"
-        value={employeeId}
-        onChangeText={setEmployeeId}
-      />
+      {/* Show Employee ID from Firestore (read-only) */}
+      <View style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}>
+        <Text style={{ color: '#777', marginRight: 6 }}>Employee ID:</Text>
+        {loadingEmployeeId ? (
+          <ActivityIndicator color="#135796" />
+        ) : (
+          <Text style={{ color: '#000', fontWeight: '600' }}>{employeeId || '—'}</Text>
+        )}
+      </View>
 
-      <TouchableOpacity 
-        style={styles.leaveTypeContainer} 
-        onPress={() => setShowLeaveTypeModal(true)}
-      >
-        <Text style={leaveType ? styles.inputText : styles.placeholderText}>
-          {leaveType || 'Select Leave Type'}
-        </Text>
+      <TouchableOpacity style={styles.leaveTypeContainer} onPress={() => setShowLeaveTypeModal(true)}>
+        <Text style={leaveType ? styles.inputText : styles.placeholderText}>{leaveType || 'Select Leave Type'}</Text>
         <Ionicons name="chevron-down" size={20} color="#777" />
       </TouchableOpacity>
 
@@ -298,54 +288,33 @@ export default function LeaveRequestScreen() {
       )}
 
       <View style={styles.dateRow}>
-        <TouchableOpacity 
-          style={styles.dateInputContainer} 
-          onPress={() => openDatePicker('start')}
-        >
-          <Text style={startDate ? styles.inputText : styles.placeholderText}>
-            {startDate ? formatDate(startDate) : 'Start Date'}
-          </Text>
+        <TouchableOpacity style={styles.dateInputContainer} onPress={() => openDatePicker('start')}>
+          <Text style={startDate ? styles.inputText : styles.placeholderText}>{startDate ? formatDate(startDate) : 'Start Date'}</Text>
           <Ionicons name="calendar" size={20} color="#777" style={styles.dateIcon} />
         </TouchableOpacity>
 
         <Text style={styles.dateSeparator}>-</Text>
 
-        <TouchableOpacity 
-          style={styles.dateInputContainer} 
-          onPress={() => openDatePicker('end')}
-        >
-          <Text style={endDate ? styles.inputText : styles.placeholderText}>
-            {endDate ? formatDate(endDate) : 'End Date'}
-          </Text>
+        <TouchableOpacity style={styles.dateInputContainer} onPress={() => openDatePicker('end')}>
+          <Text style={endDate ? styles.inputText : styles.placeholderText}>{endDate ? formatDate(endDate) : 'End Date'}</Text>
           <Ionicons name="calendar" size={20} color="#777" style={styles.dateIcon} />
         </TouchableOpacity>
       </View>
 
       {/* Leave Type Modal */}
-      <Modal
-        visible={showLeaveTypeModal}
-        transparent={true}
-        animationType="slide"
-      >
+      <Modal visible={showLeaveTypeModal} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Leave Type</Text>
             <ScrollView>
               {leaveTypes.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={styles.modalOption}
-                  onPress={() => handleLeaveTypeSelect(type)}
-                >
+                <TouchableOpacity key={type} style={styles.modalOption} onPress={() => handleLeaveTypeSelect(type)}>
                   <Text>{type}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setShowLeaveTypeModal(false)}
-            >
-              <Text style={{color: 'red'}}>Cancel</Text>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowLeaveTypeModal(false)}>
+              <Text style={{ color: 'red' }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -353,8 +322,8 @@ export default function LeaveRequestScreen() {
 
       {renderDatePickerModal()}
 
-      <TouchableOpacity style={styles.button} onPress={handleLeaveSubmit}>
-        <Text style={styles.buttonText}>Submit</Text>
+      <TouchableOpacity style={styles.button} onPress={handleLeaveSubmit} disabled={loadingEmployeeId || !employeeId}>
+        <Text style={styles.buttonText}>{loadingEmployeeId ? 'Loading…' : 'Submit'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.project}>A Project Done in OSB Teknokent by:</Text>
@@ -387,12 +356,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'center',
   },
-  inputText: {
-    color: '#000',
-  },
-  placeholderText: {
-    color: '#777',
-  },
+  inputText: { color: '#000' },
+  placeholderText: { color: '#777' },
   leaveTypeContainer: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -422,14 +387,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  dateIcon: {
-    marginLeft: 'auto',
-  },
-  dateSeparator: {
-    marginHorizontal: 8,
-    fontSize: 16,
-    color: '#135796',
-  },
+  dateIcon: { marginLeft: 'auto' },
+  dateSeparator: { marginHorizontal: 8, fontSize: 16, color: '#135796' },
   button: {
     backgroundColor: '#135796',
     paddingVertical: 12,
@@ -440,117 +399,26 @@ const styles = StyleSheet.create({
     marginTop: 20,
     justifyContent: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-    alignSelf: 'center',
-  },
-  project: {
-    position: 'absolute',
-    bottom: 55,
-    fontSize: 12,
-    color: '#888',
-  },
-  credits: {
-    position: 'absolute',
-    bottom: 35,
-    fontSize: 12,
-    color: '#135796',
-    fontWeight: '500',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalOption: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 15,
-  },
-  modalButton: {
-    padding: 12,
-    borderRadius: 8,
-    width: '48%',
-    alignItems: 'center',
-  },
-  modalCancel: {
-    padding: 15,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  dropdownContainer: {
-    marginBottom: 15,
-  },
-  dropdownLabel: {
-    marginBottom: 5,
-    fontWeight: 'bold',
-    color: '#333',
-  },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16, alignSelf: 'center' },
+  project: { position: 'absolute', bottom: 55, fontSize: 12, color: '#888' },
+  credits: { position: 'absolute', bottom: 35, fontSize: 12, color: '#135796', fontWeight: '500' },
+  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  modalOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalButtonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
+  modalButton: { padding: 12, borderRadius: 8, width: '48%', alignItems: 'center' },
+  modalCancel: { padding: 15, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#eee' },
+  dropdownContainer: { marginBottom: 15 },
+  dropdownLabel: { marginBottom: 5, fontWeight: 'bold', color: '#333' },
   dropdownButton: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 12,
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    borderWidth: 1, borderColor: '#ddd', padding: 12, borderRadius: 8,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff',
   },
-  dropdownOptions: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#f0f8ffff',
-    zIndex: 1,
-  },
-  monthDropdownOptions: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    maxHeight: 150,
-  },
-  dayDropdownOptions: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    maxHeight: 150,
-  },
-  yearDropdownOptions: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    maxHeight: 150,
-  },
-  dropdownOption: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  selectedOption: {
-    backgroundColor: '#135796',
-  },
+  dropdownOptions: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#f0f8ffff', zIndex: 1 },
+  monthDropdownOptions: { position: 'absolute', top: 60, left: 0, right: 0, maxHeight: 150 },
+  dayDropdownOptions: { position: 'absolute', top: 60, left: 0, right: 0, maxHeight: 150 },
+  yearDropdownOptions: { position: 'absolute', top: 60, left: 0, right: 0, maxHeight: 150 },
+  dropdownOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  selectedOption: { backgroundColor: '#135796' },
 });
