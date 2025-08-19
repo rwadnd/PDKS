@@ -241,12 +241,8 @@ const PersonnelList = ({ searchTerm }) => {
     if (window.confirm(`Are you sure you want to deactivate ${personName}?`)) {
       console.log("User confirmed deletion");
       try {
-        console.log(
-          "Sending request to:",
-          `http://localhost:5050/api/personnel/${personId}/deactivate`
-        );
-        const response = await axios.put(
-          `http://localhost:5050/api/personnel/${personId}/deactivate`
+        const response = await axios.delete(
+          `http://localhost:5050/api/personnel/${personId}`
         );
         console.log("Response:", response.data);
         fetchPersonnel(); // Refresh the list
