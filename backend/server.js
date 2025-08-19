@@ -10,6 +10,7 @@ const pdksRoutes = require("./routes/pdksRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const reportingRoutes = require("./routes/reportingRoutes");
 
 require("dotenv").config();
 
@@ -53,6 +54,8 @@ app.use("/api/pdks", pdksRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/reporting", reportingRoutes);
+
 
 // Error handler
 app.use((err, _req, res, _next) => {
