@@ -1,5 +1,5 @@
 import "../App.css";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   BarChart,
   Bar,
@@ -11,6 +11,8 @@ import {
   LabelList,
 } from "recharts";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
 import {
   FaClock,
   FaChartLine,
@@ -18,8 +20,9 @@ import {
   FaCalendarAlt,
   FaUmbrellaBeach,
   FaHome,
+  FaFilePdf,
 } from "react-icons/fa";
-import { FiInbox, FiAward } from "react-icons/fi";
+import { FiInbox, FiAward, FiFileText, FiFile } from "react-icons/fi";
 import React from "react";
 
 // Official holidays (2025)
@@ -597,10 +600,43 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
     title === "Late Today";
 
   const isLateToday = title === "Late Today";
+  const isOnTimeToday = title === "On Time Today";
 
   const [search, setSearch] = useState("");
   const [lateThreshold, setLateThreshold] = useState("08:30");
   const [sortDesc, setSortDesc] = useState(true);
+  const [selectedDept, setSelectedDept] = useState("All");
+  const [selectedReason, setSelectedReason] = useState("All");
+  // const [remindingIds, setRemindingIds] = useState(new Set());
+  const todayStrModal = useMemo(
+    () => new Date().toISOString().slice(0, 10),
+    []
+  );
+  const [selectedDate, setSelectedDate] = useState(todayStrModal);
+  const [dateRecords, setDateRecords] = useState(null);
+
+  const [departmentOptions, setDepartmentOptions] = useState(["All"]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaves, setLeaves] = useState([]);
+  useEffect(() => {
+    // fetch all departments from backend to include non-present ones
+    axios
+      .get("/api/department/list")
+      .then((res) => {
+        const arr = Array.isArray(res.data) ? res.data : [];
+        setDepartmentOptions(["All", ...arr]);
+      })
+      .catch(() => {
+        // fallback to present-only if request fails
+        const set = new Set();
+        (Array.isArray(personnelList) ? personnelList : []).forEach((p) => {
+          if (p && p.per_department) set.add(p.per_department);
+        });
+        setDepartmentOptions(["All", ...Array.from(set).sort()]);
+      });
+  }, [personnelList]);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const toMinutes = useCallback((t) => {
     if (!t) return 0;
@@ -609,9 +645,102 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
     return h * 60 + m;
   }, []);
 
+  // Update absent reason (OnLeave vs no reason) for Absent Today
+  const handleAbsentReasonChange = useCallback(async (person, value) => {
+    try {
+      const payload =
+        value === "OnLeave"
+          ? { status: "OnLeave" }
+          : value === "OnSickLeave"
+          ? { status: "OnSickLeave" }
+          : { status: "Active" }; // clear reason (did not come)
+      await axios.put(`/api/personnel/${person.per_id}`, payload);
+      // optimistic local update
+      person.per_status = payload.status;
+    } catch (err) {
+      console.error("Failed to update absent reason", err);
+      window.alert("Couldn't update reason");
+    }
+  }, []);
+
+  // Load all leave requests once; we'll filter by selected date on the client
+  useEffect(() => {
+    axios
+      .get("/api/leave")
+      .then((res) => setLeaves(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setLeaves([]));
+  }, []);
+
+  // Index leaves by person for the selected date
+  const leaveIndex = useMemo(() => {
+    if (!selectedDate || !Array.isArray(leaves)) return new Map();
+    const idx = new Map();
+    const d = new Date(selectedDate);
+    leaves.forEach((lr) => {
+      const s = new Date(lr.request_start_date);
+      const e = new Date(lr.request_end_date);
+      if (isNaN(s) || isNaN(e)) return;
+      if (d >= s && d <= e) {
+        const arr = idx.get(lr.personnel_per_id) || [];
+        arr.push(lr);
+        idx.set(lr.personnel_per_id, arr);
+      }
+    });
+    // pick best per person: Approved > Pending > Rejected
+    const rank = { Approved: 3, Pending: 2, Rejected: 1 };
+    const pick = new Map();
+    idx.forEach((arr, perId) => {
+      let best = null;
+      arr.forEach((lr) => {
+        if (!best || (rank[lr.status] || 0) > (rank[best.status] || 0))
+          best = lr;
+      });
+      if (best) pick.set(perId, best);
+    });
+    return pick;
+  }, [leaves, selectedDate]);
+
+  useEffect(() => {
+    axios
+      .get("/api/pdks/leaderboard/on-time", {
+        params: { days: 30, threshold: "08:30:00", limit: 1 },
+      })
+      .then((res) => setLeaderboard(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setLeaderboard([]));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    axios
+      .get(`/api/pdks/by-date/${selectedDate}`)
+      .then((res) => setDateRecords(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setDateRecords(null));
+  }, [selectedDate]);
+
   // Derive current view based on controls (memoized)
   const computeViewList = useMemo(() => {
-    let list = Array.isArray(personnelList) ? [...personnelList] : [];
+    const base = Array.isArray(dateRecords)
+      ? dateRecords
+      : Array.isArray(personnelList)
+      ? personnelList
+      : [];
+    let list = [...base];
+    if (isAbsent) {
+      list = list.filter(
+        (p) => !p.pdks_checkInTime || p.pdks_checkInTime === "00:00:00"
+      );
+      if (selectedReason && selectedReason !== "All") {
+        if (selectedReason === "OnLeave") {
+          list = list.filter(
+            (p) => p.per_status === "OnLeave" || p.per_status === "OnSickLeave"
+          );
+        } else if (selectedReason === "Absent") {
+          list = list.filter(
+            (p) => p.per_status !== "OnLeave" && p.per_status !== "OnSickLeave"
+          );
+        }
+      }
+    }
     if (isLateToday) {
       const thr = `${lateThreshold}:00`;
       list = list.filter(
@@ -621,14 +750,40 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           toMinutes(p.pdks_checkInTime) > toMinutes(thr)
       );
     }
+    if (isOnTimeToday) {
+      list = list.filter((p) => {
+        const t = p.pdks_checkInTime;
+        if (!t || t === "00:00:00") return false;
+        const [h, m] = t.split(":").map(Number);
+        return h < 8 || (h === 8 && m <= 30);
+      });
+    }
+    if (
+      (isOnTimeToday || isLateToday || isAbsent) &&
+      selectedDept &&
+      selectedDept !== "All"
+    ) {
+      list = list.filter((p) => (p.per_department || "") === selectedDept);
+    }
     if (search.trim()) {
       const s = search.toLowerCase();
-      list = list.filter(
-        (p) =>
-          `${p.per_name || ""} ${p.per_lname || ""}`
-            .toLowerCase()
-            .includes(s) || (p.per_department || "").toLowerCase().includes(s)
-      );
+      list = list.filter((p) => {
+        const name = `${p.per_name || ""} ${p.per_lname || ""}`.toLowerCase();
+        const dept = (p.per_department || "").toLowerCase();
+        const role = (p.per_role || "").toLowerCase();
+        const id = (p.per_id || "").toString();
+        const checkIn = (p.pdks_checkInTime || "").toLowerCase();
+        const checkOut = (p.pdks_checkOutTime || "").toLowerCase();
+
+        return (
+          name.includes(s) ||
+          dept.includes(s) ||
+          role.includes(s) ||
+          id.includes(s) ||
+          checkIn.includes(s) ||
+          checkOut.includes(s)
+        );
+      });
     }
     if (isLateToday) {
       list.sort((a, b) => {
@@ -638,7 +793,19 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
       });
     }
     return list;
-  }, [personnelList, isLateToday, lateThreshold, search, sortDesc, toMinutes]);
+  }, [
+    personnelList,
+    dateRecords,
+    isAbsent,
+    isLateToday,
+    isOnTimeToday,
+    selectedDept,
+    selectedReason,
+    lateThreshold,
+    search,
+    sortDesc,
+    toMinutes,
+  ]);
 
   const exportToCSV = useCallback(() => {
     const view = computeViewList;
@@ -685,6 +852,84 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
     URL.revokeObjectURL(url);
   }, [computeViewList, showCheckInTime, title]);
 
+  const exportToXLSX = useCallback(() => {
+    const view = computeViewList;
+    const aoa = [
+      ["Name", "Department", "Role", "Status", "Check-in", "Check-out"],
+      ...(view || []).map((p) => {
+        const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+        const dept = p.per_department || "";
+        const role = p.per_role || "";
+        const checkIn =
+          p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+            ? p.pdks_checkInTime.slice(0, 5)
+            : "-";
+        const checkOut =
+          p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+            ? p.pdks_checkOutTime.slice(0, 5)
+            : "-";
+        let status = p.per_status || "-";
+        if (showCheckInTime && checkIn !== "-") {
+          const [h, m] = (p.pdks_checkInTime || "00:00:00")
+            .split(":")
+            .map(Number);
+          status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+        }
+        return [name, dept, role, status, checkIn, checkOut];
+      }),
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `${title.replace(/\s+/g, "_")}_${dateStr}.xlsx`);
+  }, [computeViewList, showCheckInTime, title]);
+
+  const exportToPDF = useCallback(() => {
+    const view = computeViewList;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(title, 14, 16);
+    doc.setFontSize(10);
+    let y = 24;
+    doc.text("Name | Department | Role | Status | Check-in | Check-out", 14, y);
+    y += 6;
+    (view || []).forEach((p) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+      const dept = p.per_department || "";
+      const role = p.per_role || "";
+      const checkIn =
+        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+          ? p.pdks_checkInTime.slice(0, 5)
+          : "-";
+      const checkOut =
+        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+          ? p.pdks_checkOutTime.slice(0, 5)
+          : "-";
+      let status = p.per_status || "-";
+      if (showCheckInTime && checkIn !== "-") {
+        const [h, m] = (p.pdks_checkInTime || "00:00:00")
+          .split(":")
+          .map(Number);
+        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+      }
+      doc.text(
+        `${name} | ${dept} | ${role} | ${status} | ${checkIn} | ${checkOut}`,
+        14,
+        y
+      );
+      y += 6;
+    });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    doc.save(`${title.replace(/\s+/g, "_")}_${dateStr}.pdf`);
+  }, [computeViewList, showCheckInTime, title]);
+
+  // handleRemind removed (auto notifications will replace manual action)
+
   // removed duplicate declaration
 
   return (
@@ -701,7 +946,14 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
         justifyContent: "center",
         zIndex: 1000,
       }}
-      onClick={onClose}
+      onClick={(e) => {
+        // Close export dropdown if open
+        if (exportOpen) {
+          setExportOpen(false);
+          return;
+        }
+        onClose();
+      }}
     >
       <div
         style={{
@@ -721,7 +973,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "24px",
+            marginBottom: "8px",
           }}
         >
           <h2
@@ -735,74 +987,133 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
             {title}
           </h2>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {isLateToday && (
-              <>
-                <select
-                  value={lateThreshold}
-                  onChange={(e) => setLateThreshold(e.target.value)}
+            {/* removed threshold + sort controls near Export */}
+            {/* search moved to second row */}
+            <div style={{ position: "relative" }} data-export-container>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExportOpen((v) => !v);
+                }}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 10,
+                  background: "linear-gradient(180deg,#ffffff,#f8fafc)",
+                  color: "#111827",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  minWidth: 96,
+                  boxShadow: exportOpen
+                    ? "inset 0 1px 3px rgba(0,0,0,0.06)"
+                    : "0 1px 2px rgba(0,0,0,0.04)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+                title="Export"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7,10 12,15 17,10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export
+              </button>
+              {exportOpen && (
+                <div
                   style={{
-                    padding: "6px 12px",
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 8px)",
+                    background: "#ffffff",
                     border: "1px solid #e5e7eb",
-                    borderRadius: 8,
-                    backgroundColor: "#ffffff",
-                    color: "#111827",
-                    minWidth: 155,
-                    boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
-                    appearance: "none",
-                    backgroundImage:
-                      "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 10px center",
-                    paddingRight: 32,
-                    fontSize: 12,
-                    outline: "none",
+                    borderRadius: 12,
+                    boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
+                    zIndex: 10,
+                    overflow: "hidden",
+                    minWidth: 180,
+                    backdropFilter: "blur(6px)",
+                    padding: 6,
                   }}
                 >
-                  <option value="08:30">Threshold 08:30</option>
-                  <option value="08:45">Threshold 08:45</option>
-                  <option value="09:00">Threshold 09:00</option>
-                </select>
-                <button
-                  onClick={() => setSortDesc(!sortDesc)}
-                  style={{
-                    padding: "6px 8px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 8,
-                    background: "#fff",
-                    fontSize: 12,
-                  }}
-                  title="Sort by minutes late"
-                >
-                  {sortDesc ? "Sort: Late ↓" : "Sort: Late ↑"}
-                </button>
-              </>
-            )}
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              style={{
-                padding: "6px 10px",
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                fontSize: 12,
-                outline: "none",
-              }}
-            />
-            <button
-              onClick={exportToCSV}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: "1px solid #e5e7eb",
-                background: "#f8fafc",
-                color: "#374151",
-                cursor: "pointer",
-                fontSize: 14,
-              }}
-            >
-              Export CSV
-            </button>
+                  <button
+                    onClick={() => {
+                      exportToCSV();
+                      setExportOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "#ffffff",
+                      border: "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 12,
+                      color: "#111827",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <FiFileText size={16} style={{ color: "#374151" }} />
+                    <span>CSV</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      exportToXLSX();
+                      setExportOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "#ffffff",
+                      border: "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 12,
+                      color: "#111827",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <FiFile size={16} style={{ color: "#16a34a" }} />
+                    <span>XLSX</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      exportToPDF();
+                      setExportOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "#ffffff",
+                      border: "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 12,
+                      color: "#111827",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <FaFilePdf size={16} style={{ color: "#dc2626" }} />
+                    <span>PDF</span>
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={onClose}
               style={{
@@ -818,6 +1129,275 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
             </button>
           </div>
         </div>
+
+        {/* Controls row below title */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "16px",
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* search first */}
+            <div
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{
+                  position: "absolute",
+                  left: "8px",
+                  color: "#6b7280",
+                  zIndex: 1,
+                }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                style={{
+                  padding: "8px 12px 8px 28px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  outline: "none",
+                  height: 17,
+                  width: "200px",
+                }}
+              />
+            </div>
+            {/* Filter button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                padding: "8px 12px",
+                border: "1px solid #e5e7eb",
+                borderRadius: 6,
+                backgroundColor: "#f8fafc",
+                color: "#374151",
+                cursor: "pointer",
+                fontSize: 13,
+                height: 33,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3" />
+              </svg>
+              {showFilters ? "Hide Filters" : "Filter"}
+            </button>
+          </div>
+          <div />
+        </div>
+
+        {/* Filter controls - shown when showFilters is true */}
+        {showFilters && (
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{
+                  position: "absolute",
+                  left: "8px",
+                  color: "#6b7280",
+                  zIndex: 1,
+                }}
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <input
+                type="date"
+                value={selectedDate}
+                max={todayStrModal}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{
+                  padding: "6px 10px 6px 28px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 6,
+                  backgroundColor: "#ffffff",
+                  color: "#111827",
+                  fontSize: 13,
+                  outline: "none",
+                  height: 19,
+                }}
+              />
+            </div>
+            {(isOnTimeToday || isLateToday || isAbsent) && (
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 6,
+                  backgroundColor: "#ffffff",
+                  color: "#111827",
+                  minWidth: 180,
+                  height: 33,
+                  boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
+                  appearance: "none",
+                  backgroundImage:
+                    "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 12px center",
+                  paddingRight: 36,
+                  fontSize: 13,
+                }}
+              >
+                {departmentOptions.map((dep) => (
+                  <option key={dep} value={dep}>
+                    {dep}
+                  </option>
+                ))}
+              </select>
+            )}
+            {isAbsent && (
+              <select
+                value={selectedReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 6,
+                  backgroundColor: "#ffffff",
+                  color: "#111827",
+                  minWidth: 180,
+                  height: 33,
+                  boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
+                  appearance: "none",
+                  backgroundImage:
+                    "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 12px center",
+                  paddingRight: 36,
+                  fontSize: 13,
+                }}
+                title="Filter by absent reason"
+              >
+                <option value="All">All reasons</option>
+                <option value="OnLeave">On Leave</option>
+                <option value="OnSickLeave">Sick Leave</option>
+                <option value="Absent">Unexcused Absence</option>
+              </select>
+            )}
+            {isLateToday && (
+              <select
+                value={lateThreshold}
+                onChange={(e) => setLateThreshold(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 6,
+                  backgroundColor: "#ffffff",
+                  color: "#111827",
+                  minWidth: 120,
+                  height: 33,
+                  boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
+                  appearance: "none",
+                  backgroundImage:
+                    "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 12px center",
+                  paddingRight: 36,
+                  fontSize: 13,
+                  outline: "none",
+                }}
+              >
+                <option value="08:00">08:00</option>
+                <option value="08:15">08:15</option>
+                <option value="08:30">08:30</option>
+                <option value="08:45">08:45</option>
+                <option value="09:00">09:00</option>
+                <option value="09:15">09:15</option>
+                <option value="09:30">09:30</option>
+              </select>
+            )}
+            <button
+              onClick={() => {
+                setSelectedDate(todayStrModal);
+                setSelectedDept("All");
+                setSelectedReason("All");
+                setLateThreshold("08:30");
+                setSearch("");
+              }}
+              style={{
+                padding: "6px 10px",
+                border: "1px solid #fecaca",
+                borderRadius: 5,
+                backgroundColor: "#fee2e2",
+                color: "#991b1b",
+                cursor: "pointer",
+                height: 28,
+                marginLeft: 6,
+                width: 34,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              title="Reset filters"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Personnel Table Header */}
         <div
@@ -886,13 +1466,6 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
                 padding: "16px",
                 borderBottom: "1px solid #f1f5f9",
                 alignItems: "center",
-                transition: "background-color 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = "#f9fafb";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = "transparent";
               }}
             >
               {/* Photo */}
@@ -948,20 +1521,36 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
                   </div>
                 </>
               ) : isAbsent ? (
-                <div style={{ justifySelf: "center", alignSelf: "center" }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      backgroundColor:
-                        person.per_status === "OnLeave" ||
-                        person.per_status === "OnSickLeave"
-                          ? "#ffc107"
-                          : "#c62116ff",
-                    }}
-                  />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  {(() => {
+                    const lr =
+                      leaveIndex && leaveIndex.get
+                        ? leaveIndex.get(person.per_id)
+                        : null;
+                    const isLeaveStatus =
+                      person.per_status === "OnLeave" ||
+                      person.per_status === "OnSickLeave";
+                    const color = lr || isLeaveStatus ? "#FFEB3B" : "#c62116ff";
+                    return (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          backgroundColor: color,
+                        }}
+                        title={lr ? `${lr.request_type || "Leave"}` : ""}
+                      />
+                    );
+                  })()}
                 </div>
               ) : showCheckInTime ? (
                 <div style={{ color: "#374151", textAlign: "center" }}>
@@ -993,11 +1582,57 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
 
 const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [records, setRecords] = useState([]);
-  const [hoveredIndex, setHoveredIndex] = useState(null);
+  // removed row hover background behavior
   const [modal, setModal] = useState({ open: false, title: "", items: [] });
   const [avgModalOpen, setAvgModalOpen] = useState(false);
   const [avgTimeframe, setAvgTimeframe] = useState("weekly");
   const [weeklyChartData, setWeeklyChartData] = useState([]);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef(null);
+  const [exportOnTimeOpen, setExportOnTimeOpen] = useState(false);
+  const [exportLateOpen, setExportLateOpen] = useState(false);
+  const [exportAbsentOpen, setExportAbsentOpen] = useState(false);
+  const exportOnTimeRef = useRef(null);
+  const exportLateRef = useRef(null);
+  const exportAbsentRef = useRef(null);
+
+  // Close export menu on outside click or ESC
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setExportOpen(false);
+      }
+      if (
+        exportOnTimeRef.current &&
+        !exportOnTimeRef.current.contains(e.target)
+      ) {
+        setExportOnTimeOpen(false);
+      }
+      if (exportLateRef.current && !exportLateRef.current.contains(e.target)) {
+        setExportLateOpen(false);
+      }
+      if (
+        exportAbsentRef.current &&
+        !exportAbsentRef.current.contains(e.target)
+      ) {
+        setExportAbsentOpen(false);
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key === "Escape") {
+        setExportOpen(false);
+        setExportOnTimeOpen(false);
+        setExportLateOpen(false);
+        setExportAbsentOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [exportOpen, exportOnTimeOpen, exportLateOpen, exportAbsentOpen]);
   const [showPersonnelModal, setShowPersonnelModal] = useState(false);
   const [personnelModalTitle, setPersonnelModalTitle] = useState("");
   const [personnelModalList, setPersonnelModalList] = useState([]);
@@ -1124,6 +1759,93 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
     return Math.max(60, rounded || 60);
   }, [chartData]);
 
+  // Fetch historical average data (includes yesterday etc.) when modal opens or timeframe changes
+  useEffect(() => {
+    if (!avgModalOpen) return;
+
+    const toDate = new Date();
+    const fromDate = new Date();
+    if (avgTimeframe === "monthly") {
+      fromDate.setDate(toDate.getDate() - 29);
+    } else {
+      fromDate.setDate(toDate.getDate() - 6);
+    }
+
+    const toStr = toDate.toISOString().slice(0, 10);
+    const fromStr = fromDate.toISOString().slice(0, 10);
+
+    axios
+      .get("http://localhost:5050/api/pdks/average-checkin", {
+        params: { from: fromStr, to: toStr },
+      })
+      .then((res) => {
+        const rows = Array.isArray(res.data) ? res.data : [];
+        const dateToAvgMin = new Map(
+          rows.map((r) => [
+            String(r.date).slice(0, 10),
+            Number(r.avgMinutes) || 0,
+          ])
+        );
+
+        if (avgTimeframe === "monthly") {
+          // Build past 30 days values
+          const days = Array.from({ length: 30 }).map((_, idx) => {
+            const d = new Date(toDate);
+            d.setDate(toDate.getDate() - (29 - idx));
+            const key = d.toISOString().slice(0, 10);
+            const avgAbsMin = dateToAvgMin.get(key) || 0; // minutes since 00:00
+            const lateMin = avgAbsMin ? Math.max(0, avgAbsMin - 480) : 0;
+            return { date: new Date(d), lateMin };
+          });
+
+          // Group by week within month (same approach as existing local calc)
+          const byWeek = new Map();
+          days.forEach(({ date, lateMin }) => {
+            const firstOfMonth = new Date(
+              date.getFullYear(),
+              date.getMonth(),
+              1
+            );
+            const weekIndex =
+              Math.floor((date.getDate() + firstOfMonth.getDay() - 1) / 7) + 1;
+            const key = `W${weekIndex}`;
+            if (!byWeek.has(key)) byWeek.set(key, []);
+            byWeek.get(key).push(lateMin + 480); // store back absolute minutes to avg later consistently
+          });
+          const bars = Array.from(byWeek.entries()).map(([key, arr]) => {
+            const avgAbs = arr.length
+              ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+              : 0;
+            return {
+              name: key,
+              value: avgAbs ? Math.max(0, avgAbs - 480) : 0,
+              fill: "#10b981",
+            };
+          });
+          setWeeklyChartData(bars);
+        } else {
+          // Weekly: 7 days bars, label by weekday
+          const days = Array.from({ length: 7 }).map((_, idx) => {
+            const d = new Date(toDate);
+            d.setDate(toDate.getDate() - (6 - idx));
+            const key = d.toISOString().slice(0, 10);
+            const avgAbsMin = dateToAvgMin.get(key) || 0; // minutes since 00:00
+            const lateMin = avgAbsMin ? Math.max(0, avgAbsMin - 480) : 0;
+            return {
+              name: d.toLocaleDateString(undefined, { weekday: "short" }),
+              value: lateMin,
+              fill: "#10b981",
+            };
+          });
+          setWeeklyChartData(days);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load average-checkin range:", err);
+        setWeeklyChartData([]);
+      });
+  }, [avgModalOpen, avgTimeframe]);
+
   const exportAvgCsv = useCallback(() => {
     const headers = ["Label", "Avg Late (m)"];
     const rows = chartData.map((d) => [String(d.name), String(d.value)]);
@@ -1139,6 +1861,156 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [chartData, avgTimeframe]);
+
+  const exportAvgXlsx = useCallback(() => {
+    const aoa = [
+      ["Label", "Avg Late (m)"],
+      ...chartData.map((d) => [String(d.name), Number(d.value)]),
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      avgTimeframe === "monthly" ? "Monthly" : "Weekly"
+    );
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `avg-checkin_${avgTimeframe}_${dateStr}.xlsx`);
+  }, [chartData, avgTimeframe]);
+
+  const exportAvgPdf = useCallback(() => {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(
+      `${avgTimeframe === "monthly" ? "Monthly" : "Weekly"} Average Check-in`,
+      14,
+      16
+    );
+    doc.setFontSize(11);
+    let y = 26;
+    doc.text("Label / Avg Late (m)", 14, y);
+    y += 6;
+    chartData.forEach((d) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(`${String(d.name)}  -  ${String(d.value)}`, 14, y);
+      y += 6;
+    });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    doc.save(`avg-checkin_${avgTimeframe}_${dateStr}.pdf`);
+  }, [chartData, avgTimeframe]);
+
+  // Generic personnel list exports (used by cards)
+  const makePersonnelAoa = useCallback((list) => {
+    const headers = [
+      "Name",
+      "Department",
+      "Role",
+      "Status",
+      "Check-in",
+      "Check-out",
+    ];
+    const rows = (list || []).map((p) => {
+      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+      const dept = p.per_department || "";
+      const role = p.per_role || "";
+      const checkIn =
+        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+          ? p.pdks_checkInTime.slice(0, 5)
+          : "-";
+      const checkOut =
+        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+          ? p.pdks_checkOutTime.slice(0, 5)
+          : "-";
+      let status = p.per_status || "-";
+      if (checkIn !== "-") {
+        const [h, m] = (p.pdks_checkInTime || "00:00:00")
+          .split(":")
+          .map(Number);
+        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+      }
+      return [name, dept, role, status, checkIn, checkOut];
+    });
+    return [headers, ...rows];
+  }, []);
+
+  const exportPersonnelCsv = useCallback(
+    (list, base) => {
+      const aoa = makePersonnelAoa(list);
+      const csv = aoa
+        .map((r) =>
+          r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
+        )
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `${base}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    [makePersonnelAoa]
+  );
+
+  const exportPersonnelXlsx = useCallback(
+    (list, base) => {
+      const aoa = makePersonnelAoa(list);
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
+      const dateStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `${base}_${dateStr}.xlsx`);
+    },
+    [makePersonnelAoa]
+  );
+
+  const exportPersonnelPdf = useCallback((list, base) => {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(base.replace(/_/g, " "), 14, 16);
+    doc.setFontSize(10);
+    let y = 24;
+    doc.text("Name | Department | Role | Status | Check-in | Check-out", 14, y);
+    y += 6;
+    (list || []).forEach((p) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+      const dept = p.per_department || "";
+      const role = p.per_role || "";
+      const checkIn =
+        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+          ? p.pdks_checkInTime.slice(0, 5)
+          : "-";
+      const checkOut =
+        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+          ? p.pdks_checkOutTime.slice(0, 5)
+          : "-";
+      let status = p.per_status || "-";
+      if (checkIn !== "-") {
+        const [h, m] = (p.pdks_checkInTime || "00:00:00")
+          .split(":")
+          .map(Number);
+        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+      }
+      doc.text(
+        `${name} | ${dept} | ${role} | ${status} | ${checkIn} | ${checkOut}`,
+        14,
+        y
+      );
+      y += 6;
+    });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    doc.save(`${base}_${dateStr}.pdf`);
+  }, []);
 
   const todayEntries = records.filter((record) => {
     return (
@@ -1518,9 +2390,8 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                       padding: "20px",
                       borderBottom: "1px solid #f3f4f6",
                       alignItems: "center",
-                      transition: "background-color 0.15s ease",
                       cursor: "pointer",
-                      backgroundColor: hoveredIndex === i ? "#f9fafb" : "white", // <-- controlled
+                      backgroundColor: "white",
                     }}
                     onClick={(e) => {
                       // use currentTarget to avoid child click quirks
@@ -1534,8 +2405,6 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                         window.dispatchEvent(new PopStateEvent("popstate"));
                       }
                     }}
-                    onMouseEnter={() => setHoveredIndex(i)} // <-- non-bubbling
-                    onMouseLeave={() => setHoveredIndex(null)} // <-- non-bubbling
                   >
                     {/* Photo */}
 
@@ -1950,21 +2819,112 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                 Check-in
               </h3>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button
-                  onClick={exportAvgCsv}
-                  style={{
-                    padding: "6px 10px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 8,
-                    background: "#f8fafc",
-                    color: "#374151",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
-                  title="Export CSV"
-                >
-                  Export CSV
-                </button>
+                <div ref={exportRef} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setExportOpen((v) => !v)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      background: "linear-gradient(180deg,#ffffff,#f8fafc)",
+                      color: "#111827",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      minWidth: 96,
+                      boxShadow: exportOpen
+                        ? "inset 0 1px 3px rgba(0,0,0,0.06)"
+                        : "0 1px 2px rgba(0,0,0,0.04)",
+                    }}
+                    title="Export"
+                  >
+                    Export ▾
+                  </button>
+                  {exportOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: "calc(100% + 8px)",
+                        background: "#ffffff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
+                        zIndex: 10,
+                        overflow: "hidden",
+                        minWidth: 180,
+                        backdropFilter: "blur(6px)",
+                        padding: 6,
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          exportAvgCsv();
+                          setExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FiFileText size={16} style={{ color: "#374151" }} />
+                        <span>CSV</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportAvgXlsx();
+                          setExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FiFile size={16} style={{ color: "#16a34a" }} />
+                        <span>XLSX</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportAvgPdf();
+                          setExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FaFilePdf size={16} style={{ color: "#dc2626" }} />
+                        <span>PDF</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => setAvgModalOpen(false)}
                   style={{
@@ -2038,7 +2998,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
                     tickLine={false}
                   />
                   <ReTooltip
-                    cursor={{ fill: "rgba(2,6,23,0.04)" }}
+                    cursor={false}
                     formatter={(v) => [`${v}m late`, "Avg after 08:00"]}
                   />
                   <Bar
