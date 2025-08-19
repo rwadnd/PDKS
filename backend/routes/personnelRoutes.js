@@ -50,6 +50,6 @@ router.put("/:id", upload.single("photo"), updatePersonnel);
 router.put("/:id/deactivate", deletePersonnel);
 
 // DELETE
-router.delete("/:id", deletePersonnel);
+router.delete("/:id", softDeletePersonnel);
 
 module.exports = router;
