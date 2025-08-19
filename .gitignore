@@ -3,3 +3,4 @@ application/node_modules/*
 QR web/qr.html
 
 backend/node_modules/
+application/.env
