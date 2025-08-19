@@ -514,3 +514,18 @@ html,
   color: #0891b2;
   width: 75%;
 }
+
+/* Open shift pulsing highlight */
+@keyframes openShiftPulse {
+  0%,
+  100% {
+    background-color: #fff5f5;
+  }
+  50% {
+    background-color: #fee2e2;
+  }
+}
+.open-shift-row {
+  animation: openShiftPulse 1.2s ease-in-out infinite;
+  border-left: 3px solid #ef4444;
+}
