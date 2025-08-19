@@ -10,6 +10,7 @@ import Entries from "./components/Entries";
 import LeaveRequests from "./components/LeaveRequests";
 import Profile from "./components/Profile";
 import Login from "./components/Login";
+import Reporting from './components/Reporting'
 import "./App.css";
 import axios from "axios";
 
@@ -209,6 +210,11 @@ const App = () => {
         {activePage === "profile" && (
           <Profile
             currentUser={currentUser}
+          />
+        )}
+        {activePage === "reporting" && (
+          <Reporting
+           
           />
         )}
       </div>
