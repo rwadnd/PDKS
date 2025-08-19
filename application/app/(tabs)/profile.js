@@ -1,38 +1,58 @@
 // app/(tabs)/profile.js
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { auth } from '../../firebase'; // adjust path if your firebase.js is elsewhere
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useRouter } from 'expo-router';
+import { auth, db } from '../../firebase';           // <-- db exported from firebase.js
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore'; // <-- Firestore
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [user, setUser] = useState(auth.currentUser);
   const [loading, setLoading] = useState(!auth.currentUser);
 
+  // Firestore user fields
+  const [profileName, setProfileName] = useState('');
+  const [profileID, setProfileID] = useState(null); // your field is "ID" (uppercase)
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => {
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
       if (!u) router.replace('/login');
     });
-    return unsub;
+    return unsubAuth;
   }, [router]);
 
+  // Subscribe to Firestore users/{uid}
+  useEffect(() => {
+    if (!user?.uid) return;
+    const ref = doc(db, 'users', user.uid);
+    const unsubDoc = onSnapshot(
+      ref,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setProfileName(data?.name ?? '');
+          setProfileID(data?.ID ?? null); // IMPORTANT: "ID" matches your screenshot
+        }
+      },
+      (err) => console.error('users doc error:', err)
+    );
+    return unsubDoc;
+  }, [user?.uid]);
+
   const initials = useMemo(() => {
-    const name = user?.displayName || user?.email || '';
-    const parts = name.split('@')[0].split(/[.\s_-]+/).filter(Boolean);
-    const first = parts[0]?.[0]?.toUpperCase() ?? '';
-    const second = parts[1]?.[0]?.toUpperCase() ?? '';
-    return (first + second) || 'U';
-  }, [user]);
+    const nm = (profileName || user?.displayName || user?.email || '');
+    const parts = nm.split('@')[0].split(/[.\s_-]+/).filter(Boolean);
+    const a = parts[0]?.[0]?.toUpperCase() ?? '';
+    const b = parts[1]?.[0]?.toUpperCase() ?? '';
+    return (a + b) || 'U';
+  }, [profileName, user]);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      Alert.alert('Logout failed', e?.message ?? 'Please try again.');
-    }
+    try { await signOut(auth); }
+    catch (e) { Alert.alert('Logout failed', e?.message ?? 'Please try again.'); }
   };
 
   const reloadUser = async () => {
@@ -54,7 +74,6 @@ export default function ProfileScreen() {
       </View>
     );
   }
-
   if (!user) return null;
 
   const meta = user.metadata || {};
@@ -72,7 +91,7 @@ export default function ProfileScreen() {
           </View>
         )}
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{user.displayName || 'No display name'}</Text>
+          <Text style={styles.name}>{profileName || user.displayName || 'No display name'}</Text>
           <Text style={styles.email}>{user.email || 'No email'}</Text>
         </View>
       </View>
@@ -80,6 +99,7 @@ export default function ProfileScreen() {
       {/* Primary Info */}
       <View style={styles.card}>
         <Row label="UID" value={user.uid} mono />
+        <Row label="Profile ID" value={profileID ?? '—'} />
         <Row label="Email verified" value={String(!!user.emailVerified)} />
         <Row label="Phone" value={user.phoneNumber || '—'} />
         <Row label="Provider(s)" value={providers.map(p => p.providerId).join(', ') || '—'} />
@@ -105,7 +125,7 @@ function Row({ label, value, mono }) {
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
       <Text style={[styles.rowValue, mono && styles.mono]} numberOfLines={2}>
-        {value}
+        {String(value)}
       </Text>
     </View>
   );
@@ -127,24 +147,13 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 24, fontWeight: '700', color: '#334155' },
   name: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
   email: { fontSize: 14, color: '#475569', marginTop: 2 },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 12,
-    elevation: 2,
-  },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 12, elevation: 2 },
   row: { flexDirection: 'row', paddingVertical: 10, gap: 10 },
   rowLabel: { width: 130, color: '#64748b', fontWeight: '600' },
   rowValue: { flex: 1, color: '#0f172a' },
- 
+  mono: { fontFamily: 'monospace' },
   actions: { flexDirection: 'row', gap: 12 },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  button: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   secondary: { backgroundColor: '#f1f5f9' },
   secondaryText: { color: '#0f172a' },
   danger: { backgroundColor: '#ef4444' },
