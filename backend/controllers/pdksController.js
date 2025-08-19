@@ -1,6 +1,5 @@
 const db = require("../db/connection");
 
-
 // GET records for one person
 exports.getRecordsByPersonelId = async (req, res) => {
   try {
@@ -51,7 +50,6 @@ ORDER BY
     res.status(500).json({ error: "Database error" });
   }
 };
-
 
 const PRIVATE_KEY = process.env.PDKS_PRIVATE_KEY || "fallbackSecret";
 
@@ -142,7 +140,6 @@ exports.submitEntry = async (req, res) => {
   }
 };
 
-
 exports.getDashboardStats = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -224,5 +221,90 @@ exports.getDashboardStats = async (req, res) => {
   } catch (err) {
     console.error("Dashboard stats error:", err);
     res.status(500).json({ error: "Failed to get dashboard stats" });
+  }
+};
+
+// GET average check-in minutes per day in a date range
+// Query params: from=YYYY-MM-DD, to=YYYY-MM-DD
+exports.getAverageCheckInRange = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        error: "Query params 'from' and 'to' are required (YYYY-MM-DD)",
+      });
+    }
+
+    const [rows] = await db.query(
+      `
+      SELECT 
+        DATE(pdks_date) AS date,
+        ROUND(AVG(TIME_TO_SEC(pdks_checkInTime)/60)) AS avgMinutes
+      FROM pdks_entry
+      WHERE pdks_checkInTime IS NOT NULL
+        AND pdks_checkInTime <> '00:00:00'
+        AND DATE(pdks_date) BETWEEN ? AND ?
+      GROUP BY DATE(pdks_date)
+      ORDER BY DATE(pdks_date)
+    `,
+      [from, to]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("getAverageCheckInRange error:", err);
+    res.status(500).json({ error: "Failed to get average check-in range" });
+  }
+};
+
+// GET leaderboard of most on-time personnel within last N days
+// Query: days=30, threshold=08:30:00, limit=1
+exports.getOnTimeLeaderboard = async (req, res) => {
+  try {
+    const days = Math.max(
+      1,
+      Math.min(365, parseInt(req.query.days || "30", 10))
+    );
+    const threshold =
+      (req.query.threshold || "08:30:00").length === 5
+        ? `${req.query.threshold}:00`
+        : req.query.threshold || "08:30:00";
+    const limit = Math.max(
+      1,
+      Math.min(50, parseInt(req.query.limit || "5", 10))
+    );
+
+    const now = new Date();
+    const to = now.toISOString().slice(0, 10);
+    const fromDate = new Date(now);
+    fromDate.setDate(now.getDate() - (days - 1));
+    const from = fromDate.toISOString().slice(0, 10);
+
+    const [rows] = await db.query(
+      `
+      SELECT 
+        p.per_id,
+        p.per_name,
+        p.per_lname,
+        p.per_department,
+        COUNT(*) AS onTimeDays
+      FROM pdks_entry e
+      JOIN personnel p ON p.per_id = e.personnel_per_id
+      WHERE DATE(e.pdks_date) BETWEEN ? AND ?
+        AND e.pdks_checkInTime IS NOT NULL
+        AND e.pdks_checkInTime <> '00:00:00'
+        AND e.pdks_checkInTime <= ?
+      GROUP BY e.personnel_per_id
+      ORDER BY onTimeDays DESC, MIN(e.pdks_checkInTime) ASC
+      LIMIT ?
+    `,
+      [from, to, threshold, limit]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("getOnTimeLeaderboard error:", err);
+    res.status(500).json({ error: "Failed to get on-time leaderboard" });
   }
 };
