@@ -125,29 +125,27 @@ const REPORTS = [
     description: "Leaves in range with optional status/type filters.",
     params: ["dateRange", "leaveStatus", "leaveType", "department", "personnel"],
     sql: async ({ dateFrom, dateTo, leaveStatus, leaveType, department, perId }) => {
-      const args = [dateFrom, dateTo];
-      let where = "WHERE lr.request_start_date <= ? AND lr.request_end_date >= ?";
-      // interpret range overlap with selected window
-      args.push(dateTo, dateFrom);
+  const args = [dateTo, dateFrom]; // <-- end first, then start
+  let where = "WHERE lr.request_start_date <= ? AND lr.request_end_date >= ?";
 
-      if (leaveStatus) { where += " AND lr.status = ?"; args.push(leaveStatus); }
-      if (leaveType) { where += " AND lr.request_type = ?"; args.push(leaveType); }
-      if (department) { where += " AND p.per_department = ?"; args.push(department); }
-      if (perId) { where += " AND p.per_id = ?"; args.push(perId); }
+  if (leaveStatus) { where += " AND lr.status = ?"; args.push(leaveStatus); }
+  if (leaveType)  { where += " AND lr.request_type = ?"; args.push(leaveType); }
+  if (department) { where += " AND p.per_department = ?"; args.push(department); }
+  if (perId)      { where += " AND p.per_id = ?"; args.push(Number(perId)); }
 
-      const [rows] = await db.query(
-        `
-        SELECT lr.request_id, p.per_id, p.per_name, p.per_lname, p.per_department,
-               lr.request_type, lr.status, lr.request_start_date, lr.request_end_date, lr.request_date
-        FROM leave_request lr
-        JOIN personnel p ON p.per_id = lr.personnel_per_id
-        ${where}
-        ORDER BY lr.request_start_date DESC, lr.request_id DESC
-        `,
-        args
-      );
-      return rows;
-    },
+  const [rows] = await db.query(
+    `
+    SELECT lr.request_id, p.per_id, p.per_name, p.per_lname, p.per_department,
+           lr.request_type, lr.status, lr.request_start_date, lr.request_end_date, lr.request_date
+    FROM leave_request lr
+    JOIN personnel p ON p.per_id = lr.personnel_per_id
+    ${where}
+    ORDER BY lr.request_start_date DESC, lr.request_id DESC
+    `,
+    args
+  );
+  return rows;
+},
   },
   {
     id: "personnel_roster",
