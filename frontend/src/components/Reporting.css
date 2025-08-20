@@ -1,0 +1,119 @@
+/* Container & headings */
+.reporting-container {
+  padding: 20px;
+}
+
+.reporting-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.reporting-subtitle {
+  color: #6b7280;
+  margin-top: 0;
+}
+
+/* Reports grid */
+.report-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin: 16px 0 24px;
+}
+
+/* Pills (report buttons) */
+.pill {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.pill.is-active {
+  border-color: #3b82f6;
+  background: #eef2ff;
+  color: #1e40af;
+}
+
+/* Card */
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+}
+
+/* Inner grid for filters */
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+/* Labels */
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+/* Chips (format buttons) */
+.chip-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chip.is-active {
+  border-color: #3b82f6;
+  background: #eef2ff;
+}
+
+/* Inputs & selects */
+.input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 14px;
+}
+
+/* Export button area */
+.export {
+  margin-top: 18px;
+}
+
+.btn-primary {
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-primary.is-busy {
+  background: #93c5fd;
+  cursor: not-allowed;
+}

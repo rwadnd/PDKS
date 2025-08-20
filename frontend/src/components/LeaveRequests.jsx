@@ -1,718 +1,243 @@
 import { useState } from "react";
 import { FaCheck, FaTimes, FaClock, FaUser, FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
+import "./LeaveRequests.css";
 
-const LeaveRequests = ({
-  searchTerm = "",
-  leaveRequests,
-  setLeaveRequests,
-}) => {
-  const [filter, setFilter] = useState("Pending"); // all, pending, approved, rejected
-
+const LeaveRequests = ({ searchTerm = "", leaveRequests, setLeaveRequests }) => {
+  const [filter, setFilter] = useState("Pending"); // "all" | "Pending" | "Approved" | "Rejected"
 
   const approveRequest = async (id) => {
     try {
-      const approvedRequest = leaveRequests.find(
-        (request) => request.request_id === id
-      );
-
+      const approvedRequest = leaveRequests.find((r) => r.request_id === id);
       setLeaveRequests((prev) => {
-        const filtered = prev.filter((request) => request.request_id !== id);
+        const filtered = prev.filter((r) => r.request_id !== id);
         return [{ ...approvedRequest, status: "Approved" }, ...filtered];
       });
-
-      await axios.put(`http://localhost:5050/api/leave/${id}`, {
-        status: "Approved",
-      });
+      await axios.put(`http://localhost:5050/api/leave/${id}`, { status: "Approved" });
     } catch (error) {
       console.error("Failed to approve leave request:", error);
-      // Optionally show error to user
     }
   };
 
   const rejectRequest = async (id) => {
     try {
-      const rejectedRequest = leaveRequests.find(
-        (request) => request.request_id === id
-      );
-
+      const rejectedRequest = leaveRequests.find((r) => r.request_id === id);
       setLeaveRequests((prev) => {
-        const filtered = prev.filter((request) => request.request_id !== id);
+        const filtered = prev.filter((r) => r.request_id !== id);
         return [{ ...rejectedRequest, status: "Rejected" }, ...filtered];
       });
-
-      await axios.put(`http://localhost:5050/api/leave/${id}`, {
-        status: "Rejected",
-      });
+      await axios.put(`http://localhost:5050/api/leave/${id}`, { status: "Rejected" });
     } catch (error) {
       console.error("Failed to reject leave request:", error);
-      // Optionally show error to user
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Pending":
-        return "#f59e0b";
-      case "Approved":
-        return "#10b981";
-      case "Rejected":
-        return "#ef4444";
-      default:
-        return "#6b7280";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "Pending":
-        return <FaClock style={{ color: "#f59e0b" }} />;
       case "Approved":
-        return <FaCheck style={{ color: "#10b981" }} />;
+        return <FaCheck />;
       case "Rejected":
-        return <FaTimes style={{ color: "#ef4444" }} />;
+        return <FaTimes />;
+      case "Pending":
       default:
-        return <FaClock style={{ color: "#6b7280" }} />;
+        return <FaClock />;
     }
   };
 
   const filteredRequests = leaveRequests.filter((request) => {
-    // Status filter
     if (filter === "Pending" && request.status !== "Pending") return false;
     if (filter === "Approved" && request.status !== "Approved") return false;
     if (filter === "Rejected" && request.status !== "Rejected") return false;
 
-    // Search filter
     if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
+      const s = searchTerm.toLowerCase();
       return (
-        (request.per_name &&
-          String(request.per_name).toLowerCase().includes(searchLower)) ||
-        (request.personnel_per_id &&
-          String(request.personnel_per_id)
-            .toLowerCase()
-            .includes(searchLower)) ||
-        (request.department &&
-          String(request.department).toLowerCase().includes(searchLower)) ||
-        (request.request_type &&
-          String(request.request_type).toLowerCase().includes(searchLower))
+        (request.per_name && String(request.per_name).toLowerCase().includes(s)) ||
+        (request.personnel_per_id && String(request.personnel_per_id).toLowerCase().includes(s)) ||
+        (request.department && String(request.department).toLowerCase().includes(s)) ||
+        (request.request_type && String(request.request_type).toLowerCase().includes(s))
       );
     }
-
     return true;
   });
 
   const sortedRequests = [...filteredRequests].sort(
-  (a, b) => new Date(b.request_date) - new Date(a.request_date)
-);
+    (a, b) => new Date(b.request_date) - new Date(a.request_date)
+  );
 
-  const pendingCount = leaveRequests.filter(
-    (request) => request.status === "Pending"
-  ).length;
-  const approvedCount = leaveRequests.filter(
-    (request) => request.status === "Approved"
-  ).length;
-  const rejectedCount = leaveRequests.filter(
-    (request) => request.status === "Rejected"
-  ).length;
+  const pendingCount = leaveRequests.filter((r) => r.status === "Pending").length;
+  const approvedCount = leaveRequests.filter((r) => r.status === "Approved").length;
+  const rejectedCount = leaveRequests.filter((r) => r.status === "Rejected").length;
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
   return (
-    <div
-      style={{
-        padding: "16px",
-        width: "100%",
-        maxWidth: "100vw",
-        overflowX: "hidden",
-        boxSizing: "border-box",
-      }}
-    >
+    <div className="lr">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "28px",
-              fontWeight: "700",
-              color: "#111827",
-              margin: "0 0 8px 0",
-            }}
-          >
-            Leave Requests
-          </h1>
-        </div>
+      <div className="lr__header">
+        <h1 className="lr__title">Leave Requests</h1>
       </div>
 
       {/* Stats Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "12px",
-          marginBottom: "32px",
-          width: "100%",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "16px",
-            padding: "24px",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "0",
-              left: "0",
-              width: "100%",
-              height: "4px",
-              background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+      <div className="lr__stats">
+        <div className="statCard statCard--pending">
+          <div className="statCard__bar" />
+          <div className="statCard__row">
             <div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "800",
-                  color: "#f59e0b",
-                  marginBottom: "4px",
-                }}
-              >
-                {pendingCount}
-              </div>
-              <div
-                style={{
-                  fontSize: "16px",
-                  color: "#6b7280",
-                  fontWeight: "500",
-                }}
-              >
-                Pending Requests
-              </div>
+              <div className="statCard__value statCard__value--pending">{pendingCount}</div>
+              <div className="statCard__label">Pending Requests</div>
             </div>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                backgroundColor: "#fef3c7",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FaClock style={{ fontSize: "20px", color: "#f59e0b" }} />
+            <div className="statCard__icon statCard__icon--pending">
+              <FaClock />
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "16px",
-            padding: "24px",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "0",
-              left: "0",
-              width: "100%",
-              height: "4px",
-              background: "linear-gradient(90deg, #10b981, #34d399)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+        <div className="statCard statCard--approved">
+          <div className="statCard__bar" />
+          <div className="statCard__row">
             <div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "800",
-                  color: "#10b981",
-                  marginBottom: "4px",
-                }}
-              >
-                {approvedCount}
-              </div>
-              <div
-                style={{
-                  fontSize: "16px",
-                  color: "#6b7280",
-                  fontWeight: "500",
-                }}
-              >
-                Approved Requests
-              </div>
+              <div className="statCard__value statCard__value--approved">{approvedCount}</div>
+              <div className="statCard__label">Approved Requests</div>
             </div>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                backgroundColor: "#d1fae5",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FaCheck style={{ fontSize: "20px", color: "#10b981" }} />
+            <div className="statCard__icon statCard__icon--approved">
+              <FaCheck />
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "16px",
-            padding: "24px",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: "0",
-              left: "0",
-              width: "100%",
-              height: "4px",
-              background: "linear-gradient(90deg, #ef4444, #f87171)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+        <div className="statCard statCard--rejected">
+          <div className="statCard__bar" />
+          <div className="statCard__row">
             <div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "800",
-                  color: "#ef4444",
-                  marginBottom: "4px",
-                }}
-              >
-                {rejectedCount}
-              </div>
-              <div
-                style={{
-                  fontSize: "16px",
-                  color: "#6b7280",
-                  fontWeight: "500",
-                }}
-              >
-                Rejected Requests
-              </div>
+              <div className="statCard__value statCard__value--rejected">{rejectedCount}</div>
+              <div className="statCard__label">Rejected Requests</div>
             </div>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                backgroundColor: "#fee2e2",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FaTimes style={{ fontSize: "20px", color: "#ef4444" }} />
+            <div className="statCard__icon statCard__icon--rejected">
+              <FaTimes />
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          marginBottom: "32px",
-          borderBottom: "1px solid #e5e7eb",
-          paddingBottom: "20px",
-          flexWrap: "wrap",
-          width: "100%",
-          boxSizing: "border-box",
-        }}
-      >
+      <div className="lr__filters">
         <button
+          className={`filterBtn filterBtn--all ${filter === "all" ? "is-active" : ""}`}
           onClick={() => setFilter("all")}
-          style={{
-            padding: "6px 12px",
-            backgroundColor: filter === "all" ? "#3b82f6" : "#f3f4f6",
-            color: filter === "all" ? "white" : "#374151",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: "500",
-            transition: "all 0.2s ease",
-          }}
         >
           All ({leaveRequests.length})
         </button>
         <button
+          className={`filterBtn filterBtn--pending ${filter === "Pending" ? "is-active" : ""}`}
           onClick={() => setFilter("Pending")}
-          style={{
-            padding: "6px 12px",
-            backgroundColor: filter === "Pending" ? "#f59e0b" : "#f3f4f6",
-            color: filter === "Pending" ? "white" : "#374151",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: "500",
-            transition: "all 0.2s ease",
-          }}
         >
           Pending ({pendingCount})
         </button>
         <button
+          className={`filterBtn filterBtn--approved ${filter === "Approved" ? "is-active" : ""}`}
           onClick={() => setFilter("Approved")}
-          style={{
-            padding: "6px 12px",
-            backgroundColor: filter === "Approved" ? "#10b981" : "#f3f4f6",
-            color: filter === "Approved" ? "white" : "#374151",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: "500",
-            transition: "all 0.2s ease",
-          }}
         >
           Approved ({approvedCount})
         </button>
         <button
+          className={`filterBtn filterBtn--rejected ${filter === "Rejected" ? "is-active" : ""}`}
           onClick={() => setFilter("Rejected")}
-          style={{
-            padding: "6px 12px",
-            backgroundColor: filter === "Rejected" ? "#ef4444" : "#f3f4f6",
-            color: filter === "Rejected" ? "white" : "#374151",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: "500",
-            transition: "all 0.2s ease",
-          }}
         >
           Rejected ({rejectedCount})
         </button>
       </div>
 
-      {/* Leave Requests List */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-          width: "100%",
-        }}
-      >
+      {/* List */}
+      <div className="lr__list">
         {sortedRequests.length === 0 || leaveRequests.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "48px",
-              color: "#6b7280",
-            }}
-          >
-            <FaCalendarAlt
-              style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.5 }}
-            />
-            <h3
-              style={{
-                fontSize: "20px",
-                fontWeight: "600",
-                marginBottom: "8px",
-                color: "#374151",
-              }}
-            >
-              No leave requests found
-            </h3>
-            <p style={{ fontSize: "14px", marginBottom: "4px" }}>
-              There are currently no leave requests in the system.
-            </p>
+          <div className="empty">
+            <FaCalendarAlt className="empty__icon" />
+            <h3 className="empty__title">No leave requests found</h3>
+            <p className="empty__text">There are currently no leave requests in the system.</p>
           </div>
         ) : (
-          sortedRequests.map((request) => (
-            <div
-              key={request.request_id}
-              style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "12px",
-                padding: "24px",
-                position: "relative",
-                boxShadow: "none",
-              }}
-            >
-              {/* Status Badge */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "16px",
-                  right: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 8px",
-                  backgroundColor: getStatusColor(request.status) + "20",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  color: getStatusColor(request.status),
-                }}
-              >
-                {getStatusIcon(request.status)}
-                {request.status.charAt(0).toUpperCase() +
-                  request.status.slice(1)}
-              </div>
+          sortedRequests.map((request) => {
+            const statusClass =
+              request.status === "Approved"
+                ? "approved"
+                : request.status === "Rejected"
+                ? "rejected"
+                : "pending";
 
-              {/* Employee Info */}
-              <div style={{ marginBottom: "16px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <FaUser style={{ color: "#6b7280", fontSize: "16px" }} />
-                  <h3
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "600",
-                      color: "#111827",
-                      margin: "0",
-                    }}
-                  >
-                    {request.per_name + " " + request.per_lname}
-                  </h3>
+            const start = new Date(request.request_start_date);
+            const end = new Date(request.request_end_date);
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+            return (
+              <div key={request.request_id} className="reqCard">
+                {/* Status Badge */}
+                <div className={`reqCard__badge reqCard__badge--${statusClass}`}>
+                  {getStatusIcon(request.status)}
+                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "16px",
-                    fontSize: "14px",
-                    color: "#6b7280",
-                  }}
-                >
+
+                {/* Employee Info */}
+                <div className="reqCard__person">
+                  <FaUser className="reqCard__userIcon" />
+                  <h3 className="reqCard__name">{request.per_name + " " + request.per_lname}</h3>
+                </div>
+                <div className="reqCard__meta">
                   <span>ID: {request.personnel_per_id}</span>
                   <span>Department: {request.per_department}</span>
                 </div>
-              </div>
 
-              {/* Leave Details */}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "12px",
-                  marginBottom: "16px",
-                  width: "100%",
-                }}
-              >
-                <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Leave Type
+                {/* Details */}
+                <div className="reqCard__details">
+                  <div className="detail">
+                    <div className="detail__label">Leave Type</div>
+                    <div className="detail__value">{request.request_type}</div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#111827",
-                    }}
-                  >
-                    {request.request_type}
+                  <div className="detail">
+                    <div className="detail__label">Duration</div>
+                    <div className="detail__value">
+                      {formatDate(request.request_start_date)} - {formatDate(request.request_end_date)}
+                    </div>
+                  </div>
+                  <div className="detail">
+                    <div className="detail__label">Days</div>
+                    <div className="detail__value">
+                      {days} day{days !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <div className="detail">
+                    <div className="detail__label">Submitted</div>
+                    <div className="detail__value">{formatDate(request.request_date)}</div>
                   </div>
                 </div>
-                <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Duration
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#111827",
-                    }}
-                  >
-                    {formatDate(request.request_start_date)} -{" "}
-                    {formatDate(request.request_end_date)}
-                  </div>
-                </div>
-                <div style={{ flex: "1 1 80px", minWidth: "80px" }}>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Days
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#111827",
-                    }}
-                  >
-                    {(() => {
-                      const start = new Date(request.request_start_date);
-                      const end = new Date(request.request_end_date);
-                      const days = Math.ceil(
-                        (end - start) / (1000 * 60 * 60 * 24)
-                      );
-                      return `${days} day${days !== 1 ? "s" : ""}`;
-                    })()}
-                  </div>
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#6b7280",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Submitted
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#111827",
-                    }}
-                  >
-                    {formatDate(request.request_date)}
-                  </div>
-                </div>
-              </div>
 
-              {/* Reason */}
-              <div style={{ marginBottom: "16px" }}>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Reason
+                {/* Reason */}
+                <div className="reqCard__reason">
+                  <div className="detail__label">Reason</div>
+                  <div className="reqCard__reasonText">{request.request_other}</div>
                 </div>
-                <div style={{ fontSize: "14px", color: "#374151" }}>
-                  {request.request_other}
-                </div>
-              </div>
 
-              {/* Action Buttons */}
-              {request.status === "Pending" && (
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button
-                    onClick={() => approveRequest(request.request_id)}
-                    style={{
-                      padding: "8px 16px",
-                      backgroundColor: "#10b981",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <FaCheck />
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => rejectRequest(request.request_id)}
-                    style={{
-                      padding: "8px 16px",
-                      backgroundColor: "#ef4444",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <FaTimes />
-                    Reject
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
+                {/* Actions */}
+                {request.status === "Pending" && (
+                  <div className="reqCard__actions">
+                    <button className="btn btn--approve" onClick={() => approveRequest(request.request_id)}>
+                      <FaCheck />
+                      <span>Approve</span>
+                    </button>
+                    <button className="btn btn--reject" onClick={() => rejectRequest(request.request_id)}>
+                      <FaTimes />
+                      <span>Reject</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>
   );
 };
 
-export default LeaveRequests;                                                                                   
+export default LeaveRequests;
