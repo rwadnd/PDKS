@@ -1,32 +1,10 @@
 // src/pages/Reporting.jsx
-import { useEffect, useState,useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-
-const pill = (active) => ({
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: `1px solid ${active ? "#3b82f6" : "#e5e7eb"}`,
-  background: active ? "#eef2ff" : "#fff",
-  color: active ? "#1e40af" : "#111827",
-  cursor: "pointer",
-  fontSize: 14,
-  fontWeight: 600,
-});
-
-const chip = {
-  padding: "8px 12px",
-  borderRadius: 10,
-  border: "1px solid #e5e7eb",
-  background: "#fff",
-  cursor: "pointer",
-  fontSize: 13,
-  fontWeight: 600,
-};
+import "./Reporting.css";
 
 const Label = ({ children }) => (
-  <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 6 }}>
-    {children}
-  </div>
+  <div className="label">{children}</div>
 );
 
 const Reporting = () => {
@@ -46,36 +24,33 @@ const Reporting = () => {
   });
   const [busy, setBusy] = useState(false);
 
-
-
   const filteredPersonnel = useMemo(() => {
-  if (!params.department) return personnel;
-  return (personnel || []).filter(
-    (p) => String(p.per_department) === String(params.department)
-  );
-}, [personnel, params.department]);
+    if (!params.department) return personnel;
+    return (personnel || []).filter(
+      (p) => String(p.per_department) === String(params.department)
+    );
+  }, [personnel, params.department]);
 
-// 2) If current perId is not in the filtered set, clear it when department changes
-useEffect(() => {
-  if (!params.perId) return;
-  const stillValid = filteredPersonnel.some(
-    (p) => String(p.per_id) === String(params.perId)
-  );
-  if (!stillValid) {
-    setParams((prev) => ({ ...prev, perId: "" }));
-  }
-}, [params.department, filteredPersonnel]); 
-
+  // Clear perId if it doesn't belong to the newly selected department
+  useEffect(() => {
+    if (!params.perId) return;
+    const stillValid = filteredPersonnel.some(
+      (p) => String(p.per_id) === String(params.perId)
+    );
+    if (!stillValid) {
+      setParams((prev) => ({ ...prev, perId: "" }));
+    }
+  }, [params.department, filteredPersonnel]);
 
   useEffect(() => {
-    // Load metadata (available reports + parameter schema)
     axios.get("/api/reporting/metadata").then((r) => setMeta(r.data));
 
-    // Support pickers
-    axios.get("http://localhost:5050/api/department/list")
+    axios
+      .get("http://localhost:5050/api/department/list")
       .then((r) => setDepartments(r.data || []))
       .catch(() => {});
-    axios.get("http://localhost:5050/api/personnel")
+    axios
+      .get("http://localhost:5050/api/personnel")
       .then((r) => setPersonnel(r.data || []))
       .catch(() => {});
   }, []);
@@ -90,7 +65,6 @@ useEffect(() => {
         { responseType: "blob" }
       );
 
-      // filename from header or fallback
       const cd = res.headers["content-disposition"] || "";
       const match = cd.match(/filename="?([^"]+)"?/i);
       const filename =
@@ -115,19 +89,19 @@ useEffect(() => {
   const showParam = (key) => selected?.params?.includes(key);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>Reporting</h1>
-      <p style={{ color: "#6b7280", marginTop: 0 }}>
+    <div className="reporting-container">
+      <h1 className="reporting-title">Reporting</h1>
+      <p className="reporting-subtitle">
         Choose a report, pick an export format, adjust filters, then click <b>Export</b>.
       </p>
 
       {/* 1) Report Buttons */}
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", margin: "16px 0 24px" }}>
+      <div className="report-grid">
         {(meta?.reports || []).map((r) => (
           <button
             key={r.id}
             onClick={() => setSelected(r)}
-            style={pill(selected?.id === r.id)}
+            className={`pill ${selected?.id === r.id ? "is-active" : ""}`}
             title={r.description}
           >
             {r.title}
@@ -137,25 +111,16 @@ useEffect(() => {
 
       {/* 2) Format + Filters */}
       {selected && (
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 16,
-            padding: 20,
-            background: "#fff",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
+        <div className="card">
+          <div className="grid">
             {/* File Type */}
             <div>
               <Label>Export format</Label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="chip-group">
                 {["csv", "xlsx", "pdf"].map((ft) => (
                   <button
                     key={ft}
-                    style={{ ...chip, borderColor: fileType === ft ? "#3b82f6" : "#e5e7eb", background: fileType === ft ? "#eef2ff" : "#fff" }}
+                    className={`chip ${fileType === ft ? "is-active" : ""}`}
                     onClick={() => setFileType(ft)}
                   >
                     {ft.toUpperCase()}
@@ -172,8 +137,10 @@ useEffect(() => {
                   <input
                     type="date"
                     value={params.dateFrom}
-                    onChange={(e) => setParams((p) => ({ ...p, dateFrom: e.target.value }))}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
+                    onChange={(e) =>
+                      setParams((p) => ({ ...p, dateFrom: e.target.value }))
+                    }
+                    className="input"
                   />
                 </div>
                 <div>
@@ -181,14 +148,16 @@ useEffect(() => {
                   <input
                     type="date"
                     value={params.dateTo}
-                    onChange={(e) => setParams((p) => ({ ...p, dateTo: e.target.value }))}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
+                    onChange={(e) =>
+                      setParams((p) => ({ ...p, dateTo: e.target.value }))
+                    }
+                    className="input"
                   />
                 </div>
               </>
             )}
 
-            {/* Single date (present vs absent) */}
+            {/* Single date */}
             {showParam("singleDate") && (
               <div>
                 <Label>Date</Label>
@@ -196,7 +165,7 @@ useEffect(() => {
                   type="date"
                   value={params.date}
                   onChange={(e) => setParams((p) => ({ ...p, date: e.target.value }))}
-                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
+                  className="input"
                 />
               </div>
             )}
@@ -207,12 +176,16 @@ useEffect(() => {
                 <Label>Department</Label>
                 <select
                   value={params.department}
-                  onChange={(e) => setParams((p) => ({ ...p, department: e.target.value }))}
-                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
+                  onChange={(e) =>
+                    setParams((p) => ({ ...p, department: e.target.value }))
+                  }
+                  className="input"
                 >
                   <option value="">All</option>
                   {departments.map((d) => (
-                    <option key={d} value={d}>{d}</option>
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -220,23 +193,23 @@ useEffect(() => {
 
             {/* Personnel */}
             {showParam("personnel") && (
-  <div>
-    <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Personnel</div>
-    <select
-      value={params.perId}
-      onChange={(e) => setParams((p) => ({ ...p, perId: e.target.value }))}
-      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
-      disabled={filteredPersonnel.length === 0}
-    >
-      <option value="">All</option>
-      {filteredPersonnel.map((p) => (
-        <option key={p.per_id} value={p.per_id}>
-          {p.per_name} {p.per_lname} (#{p.per_id})
-        </option>
-      ))}
-    </select>
-  </div>
-)}
+              <div>
+                <div className="label">Personnel</div>
+                <select
+                  value={params.perId}
+                  onChange={(e) => setParams((p) => ({ ...p, perId: e.target.value }))}
+                  className="input"
+                  disabled={filteredPersonnel.length === 0}
+                >
+                  <option value="">All</option>
+                  {filteredPersonnel.map((p) => (
+                    <option key={p.per_id} value={p.per_id}>
+                      {p.per_name} {p.per_lname} (#{p.per_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Leave status/type */}
             {showParam("leaveStatus") && (
@@ -244,12 +217,16 @@ useEffect(() => {
                 <Label>Leave status</Label>
                 <select
                   value={params.leaveStatus}
-                  onChange={(e) => setParams((p) => ({ ...p, leaveStatus: e.target.value }))}
-                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
+                  onChange={(e) =>
+                    setParams((p) => ({ ...p, leaveStatus: e.target.value }))
+                  }
+                  className="input"
                 >
                   <option value="">All</option>
-                  {["Pending","Approved","Rejected"].map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                  {["Pending", "Approved", "Rejected"].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -260,32 +237,30 @@ useEffect(() => {
                 <Label>Leave type</Label>
                 <select
                   value={params.leaveType}
-                  onChange={(e) => setParams((p) => ({ ...p, leaveType: e.target.value }))}
-                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e5e7eb" }}
+                  onChange={(e) =>
+                    setParams((p) => ({ ...p, leaveType: e.target.value }))
+                  }
+                  className="input"
                 >
                   <option value="">All</option>
-                  {["Annual","Sick","Maternity","Paternity","Unpaid","Other"].map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
+                  {["Annual", "Sick", "Maternity", "Paternity", "Unpaid", "Other"].map(
+                    (t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
             )}
           </div>
 
           {/* Export */}
-          <div style={{ marginTop: 18 }}>
+          <div className="export">
             <button
               disabled={busy}
               onClick={handleExport}
-              style={{
-                padding: "12px 18px",
-                borderRadius: 12,
-                border: "1px solid #3b82f6",
-                background: busy ? "#93c5fd" : "#3b82f6",
-                color: "#fff",
-                fontWeight: 700,
-                cursor: busy ? "not-allowed" : "pointer",
-              }}
+              className={`btn-primary ${busy ? "is-busy" : ""}`}
             >
               {busy ? "Exporting..." : `Export ${selected.title}`}
             </button>
