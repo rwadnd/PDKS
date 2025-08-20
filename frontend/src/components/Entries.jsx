@@ -989,7 +989,11 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {/* removed threshold + sort controls near Export */}
             {/* search moved to second row */}
-            <div style={{ position: "relative" }} data-export-container>
+            <div
+              ref={exportRef}
+              style={{ position: "relative" }}
+              data-export-container
+            >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1595,6 +1599,14 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const exportOnTimeRef = useRef(null);
   const exportLateRef = useRef(null);
   const exportAbsentRef = useRef(null);
+
+  // Ensure any export dropdown is closed when modal context changes
+  useEffect(() => {
+    setExportOpen(false);
+    setExportOnTimeOpen(false);
+    setExportLateOpen(false);
+    setExportAbsentOpen(false);
+  }, [modal.open, modal.title, avgModalOpen]);
 
   // Close export menu on outside click or ESC
   useEffect(() => {
