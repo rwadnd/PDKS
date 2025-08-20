@@ -20,6 +20,10 @@ import {
 } from "react-icons/fa";
 import "../App.css";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import { FiFileText, FiFile } from "react-icons/fi";
+import { FaFilePdf } from "react-icons/fa";
 
 const Departments = ({ searchTerm }) => {
   const [departments, setDepartments] = useState([]);
@@ -44,10 +48,33 @@ const Departments = ({ searchTerm }) => {
     end: new Date().toISOString().slice(0, 10),
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("name"); // name | checkin | checkout | hours | overtime
+  const [sortBy, setSortBy] = useState("sortby"); // sortby (placeholder) | name | checkin | checkout | hours | overtime
   const [statusFilter, setStatusFilter] = useState("all"); // all | active | onleave | absent
+  const [showPersonnelFilters, setShowPersonnelFilters] = useState(false);
   const [showOvertimeOnly, setShowOvertimeOnly] = useState(false);
   const [openShiftOnly, setOpenShiftOnly] = useState(false);
+  const [hoursExportOpen, setHoursExportOpen] = useState(false);
+  const [personnelExportOpen, setPersonnelExportOpen] = useState(false);
+  const [personnelSearch, setPersonnelSearch] = useState("");
+  const [personnelStatusFilter, setPersonnelStatusFilter] = useState("all"); // all | active | onleave | absent
+  const [personnelDateFilter, setPersonnelDateFilter] = useState("today");
+  const todayStrPersonnel = new Date().toISOString().slice(0, 10);
+  const [personnelCustomRange, setPersonnelCustomRange] = useState({
+    start: todayStrPersonnel,
+    end: todayStrPersonnel,
+  });
+  const [personnelAggregates, setPersonnelAggregates] = useState(new Map());
+  const [isLoadingPersonnelAgg, setIsLoadingPersonnelAgg] = useState(false);
+  const personnelRowHeight = 72;
+  const [personnelScrollTop, setPersonnelScrollTop] = useState(0);
+  const [personnelViewportHeight, setPersonnelViewportHeight] = useState(600);
+  const personnelListRef = React.useRef(null);
+
+  useEffect(() => {
+    if (personnelListRef.current) {
+      setPersonnelViewportHeight(personnelListRef.current.clientHeight);
+    }
+  }, [showPersonnelModal]);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -194,7 +221,14 @@ const Departments = ({ searchTerm }) => {
         let statusLabel = "Absent";
         let statusClass = "status-absent";
 
-        if (hasTodayCheckIn) {
+        // Prioritize explicit leave status
+        if (
+          person.per_status === "OnLeave" ||
+          person.per_status === "OnSickLeave"
+        ) {
+          statusLabel = "On Leave";
+          statusClass = "status-onleave"; // falls back gracefully if class not defined
+        } else if (hasTodayCheckIn) {
           statusLabel = "Active";
           statusClass = "status-active";
         }
@@ -209,6 +243,13 @@ const Departments = ({ searchTerm }) => {
 
       setDepartmentPersonnel(personnelWithStatus);
       setShowPersonnelModal(true);
+      setPersonnelExportOpen(false);
+      setPersonnelSearch("");
+      setPersonnelDateFilter("today");
+      setPersonnelCustomRange({
+        start: todayStrPersonnel,
+        end: todayStrPersonnel,
+      });
     } catch (error) {
       console.error("Error fetching personnel:", error);
       alert("Error loading personnel data");
@@ -283,6 +324,10 @@ const Departments = ({ searchTerm }) => {
 
   const handleHoursClick = async (department) => {
     setHoursDepartment(department);
+    // Ensure default placeholder shows on open
+    setSortBy("sortby");
+    setSortDesc(true);
+    setHoursExportOpen(false);
     await fetchHoursData(department, dateFilter);
     setShowHoursModal(true);
   };
@@ -489,7 +534,7 @@ const Departments = ({ searchTerm }) => {
     });
 
     // If no explicit sort is chosen, return as-is
-    if (!sortBy) return withCalcs;
+    if (!sortBy || sortBy === "sortby") return withCalcs;
     const dir = sortDesc ? -1 : 1;
     const sorted = withCalcs.sort((a, b) => {
       if (sortBy === "name")
@@ -528,6 +573,180 @@ const Departments = ({ searchTerm }) => {
     sortDesc,
     dateFilter,
   ]);
+
+  const filteredPersonnel = useMemo(() => {
+    const rows = Array.isArray(departmentPersonnel) ? departmentPersonnel : [];
+    const s = (personnelSearch || "").trim().toLowerCase();
+    const bySearch = s
+      ? rows.filter((p) => {
+          const name = `${p.per_name || ""} ${p.per_lname || ""}`.toLowerCase();
+          const role = (p.per_role || "").toLowerCase();
+          return name.includes(s) || role.includes(s);
+        })
+      : rows;
+
+    // Status filter
+    const isOnLeave = (p) =>
+      p.per_status === "OnLeave" || p.per_status === "OnSickLeave";
+    const filtered = bySearch.filter((p) => {
+      if (personnelStatusFilter === "all") return true;
+      if (personnelStatusFilter === "active")
+        return !!p.hasTodayCheckIn && !isOnLeave(p);
+      if (personnelStatusFilter === "onleave") return isOnLeave(p);
+      if (personnelStatusFilter === "absent")
+        return !p.hasTodayCheckIn && !isOnLeave(p);
+      return true;
+    });
+
+    return filtered;
+  }, [departmentPersonnel, personnelSearch, personnelStatusFilter]);
+
+  const fetchPersonnelAggregates = async (department, filterType) => {
+    try {
+      if (!department) return;
+      setIsLoadingPersonnelAgg(true);
+      let startDate, endDate;
+      if (filterType === "today") {
+        startDate = endDate = todayStrPersonnel;
+      } else if (filterType === "this_week") {
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+        startDate = startOfWeek.toISOString().slice(0, 10);
+        endDate = endOfWeek.toISOString().slice(0, 10);
+      } else {
+        startDate = personnelCustomRange.start;
+        endDate = personnelCustomRange.end;
+      }
+
+      const promises = [];
+      const current = new Date(startDate);
+      const end = new Date(endDate);
+      while (current <= end) {
+        const dstr = current.toISOString().slice(0, 10);
+        promises.push(
+          axios.get(`http://localhost:5050/api/pdks/by-date/${dstr}`)
+        );
+        current.setDate(current.getDate() + 1);
+      }
+      const responses = await Promise.all(promises);
+      const allRecords = responses.flatMap((r) => r.data || []);
+      const deptRecords = allRecords.filter(
+        (r) => r.per_department === department.name
+      );
+      const map = new Map();
+      deptRecords.forEach((r) => {
+        const key = r.per_id;
+        const inTime =
+          r.pdks_checkInTime && r.pdks_checkInTime !== "00:00:00"
+            ? r.pdks_checkInTime.slice(0, 5)
+            : null;
+        const outTime =
+          r.pdks_checkOutTime && r.pdks_checkOutTime !== "00:00:00"
+            ? r.pdks_checkOutTime.slice(0, 5)
+            : null;
+        if (!map.has(key)) {
+          map.set(key, { totalWorkedMin: 0, totalDays: 0, avgWorkedMin: 0 });
+        }
+        if (inTime && outTime) {
+          const [inH, inM] = inTime.split(":").map(Number);
+          const [outH, outM] = outTime.split(":").map(Number);
+          const workedMin = outH * 60 + outM - (inH * 60 + inM);
+          const agg = map.get(key);
+          agg.totalWorkedMin += workedMin;
+          agg.totalDays += 1;
+        }
+      });
+      map.forEach((v) => {
+        v.avgWorkedMin =
+          v.totalDays > 0 ? Math.round(v.totalWorkedMin / v.totalDays) : 0;
+      });
+      setPersonnelAggregates(map);
+    } catch (e) {
+      setPersonnelAggregates(new Map());
+    } finally {
+      setIsLoadingPersonnelAgg(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showPersonnelModal && selectedDepartment) {
+      fetchPersonnelAggregates(selectedDepartment, personnelDateFilter);
+    }
+  }, [
+    showPersonnelModal,
+    selectedDepartment,
+    personnelDateFilter,
+    personnelCustomRange,
+  ]);
+
+  const exportPersonnelToCSV = React.useCallback(() => {
+    const data = filteredPersonnel || [];
+    const csvContent = [
+      "Personnel,Role,Status",
+      ...data.map((row) =>
+        [
+          `${row.per_name || ""} ${row.per_lname || ""}`.trim(),
+          row.per_role || "-",
+          row.statusLabel || "-",
+        ].join(",")
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `${selectedDepartment?.name || "Department"}_Personnel.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [filteredPersonnel, selectedDepartment]);
+
+  const exportPersonnelToXLSX = React.useCallback(() => {
+    const headers = ["Personnel", "Role", "Status"];
+    const rows = (filteredPersonnel || []).map((r) => [
+      `${r.per_name || ""} ${r.per_lname || ""}`.trim(),
+      r.per_role || "-",
+      r.statusLabel || "-",
+    ]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, "Personnel");
+    XLSX.writeFile(
+      wb,
+      `${selectedDepartment?.name || "Department"}_Personnel.xlsx`
+    );
+  }, [filteredPersonnel, selectedDepartment]);
+
+  const exportPersonnelToPDF = React.useCallback(() => {
+    const doc = new jsPDF();
+    let y = 10;
+    doc.setFontSize(12);
+    doc.text(`${selectedDepartment?.name || "Department"} – Personnel`, 10, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.text("Personnel", 10, y);
+    doc.text("Role", 100, y);
+    doc.text("Status", 160, y);
+    y += 6;
+    (filteredPersonnel || []).forEach((r) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 10;
+      }
+      doc.text(`${(r.per_name || "") + " " + (r.per_lname || "")}`, 10, y);
+      doc.text(String(r.per_role || "-"), 100, y);
+      doc.text(String(r.statusLabel || "-"), 160, y);
+      y += 6;
+    });
+    doc.save(`${selectedDepartment?.name || "Department"}_Personnel.pdf`);
+  }, [filteredPersonnel, selectedDepartment]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -576,7 +795,7 @@ const Departments = ({ searchTerm }) => {
     setHoursSearch("");
     setOvertimeThresholdMin(480);
     setDefaultBreakMin(0);
-    setSortBy("name");
+    setSortBy("sortby");
     setSortDesc(true);
     setStatusFilter("all");
     setShowOvertimeOnly(false);
@@ -614,6 +833,106 @@ const Departments = ({ searchTerm }) => {
     return { totalOvertime, avgWorked };
   }, [computedHoursView]);
 
+  const exportHoursToCSV = React.useCallback(() => {
+    const data = computedHoursView || [];
+    const csvContent = [
+      "Foto,Personel,Giriş,Çıkış,Toplam Saat,Fazla Mesai",
+      ...data.map((row) =>
+        [
+          row.per_avatar || "Foto",
+          `${row.per_name || ""} ${row.per_lname || ""}`.trim(),
+          row.inTime,
+          row.outTime,
+          formatHM(row.workedMin),
+          row.overtimeMin > 0 ? formatHM(row.overtimeMin) : "-",
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `${
+        hoursDepartment?.name || "Department"
+      }_Hours_${getCurrentRangeLabel()}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [computedHoursView, hoursDepartment, getCurrentRangeLabel]);
+
+  const exportHoursToXLSX = React.useCallback(() => {
+    const headers = [
+      "Personnel",
+      "Check-in",
+      "Check-out",
+      "Total Hours",
+      "Overtime",
+    ];
+    const rows = (computedHoursView || []).map((row) => [
+      `${row.per_name || ""} ${row.per_lname || ""}`.trim(),
+      row.inTime,
+      row.outTime,
+      formatHM(row.workedMin),
+      row.overtimeMin > 0 ? formatHM(row.overtimeMin) : "-",
+    ]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, "Hours");
+    XLSX.writeFile(
+      wb,
+      `${
+        hoursDepartment?.name || "Department"
+      }_Hours_${getCurrentRangeLabel()}.xlsx`
+    );
+  }, [computedHoursView, hoursDepartment, getCurrentRangeLabel]);
+
+  const exportHoursToPDF = React.useCallback(() => {
+    const doc = new jsPDF();
+    let y = 10;
+    doc.setFontSize(12);
+    doc.text(
+      `${
+        hoursDepartment?.name || "Department"
+      } – Hours ${getCurrentRangeLabel()}`,
+      10,
+      y
+    );
+    y += 8;
+    doc.setFontSize(10);
+    doc.text("Personnel", 10, y);
+    doc.text("Check-in", 70, y);
+    doc.text("Check-out", 100, y);
+    doc.text("Total", 140, y);
+    doc.text("Overtime", 170, y);
+    y += 6;
+    (computedHoursView || []).forEach((row) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 10;
+      }
+      doc.text(`${(row.per_name || "") + " " + (row.per_lname || "")}`, 10, y);
+      doc.text(String(row.inTime || "-"), 70, y);
+      doc.text(String(row.outTime || "-"), 100, y);
+      doc.text(String(formatHM(row.workedMin || 0)), 140, y);
+      doc.text(
+        String(row.overtimeMin > 0 ? formatHM(row.overtimeMin) : "-"),
+        170,
+        y
+      );
+      y += 6;
+    });
+    doc.save(
+      `${
+        hoursDepartment?.name || "Department"
+      }_Hours_${getCurrentRangeLabel()}.pdf`
+    );
+  }, [computedHoursView, hoursDepartment, getCurrentRangeLabel]);
+
   // Load saved filters on mount
   useEffect(() => {
     try {
@@ -625,7 +944,7 @@ const Departments = ({ searchTerm }) => {
         setOvertimeThresholdMin(Number(f.overtimeThresholdMin));
       if (f.defaultBreakMin != null)
         setDefaultBreakMin(Number(f.defaultBreakMin));
-      if (typeof f.sortBy === "string") setSortBy(f.sortBy);
+      // do not restore sortBy; default should be placeholder "Sort By"
       if (typeof f.sortDesc === "boolean") setSortDesc(f.sortDesc);
       if (typeof f.statusFilter === "string") setStatusFilter(f.statusFilter);
       if (typeof f.showOvertimeOnly === "boolean")
@@ -654,7 +973,6 @@ const Departments = ({ searchTerm }) => {
       hoursSearch,
       overtimeThresholdMin,
       defaultBreakMin,
-      sortBy,
       sortDesc,
       statusFilter,
       showOvertimeOnly,
@@ -1010,7 +1328,10 @@ const Departments = ({ searchTerm }) => {
                       cursor: "pointer",
                       transition: "all 0.2s ease",
                     }}
-                    onClick={() => handleShowPersonnel(dep)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShowPersonnel(dep);
+                    }}
                     onMouseEnter={(e) => {
                       e.target.style.transform = "translateY(-1px)";
                     }}
@@ -1645,7 +1966,6 @@ const Departments = ({ searchTerm }) => {
         </div>
       )}
 
-      {/* Personnel Modal */}
       {showPersonnelModal && (
         <div
           style={{
@@ -1660,7 +1980,13 @@ const Departments = ({ searchTerm }) => {
             justifyContent: "center",
             zIndex: 1000,
           }}
-          onClick={() => setShowPersonnelModal(false)}
+          onClick={() => {
+            if (personnelExportOpen) {
+              setPersonnelExportOpen(false);
+              return;
+            }
+            setShowPersonnelModal(false);
+          }}
         >
           <div
             style={{
@@ -1693,19 +2019,343 @@ const Departments = ({ searchTerm }) => {
               >
                 {selectedDepartment?.name} Personnel
               </h2>
-              <button
-                onClick={() => setShowPersonnelModal(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                  color: "#64748b",
-                  padding: "4px",
-                }}
-              >
-                ✕
-              </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setPersonnelExportOpen((v) => !v)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      background: "linear-gradient(180deg,#ffffff,#f8fafc)",
+                      color: "#111827",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      minWidth: 96,
+                      boxShadow: personnelExportOpen
+                        ? "inset 0 1px 3px rgba(0,0,0,0.06)"
+                        : "0 1px 2px rgba(0,0,0,0.04)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                    title="Export"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7,10 12,15 17,10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Export
+                  </button>
+                  {personnelExportOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: "calc(100% + 8px)",
+                        background: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
+                        zIndex: 10,
+                        overflow: "hidden",
+                        minWidth: 180,
+                        padding: 6,
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          exportPersonnelToCSV();
+                          setPersonnelExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#fff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FiFileText size={16} style={{ color: "#374151" }} />
+                        <span>CSV</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportPersonnelToXLSX();
+                          setPersonnelExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#fff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FiFile size={16} style={{ color: "#16a34a" }} />
+                        <span>XLSX</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportPersonnelToPDF();
+                          setPersonnelExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#fff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FaFilePdf size={16} style={{ color: "#dc2626" }} />
+                        <span>PDF</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowPersonnelModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    padding: "4px",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Controls under title */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <input
+                  value={personnelSearch}
+                  onChange={(e) => setPersonnelSearch(e.target.value)}
+                  placeholder="Search personnel..."
+                  style={{
+                    padding: "8px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    width: 320,
+                  }}
+                />
+                <button
+                  onClick={() => setShowPersonnelFilters((v) => !v)}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 6,
+                    backgroundColor: "#f8fafc",
+                    color: "#374151",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    height: 33,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3" />
+                  </svg>
+                  {showPersonnelFilters ? "Hide Filters" : "Filter"}
+                </button>
+              </div>
+
+              {showPersonnelFilters && (
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <select
+                    value={personnelStatusFilter}
+                    onChange={(e) => setPersonnelStatusFilter(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 6,
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      minWidth: 140,
+                      height: 33,
+                      boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
+                      appearance: "none",
+                      backgroundImage:
+                        "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                      paddingRight: 36,
+                      fontSize: 13,
+                    }}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="onleave">On Leave</option>
+                    <option value="absent">Absent</option>
+                  </select>
+                  <select
+                    value={personnelDateFilter}
+                    onChange={(e) => setPersonnelDateFilter(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 6,
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      minWidth: 140,
+                      height: 33,
+                      boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
+                      appearance: "none",
+                      backgroundImage:
+                        "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                      paddingRight: 36,
+                      fontSize: 13,
+                    }}
+                  >
+                    <option value="today">Today</option>
+                    <option value="this_week">This week</option>
+                    <option value="custom_range">Custom range</option>
+                  </select>
+                  {personnelDateFilter === "custom_range" && (
+                    <>
+                      <input
+                        type="date"
+                        value={personnelCustomRange.start}
+                        onChange={(e) =>
+                          setPersonnelCustomRange((prev) => ({
+                            ...prev,
+                            start: e.target.value,
+                          }))
+                        }
+                        style={{
+                          padding: "6px 12px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 6,
+                          backgroundColor: "#ffffff",
+                          color: "#111827",
+                          height: 33,
+                          boxSizing: "border-box",
+                          appearance: "none",
+                          WebkitAppearance: "none",
+                          MozAppearance: "textfield",
+                          fontSize: 13,
+                        }}
+                      />
+                      <span style={{ color: "#6b7280", fontSize: 13 }}>to</span>
+                      <input
+                        type="date"
+                        value={personnelCustomRange.end}
+                        onChange={(e) =>
+                          setPersonnelCustomRange((prev) => ({
+                            ...prev,
+                            end: e.target.value,
+                          }))
+                        }
+                        style={{
+                          padding: "6px 12px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 6,
+                          backgroundColor: "#ffffff",
+                          color: "#111827",
+                          height: 33,
+                          boxSizing: "border-box",
+                          appearance: "none",
+                          WebkitAppearance: "none",
+                          MozAppearance: "textfield",
+                          fontSize: 13,
+                        }}
+                      />
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      const todayStr = new Date().toISOString().slice(0, 10);
+                      setPersonnelSearch("");
+                      setPersonnelStatusFilter("all");
+                      setPersonnelDateFilter("today");
+                      setPersonnelCustomRange({
+                        start: todayStr,
+                        end: todayStr,
+                      });
+                    }}
+                    style={{
+                      padding: "6px 10px",
+                      border: "1px solid #fecaca",
+                      borderRadius: 5,
+                      backgroundColor: "#fee2e2",
+                      color: "#991b1b",
+                      cursor: "pointer",
+                      height: 28,
+                      width: 34,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    title="Reset"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Personnel Table */}
@@ -1729,7 +2379,7 @@ const Departments = ({ searchTerm }) => {
               <div style={{ justifySelf: "center" }}>Status</div>
             </div>
 
-            {departmentPersonnel.length === 0 ? (
+            {(filteredPersonnel || []).length === 0 ? (
               <div
                 style={{
                   textAlign: "center",
@@ -1741,7 +2391,7 @@ const Departments = ({ searchTerm }) => {
                 No personnel found in this department
               </div>
             ) : (
-              departmentPersonnel.map((person, index) => (
+              filteredPersonnel.map((person, index) => (
                 <div
                   key={person.per_id}
                   style={{
@@ -1839,7 +2489,13 @@ const Departments = ({ searchTerm }) => {
             justifyContent: "center",
             zIndex: 1000,
           }}
-          onClick={() => setShowHoursModal(false)}
+          onClick={() => {
+            if (hoursExportOpen) {
+              setHoursExportOpen(false);
+              return;
+            }
+            setShowHoursModal(false);
+          }}
         >
           <div
             style={{
@@ -1927,6 +2583,16 @@ const Departments = ({ searchTerm }) => {
                     gap: "6px",
                   }}
                 >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3" />
+                  </svg>
                   {showFilters ? "Hide Filters" : "Filter"}
                   {activeFilterCount > 0 && (
                     <span
@@ -1949,58 +2615,134 @@ const Departments = ({ searchTerm }) => {
                     </span>
                   )}
                 </button>
-                <button
-                  onClick={() => {
-                    const data = computedHoursView;
-                    const csvContent = [
-                      "Foto,Personel,Çıkış,Çıkış,Toplam Saat,Fazla Mesai",
-                      ...data.map((row) =>
-                        [
-                          row.per_avatar || "Foto",
-                          `${row.per_name || ""} ${row.per_lname || ""}`,
-                          row.inTime,
-                          row.outTime,
-                          formatHM(row.workedMin),
-                          row.overtimeMin > 0 ? formatHM(row.overtimeMin) : "-",
-                        ].join(",")
-                      ),
-                    ].join("\n");
-
-                    const blob = new Blob([csvContent], {
-                      type: "text/csv;charset=utf-8;",
-                    });
-                    const link = document.createElement("a");
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute(
-                      "download",
-                      `${
-                        hoursDepartment?.name || "Department"
-                      }_Hours_${getCurrentRangeLabel()}.csv`
-                    );
-                    link.style.visibility = "hidden";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 6,
-                    backgroundColor: "#f8fafc",
-                    color: "#374151",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    height: 33,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    marginLeft: "auto",
-                  }}
-                  title="Export CSV"
+                <div
+                  style={{ position: "relative", marginLeft: "auto" }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Export CSV
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHoursExportOpen((v) => !v);
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      background: "linear-gradient(180deg,#ffffff,#f8fafc)",
+                      color: "#111827",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      minWidth: 96,
+                      boxShadow: hoursExportOpen
+                        ? "inset 0 1px 3px rgba(0,0,0,0.06)"
+                        : "0 1px 2px rgba(0,0,0,0.04)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                    title="Export"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7,10 12,15 17,10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Export
+                  </button>
+                  {hoursExportOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: "calc(100% + 8px)",
+                        background: "#ffffff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
+                        zIndex: 10,
+                        overflow: "hidden",
+                        minWidth: 180,
+                        backdropFilter: "blur(6px)",
+                        padding: 6,
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          exportHoursToCSV();
+                          setHoursExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FiFileText size={16} style={{ color: "#374151" }} />
+                        <span>CSV</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportHoursToXLSX();
+                          setHoursExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FiFile size={16} style={{ color: "#16a34a" }} />
+                        <span>XLSX</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          exportHoursToPDF();
+                          setHoursExportOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          background: "#ffffff",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontSize: 12,
+                          color: "#111827",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <FaFilePdf size={16} style={{ color: "#dc2626" }} />
+                        <span>PDF</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={addTestPersonRow}
                   style={{
@@ -2037,7 +2779,7 @@ const Departments = ({ searchTerm }) => {
                         borderRadius: 6,
                         backgroundColor: "#ffffff",
                         color: "#111827",
-                        minWidth: 80,
+                        width: 100,
                         height: 33,
                         boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
                         appearance: "none",
@@ -2074,7 +2816,7 @@ const Departments = ({ searchTerm }) => {
                         borderRadius: 6,
                         backgroundColor: "#ffffff",
                         color: "#111827",
-                        minWidth: 140,
+                        width: 110,
                         height: 33,
                         boxShadow: "0 2px 8px rgba(2,6,23,0.05)",
                         appearance: "none",
@@ -2228,7 +2970,7 @@ const Departments = ({ searchTerm }) => {
                         onChange={(e) => setOpenShiftOnly(e.target.checked)}
                         style={{ width: 16, height: 16, cursor: "pointer" }}
                       />
-                      Open shift only
+                      Open shift
                     </label>
                     <button
                       onClick={resetFilters}
@@ -2239,13 +2981,29 @@ const Departments = ({ searchTerm }) => {
                         backgroundColor: "#fee2e2",
                         color: "#991b1b",
                         cursor: "pointer",
-                        fontSize: 11,
                         height: 28,
                         marginLeft: 6,
+                        width: 34,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                       title="Reset filters"
                     >
-                      Reset
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
                     </button>
                   </div>
 
