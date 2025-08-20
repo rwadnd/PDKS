@@ -1522,6 +1522,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const exportOnTimeRef = useRef(null);
   const exportLateRef = useRef(null);
   const exportAbsentRef = useRef(null);
+  const lastRecordsHashRef = useRef("");
 
   // Close export menu on outside click or ESC
   useEffect(() => {
@@ -1573,6 +1574,26 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
       .then((res) => setRecords(res.data))
       .catch((err) => console.error(err));
   }, []);
+
+  // Auto-refresh today's records periodically (e.g., every 10 seconds)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      axios
+        .get(`http://localhost:5050/api/pdks/by-date/${todayStr}`)
+        .then((res) => {
+          const data = Array.isArray(res.data) ? res.data : [];
+          const hash = JSON.stringify(
+            data.map((r) => [r.per_id, r.pdks_checkInTime, r.pdks_checkOutTime])
+          );
+          if (hash !== lastRecordsHashRef.current) {
+            lastRecordsHashRef.current = hash;
+            setRecords(data);
+          }
+        })
+        .catch(() => {});
+    }, 10000); // 10s
+    return () => clearInterval(intervalId);
+  }, [todayStr]);
 
   // Calculate stats for cards
   const lastEntryRecord = records[0];
