@@ -119,20 +119,6 @@ const getMinutesLateFromEight = (timeStr) => {
   return Math.max(0, minutes - 480);
 };
 
-const getLatenessSeverity = (timeStr) => {
-  const late = getMinutesLateFromEight(timeStr);
-  const bucket = Math.min(5, Math.floor(late / 10)); // 0..5 within 08:00–09:00
-  const levels = [
-    { label: "Low", color: "#10b981" },
-    { label: "Mild", color: "#84cc16" },
-    { label: "Moderate", color: "#f59e0b" },
-    { label: "Elevated", color: "#f97316" },
-    { label: "High", color: "#ef4444" },
-    { label: "Critical", color: "#991b1b" },
-  ];
-  return levels[bucket];
-};
-
 // --- Semicircle SVG gauge (Low → High) ---
 function polarToCartesian(cx, cy, r, angleDeg) {
   const rad = (Math.PI / 180) * angleDeg;
@@ -279,47 +265,6 @@ const GaugeWithTooltip = ({ timeStr }) => {
           {severity}
         </div>
       )}
-    </div>
-  );
-};
-
-const SeverityBar = ({ timeStr }) => {
-  const late = getMinutesLateFromEight(timeStr);
-  const clamped = Math.max(0, Math.min(60, late));
-  const pct = (clamped / 60) * 100;
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          width: 140,
-          height: 12,
-          borderRadius: 999,
-          background:
-            "linear-gradient(90deg,#10b981 0%,#84cc16 20%,#f59e0b 40%,#f97316 60%,#ef4444 80%,#991b1b 100%)",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -6,
-            left: `calc(${pct}% - 8px)`,
-            width: 16,
-            height: 16,
-            borderRadius: "50%",
-            background: "#475569",
-            border: "2px solid #ffffff",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
-          }}
-        />
-      </div>
     </div>
   );
 };
@@ -643,24 +588,6 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
     const parts = t.length === 5 ? `${t}:00` : t;
     const [h, m] = parts.split(":").map(Number);
     return h * 60 + m;
-  }, []);
-
-  // Update absent reason (OnLeave vs no reason) for Absent Today
-  const handleAbsentReasonChange = useCallback(async (person, value) => {
-    try {
-      const payload =
-        value === "OnLeave"
-          ? { status: "OnLeave" }
-          : value === "OnSickLeave"
-          ? { status: "OnSickLeave" }
-          : { status: "Active" }; // clear reason (did not come)
-      await axios.put(`/api/personnel/${person.per_id}`, payload);
-      // optimistic local update
-      person.per_status = payload.status;
-    } catch (err) {
-      console.error("Failed to update absent reason", err);
-      window.alert("Couldn't update reason");
-    }
   }, []);
 
   // Load all leave requests once; we'll filter by selected date on the client
@@ -989,11 +916,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {/* removed threshold + sort controls near Export */}
             {/* search moved to second row */}
-            <div
-              ref={exportRef}
-              style={{ position: "relative" }}
-              data-export-container
-            >
+            <div style={{ position: "relative" }} data-export-container>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1600,14 +1523,6 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const exportLateRef = useRef(null);
   const exportAbsentRef = useRef(null);
 
-  // Ensure any export dropdown is closed when modal context changes
-  useEffect(() => {
-    setExportOpen(false);
-    setExportOnTimeOpen(false);
-    setExportLateOpen(false);
-    setExportAbsentOpen(false);
-  }, [modal.open, modal.title, avgModalOpen]);
-
   // Close export menu on outside click or ESC
   useEffect(() => {
     const handleClick = (e) => {
@@ -1970,59 +1885,34 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
     [makePersonnelAoa]
   );
 
-  const exportPersonnelXlsx = useCallback(
-    (list, base) => {
-      const aoa = makePersonnelAoa(list);
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      XLSX.utils.book_append_sheet(wb, ws, "Data");
-      const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `${base}_${dateStr}.xlsx`);
-    },
-    [makePersonnelAoa]
-  );
+  const [leaves, setLeaves] = useState([]);
 
-  const exportPersonnelPdf = useCallback((list, base) => {
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(base.replace(/_/g, " "), 14, 16);
-    doc.setFontSize(10);
-    let y = 24;
-    doc.text("Name | Department | Role | Status | Check-in | Check-out", 14, y);
-    y += 6;
-    (list || []).forEach((p) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
-      const dept = p.per_department || "";
-      const role = p.per_role || "";
-      const checkIn =
-        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
-          ? p.pdks_checkInTime.slice(0, 5)
-          : "-";
-      const checkOut =
-        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
-          ? p.pdks_checkOutTime.slice(0, 5)
-          : "-";
-      let status = p.per_status || "-";
-      if (checkIn !== "-") {
-        const [h, m] = (p.pdks_checkInTime || "00:00:00")
-          .split(":")
-          .map(Number);
-        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
-      }
-      doc.text(
-        `${name} | ${dept} | ${role} | ${status} | ${checkIn} | ${checkOut}`,
-        14,
-        y
-      );
-      y += 6;
-    });
-    const dateStr = new Date().toISOString().slice(0, 10);
-    doc.save(`${base}_${dateStr}.pdf`);
+  // fetch all leaves once
+  useEffect(() => {
+    axios
+      .get("/api/leave")
+      .then((res) => setLeaves(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setLeaves([]));
   }, []);
+
+  // build index for *today*
+  const leaveIndexToday = useMemo(() => {
+    const idx = new Map();
+    const d = new Date(todayStr); // todayStr already defined in your code
+    const rank = { Approved: 3, Pending: 2, Rejected: 1 }; // prefer Approved > Pending > Rejected
+    leaves.forEach((lr) => {
+      const s = new Date(lr.request_start_date);
+      const e = new Date(lr.request_end_date);
+      if (isNaN(s) || isNaN(e)) return;
+      if (d >= s && d <= e) {
+        const prev = idx.get(lr.personnel_per_id);
+        if (!prev || (rank[lr.status] || 0) > (rank[prev.status] || 0)) {
+          idx.set(lr.personnel_per_id, lr);
+        }
+      }
+    });
+    return idx;
+  }, [leaves, todayStr]);
 
   const todayEntries = records.filter((record) => {
     return (
@@ -2477,7 +2367,18 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
 
                     {/* Status */}
                     <div style={{ display: "flex", justifyContent: "center" }}>
-                      {statusDot(entry.per_status, entry.pdks_checkInTime)}
+                      {(() => {
+                        const lr = leaveIndexToday.get(entry.per_id);
+                        const effectiveStatus =
+                          lr &&
+                          (lr.status === "Approved" || lr.status === "Pending")
+                            ? "OnLeave" // force yellow in statusDot
+                            : entry.per_status;
+                        return statusDot(
+                          effectiveStatus,
+                          entry.pdks_checkInTime
+                        );
+                      })()}
                     </div>
                   </div>
                 );
