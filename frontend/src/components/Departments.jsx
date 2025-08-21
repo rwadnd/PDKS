@@ -25,7 +25,7 @@ import jsPDF from "jspdf";
 import { FiFileText, FiFile } from "react-icons/fi";
 import { FaFilePdf } from "react-icons/fa";
 
-const Departments = ({ searchTerm }) => {
+const Departments = ({ searchTerm, filtersOpen }) => {
   const [departments, setDepartments] = useState([]);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showModal, setShowModal] = useState(false);
