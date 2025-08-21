@@ -46,12 +46,13 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+/* Remove default hover/focus borders applied by Vite template */
 button:hover {
-  border-color: #646cff;
+  border-color: inherit;
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: none;
 }
 
 @media (prefers-color-scheme: light) {
