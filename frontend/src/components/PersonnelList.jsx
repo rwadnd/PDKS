@@ -13,7 +13,7 @@ import { FaBuilding } from "react-icons/fa";
 const FALLBACK_AVATAR =
   "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=111827";
 
-const PersonnelList = ({ searchTerm }) => {
+const PersonnelList = ({ searchTerm, filtersOpen }) => {
   const [personnel, setPersonnel] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -453,6 +453,31 @@ const PersonnelList = ({ searchTerm }) => {
       {/* Personnel Grid with Department filter */}
       {!loading && (
         <div>
+          {filtersOpen && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 0",
+                marginBottom: 8,
+              }}
+            >
+              {/* Placeholder for future personnel page filters */}
+              <div
+                style={{
+                  padding: "10px 14px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  backgroundColor: "#ffffff",
+                  color: "#111827",
+                  fontSize: 13,
+                }}
+              >
+                Filters coming soon
+              </div>
+            </div>
+          )}
           <div className="personnel-grid">
             {personnel
               .filter((entry) =>

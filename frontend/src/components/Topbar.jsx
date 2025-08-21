@@ -1,6 +1,6 @@
 import "../App.css";
 import "./Topbar.css";
-import { FaSearch, FaBell } from "react-icons/fa";
+import { FaSearch, FaBell, FaFilter } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
@@ -15,6 +15,9 @@ const Topbar = ({
   onChangePage,
   leaveRequests,
   setLeaveRequests,
+  showFilterButton,
+  filtersOpen,
+  onToggleFilters,
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -32,14 +35,21 @@ const Topbar = ({
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const dropdownContainer = document.getElementById("user-dropdown-container");
-      const notificationsContainer = document.getElementById("notifications-container");
+      const dropdownContainer = document.getElementById(
+        "user-dropdown-container"
+      );
+      const notificationsContainer = document.getElementById(
+        "notifications-container"
+      );
       const settingsContainer = document.getElementById("settings-container");
 
       if (dropdownContainer && !dropdownContainer.contains(event.target)) {
         setShowDropdown(false);
       }
-      if (notificationsContainer && !notificationsContainer.contains(event.target)) {
+      if (
+        notificationsContainer &&
+        !notificationsContainer.contains(event.target)
+      ) {
         setShowNotifications(false);
       }
       if (settingsContainer && !settingsContainer.contains(event.target)) {
@@ -55,9 +65,9 @@ const Topbar = ({
 
   const DEFAULT_AVATAR = "https://randomuser.me/api/portraits/women/44.jpg";
   const avatarSrc = user?.avatar_url
-    ? (user.avatar_url.startsWith("http")
-        ? user.avatar_url
-        : `${user.avatar_url.startsWith("/") ? "" : "/"}${user.avatar_url}`)
+    ? user.avatar_url.startsWith("http")
+      ? user.avatar_url
+      : `${user.avatar_url.startsWith("/") ? "" : "/"}${user.avatar_url}`
     : DEFAULT_AVATAR;
 
   // Approve/Reject leave requests (optimistic update)
@@ -68,7 +78,9 @@ const Topbar = ({
         const filtered = prev.filter((r) => r.request_id !== id);
         return [{ ...approvedRequest, status: "Approved" }, ...filtered];
       });
-      await axios.put(`http://localhost:5050/api/leave/${id}`, { status: "Approved" });
+      await axios.put(`http://localhost:5050/api/leave/${id}`, {
+        status: "Approved",
+      });
     } catch (error) {
       console.error("Failed to approve request:", error);
     }
@@ -81,42 +93,89 @@ const Topbar = ({
         const filtered = prev.filter((r) => r.request_id !== id);
         return [{ ...rejectedRequest, status: "Rejected" }, ...filtered];
       });
-      await axios.put(`http://localhost:5050/api/leave/${id}`, { status: "Rejected" });
+      await axios.put(`http://localhost:5050/api/leave/${id}`, {
+        status: "Rejected",
+      });
     } catch (error) {
       console.error("Failed to reject request:", error);
     }
   };
 
-  const formatDate = (dateString) => format(new Date(dateString), "dd MMM yyyy");
+  const formatDate = (dateString) =>
+    format(new Date(dateString), "dd MMM yyyy");
 
   const handleLogout = () => {
     onLogout();
     setShowDropdown(false);
   };
 
-  const pendingCount = leaveRequests.filter((r) => r.status === "Pending").length;
+  const pendingCount = leaveRequests.filter(
+    (r) => r.status === "Pending"
+  ).length;
 
   return (
     <header className="topbar">
       <div className="topbar__inner">
         {/* Left - Dashboard */}
-        <div className="topbar__title" onClick={onToggleSidebar}>
+        <div
+          className="topbar__title"
+          onClick={onToggleSidebar}
+          style={{ marginRight: 100 }}
+        >
           Dashboard
         </div>
 
-        {/* Center - Search */}
+        {/* Center - Search + Filter toggle */}
         {!hideSearch && (
-          <div className="topbar__searchWrap">
-            <div className="topbar__searchIcon">
-              <FaSearch />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginLeft: 12,
+            }}
+          >
+            <div className="topbar__searchWrap">
+              <div className="topbar__searchIcon">
+                <FaSearch />
+              </div>
+              <input
+                className="topbar__searchInput"
+                type="text"
+                placeholder="Search for something"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
             </div>
-            <input
-              className="topbar__searchInput"
-              type="text"
-              placeholder="Search for something"
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
+            {showFilterButton && (
+              <button
+                type="button"
+                className="notifBtn"
+                onClick={onToggleFilters}
+                aria-label="Toggle filters"
+                title={filtersOpen ? "Hide filters" : "Show filters"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: filtersOpen ? "#2563eb" : undefined,
+                  marginLeft: 7,
+                  background: "#f8fafc",
+                  outline: "none",
+                  boxShadow: "none",
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.outline = "none";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.outline = "none";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <FaFilter />
+              </button>
+            )}
           </div>
         )}
 
@@ -129,7 +188,7 @@ const Topbar = ({
             onClick={() => setShowNotifications((s) => !s)}
             aria-label="Notifications"
           >
-            <FaBell/>
+            <FaBell />
             {pendingCount > 0 && <span className="notifBtn__badge" />}
           </button>
         </div>
@@ -162,11 +221,15 @@ const Topbar = ({
               ) : (
                 [...leaveRequests]
                   .filter((r) => r.status === "Pending")
-                  .sort((a, b) => new Date(b.request_date) - new Date(a.request_date))
+                  .sort(
+                    (a, b) =>
+                      new Date(b.request_date) - new Date(a.request_date)
+                  )
                   .map((request) => {
                     const start = new Date(request.request_start_date);
                     const end = new Date(request.request_end_date);
-                    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    const days =
+                      Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
                     return (
                       <div key={request.request_id} className="notifItem">
                         <div className="notifItem__row">
@@ -176,7 +239,8 @@ const Topbar = ({
                           <span className="notifItem__type">Leave Request</span>
                         </div>
                         <div className="notifItem__meta">
-                          {formatDate(request.request_start_date)} - {formatDate(request.request_end_date)} • {days}{" "}
+                          {formatDate(request.request_start_date)} -{" "}
+                          {formatDate(request.request_end_date)} • {days}{" "}
                           {days === 1 ? "day" : "days"}
                         </div>
                         <div className="notifItem__actions">
@@ -212,7 +276,9 @@ const Topbar = ({
           >
             <img className="user__img" src={avatarSrc} alt="User" />
             <div className="user__info">
-              <div className="user__name">{user ? user.full_name : "Loading..."}</div>
+              <div className="user__name">
+                {user ? user.full_name : "Loading..."}
+              </div>
               <div className="user__role">{user?.role || "Admin"}</div>
             </div>
             <div className="user__caret">▼</div>
@@ -231,7 +297,11 @@ const Topbar = ({
                 Profile
               </button>
 
-              <button type="button" className="menuItem menuItem--danger" onClick={handleLogout}>
+              <button
+                type="button"
+                className="menuItem menuItem--danger"
+                onClick={handleLogout}
+              >
                 Logout
               </button>
             </div>
