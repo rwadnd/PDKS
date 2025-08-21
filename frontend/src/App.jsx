@@ -10,9 +10,10 @@ import Entries from "./components/Entries";
 import LeaveRequests from "./components/LeaveRequests";
 import Profile from "./components/Profile";
 import Login from "./components/Login";
-import Reporting from './components/Reporting'
+import Reporting from "./components/Reporting";
 import "./App.css";
 import axios from "axios";
+import FilterBar from "./components/FilterBar";
 
 const App = () => {
   // Read initial page from URL
@@ -26,6 +27,21 @@ const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [previousPage, setPreviousPage] = useState(null);
   const [leaveRequests, setLeaveRequests] = useState([]);
+  // Entries page filters
+  const [entriesDept, setEntriesDept] = useState("All");
+  const [entriesRole, setEntriesRole] = useState("All");
+  const [entriesStatus, setEntriesStatus] = useState("All");
+  const [entriesLateThr, setEntriesLateThr] = useState("08:30");
+  const [entriesDate, setEntriesDate] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [entriesGrace, setEntriesGrace] = useState(0);
+  // removed per-department thresholds UI/state but keep prop compatibility
+  const [entriesDeptThresholds, setEntriesDeptThresholds] = useState({});
+  const [entriesFiltersOpen, setEntriesFiltersOpen] = useState(false);
+  const [personnelFiltersOpen, setPersonnelFiltersOpen] = useState(false);
+  const [departmentFiltersOpen, setDepartmentFiltersOpen] = useState(false);
+  const [entriesSelectedDepts, setEntriesSelectedDepts] = useState([]);
 
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
@@ -148,6 +164,27 @@ const App = () => {
           onChangePage={changePage}
           leaveRequests={leaveRequests}
           setLeaveRequests={setLeaveRequests}
+          showFilterButton={
+            (activePage === "entries" && !selectedPerson) ||
+            (activePage === "personnel" && !selectedPerson) ||
+            activePage === "departments"
+          }
+          filtersOpen={
+            activePage === "entries"
+              ? entriesFiltersOpen
+              : activePage === "personnel"
+              ? personnelFiltersOpen
+              : activePage === "departments"
+              ? departmentFiltersOpen
+              : false
+          }
+          onToggleFilters={() => {
+            if (activePage === "entries") setEntriesFiltersOpen((v) => !v);
+            else if (activePage === "personnel")
+              setPersonnelFiltersOpen((v) => !v);
+            else if (activePage === "departments")
+              setDepartmentFiltersOpen((v) => !v);
+          }}
         />
 
         {activePage === "dashboard" && (
@@ -158,7 +195,10 @@ const App = () => {
         )}
 
         {activePage === "departments" && (
-          <Departments searchTerm={searchTerm} />
+          <Departments
+            searchTerm={searchTerm}
+            filtersOpen={departmentFiltersOpen}
+          />
         )}
 
         {activePage === "personnel" &&
@@ -175,8 +215,30 @@ const App = () => {
           ) : (
             <PersonnelList
               searchTerm={searchTerm}
+              filtersOpen={personnelFiltersOpen}
             />
           ))}
+
+        {activePage === "entries" && !selectedPerson && entriesFiltersOpen && (
+          <FilterBar
+            selectedDept={entriesDept}
+            setSelectedDept={setEntriesDept}
+            selectedDepts={entriesSelectedDepts}
+            setSelectedDepts={setEntriesSelectedDepts}
+            selectedRole={entriesRole}
+            setSelectedRole={setEntriesRole}
+            selectedStatus={entriesStatus}
+            setSelectedStatus={setEntriesStatus}
+            lateThreshold={entriesLateThr}
+            setLateThreshold={setEntriesLateThr}
+            selectedDate={entriesDate}
+            setSelectedDate={setEntriesDate}
+            graceMinutes={entriesGrace}
+            setGraceMinutes={setEntriesGrace}
+            deptThresholds={entriesDeptThresholds}
+            setDeptThresholds={setEntriesDeptThresholds}
+          />
+        )}
 
         {activePage === "entries" &&
           (selectedPerson ? (
@@ -197,6 +259,16 @@ const App = () => {
                 window.dispatchEvent(new PopStateEvent("popstate"));
               }}
               setPreviousPage={setPreviousPage}
+              externalFilters={{
+                selectedDept: entriesDept,
+                selectedRole: entriesRole,
+                selectedStatus: entriesStatus,
+                lateThreshold: entriesLateThr,
+                selectedDate: entriesDate,
+                graceMinutes: entriesGrace,
+                deptThresholds: entriesDeptThresholds,
+                selectedDepts: entriesSelectedDepts,
+              }}
             />
           ))}
 
@@ -207,16 +279,8 @@ const App = () => {
             setLeaveRequests={setLeaveRequests}
           />
         )}
-        {activePage === "profile" && (
-          <Profile
-            currentUser={currentUser}
-          />
-        )}
-        {activePage === "reporting" && (
-          <Reporting
-           
-          />
-        )}
+        {activePage === "profile" && <Profile currentUser={currentUser} />}
+        {activePage === "reporting" && <Reporting />}
       </div>
     </div>
   );
