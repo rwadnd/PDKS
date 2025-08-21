@@ -1286,41 +1286,73 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
             )}
             <button
               onClick={() => {
-                setSelectedDate(todayStrModal);
                 setSelectedDept("All");
-                setSelectedReason("All");
+                setSelectedRole("All");
+                setSelectedStatus("All");
                 setLateThreshold("08:30");
-                setSearch("");
               }}
               style={{
-                padding: "6px 10px",
+                padding: "8px 12px",
                 border: "1px solid #fecaca",
-                borderRadius: 5,
+                borderRadius: 12,
                 backgroundColor: "#fee2e2",
                 color: "#991b1b",
                 cursor: "pointer",
-                height: 28,
-                marginLeft: 6,
-                width: 34,
+                height: 33,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                gap: 8,
+                outline: "none",
+                boxShadow: "none",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.outline = "none";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.outline = "none";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.outline = "none";
+                e.currentTarget.style.boxShadow = "none";
               }}
               title="Reset filters"
             >
               <svg
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M3 6h18" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
+                <path d="M3 6h18" stroke="#991b1b" strokeWidth="2" />
+                <path
+                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+                  stroke="#991b1b"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  stroke="#991b1b"
+                  strokeWidth="2"
+                />
+                <line
+                  x1="10"
+                  y1="11"
+                  x2="10"
+                  y2="17"
+                  stroke="#991b1b"
+                  strokeWidth="2"
+                />
+                <line
+                  x1="14"
+                  y1="11"
+                  x2="14"
+                  y2="17"
+                  stroke="#991b1b"
+                  strokeWidth="2"
+                />
               </svg>
             </button>
           </div>
@@ -1507,7 +1539,12 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
   );
 };
 
-const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
+const Entries = ({
+  searchTerm,
+  onSelectPerson,
+  setPreviousPage,
+  externalFilters = {},
+}) => {
   const [records, setRecords] = useState([]);
   // removed row hover background behavior
   const [modal, setModal] = useState({ open: false, title: "", items: [] });
@@ -1523,6 +1560,28 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const exportLateRef = useRef(null);
   const exportAbsentRef = useRef(null);
   const lastRecordsHashRef = useRef("");
+  // Filters for main table (local defaults)
+  const [selectedDeptLocal, setSelectedDeptLocal] = useState("All");
+  const [selectedRoleLocal, setSelectedRoleLocal] = useState("All");
+  const [selectedStatusLocal, setSelectedStatusLocal] = useState("All");
+  const [lateThresholdLocal, setLateThresholdLocal] = useState("08:30");
+
+  const selectedDept = externalFilters?.selectedDept ?? selectedDeptLocal;
+  const setSelectedDept = externalFilters ? () => {} : setSelectedDeptLocal;
+  const selectedRole = externalFilters?.selectedRole ?? selectedRoleLocal;
+  const setSelectedRole = externalFilters ? () => {} : setSelectedRoleLocal;
+  const selectedStatus = externalFilters?.selectedStatus ?? selectedStatusLocal;
+  const setSelectedStatus = externalFilters ? () => {} : setSelectedStatusLocal;
+  const lateThreshold = externalFilters?.lateThreshold ?? lateThresholdLocal;
+  const setLateThreshold = externalFilters ? () => {} : setLateThresholdLocal;
+  const graceMinutes = externalFilters?.graceMinutes ?? 0;
+  const deptThresholds = externalFilters?.deptThresholds ?? {};
+  const toMinutes = useCallback((t) => {
+    if (!t) return 0;
+    const parts = t.length === 5 ? `${t}:00` : t;
+    const [h, m] = parts.split(":").map(Number);
+    return h * 60 + m;
+  }, []);
 
   // Close export menu on outside click or ESC
   useEffect(() => {
@@ -1566,20 +1625,24 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const [personnelModalList, setPersonnelModalList] = useState([]);
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
-  const holidayInfo = isHoliday(today);
+  const displayedDateStr = externalFilters?.selectedDate ?? todayStr;
+  const displayedDate = new Date(displayedDateStr);
+  const holidayInfo = isHoliday(displayedDate);
 
   useEffect(() => {
+    if (!displayedDateStr) return;
     axios
-      .get(`http://localhost:5050/api/pdks/by-date/${todayStr}`)
+      .get(`http://localhost:5050/api/pdks/by-date/${displayedDateStr}`)
       .then((res) => setRecords(res.data))
       .catch((err) => console.error(err));
-  }, []);
+  }, [displayedDateStr]);
 
   // Auto-refresh today's records periodically (e.g., every 10 seconds)
   useEffect(() => {
+    if (displayedDateStr !== todayStr) return;
     const intervalId = setInterval(() => {
       axios
-        .get(`http://localhost:5050/api/pdks/by-date/${todayStr}`)
+        .get(`http://localhost:5050/api/pdks/by-date/${displayedDateStr}`)
         .then((res) => {
           const data = Array.isArray(res.data) ? res.data : [];
           const hash = JSON.stringify(
@@ -1591,9 +1654,9 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
           }
         })
         .catch(() => {});
-    }, 10000); // 10s
+    }, 10000);
     return () => clearInterval(intervalId);
-  }, [todayStr]);
+  }, [displayedDateStr, todayStr]);
 
   // Calculate stats for cards
   const lastEntryRecord = records[0];
@@ -1906,6 +1969,63 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
     [makePersonnelAoa]
   );
 
+  // Filtered records
+  const filteredRecords = records.filter((entry) => {
+    // Global search from parent
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        entry.per_name?.toLowerCase().includes(searchLower) ||
+        entry.per_lname?.toLowerCase().includes(searchLower) ||
+        entry.per_department?.toLowerCase().includes(searchLower) ||
+        entry.per_role?.toLowerCase().includes(searchLower);
+      if (!matchesSearch) return false;
+    }
+
+    // Department filter
+    if (selectedDept !== "All" && (entry.per_department || "") !== selectedDept)
+      return false;
+
+    // Role filter
+    if (selectedRole !== "All" && (entry.per_role || "") !== selectedRole)
+      return false;
+
+    // Status filter
+    if (selectedStatus !== "All") {
+      const checkIn = entry.pdks_checkInTime;
+      const hasCheckIn = checkIn && checkIn !== "00:00:00";
+      // resolve threshold: per-dept override > global threshold
+      const deptOverride = deptThresholds[entry.per_department || ""] || null;
+      const thr = `${deptOverride || lateThreshold}:00`;
+      const isOnLeaveByIndex = (() => {
+        const lr = leaveIndexToday.get(entry.per_id);
+        return lr && (lr.status === "Approved" || lr.status === "Pending");
+      })();
+      const isOnLeaveByStatus =
+        entry.per_status === "OnLeave" || entry.per_status === "OnSickLeave";
+
+      if (selectedStatus === "On Time") {
+        if (!hasCheckIn) return false;
+        return toMinutes(checkIn) <= toMinutes(thr) + graceMinutes;
+      }
+      if (selectedStatus === "Late") {
+        if (!hasCheckIn) return false;
+        return toMinutes(checkIn) > toMinutes(thr) + graceMinutes;
+      }
+      if (selectedStatus === "Absent") {
+        return !hasCheckIn;
+      }
+      if (selectedStatus === "On Leave") {
+        return isOnLeaveByIndex || isOnLeaveByStatus;
+      }
+    }
+
+    return true;
+  });
+
+  // Handle export requests from FilterBar (placed after filteredRecords)
+  // Removed as export UI has been removed from the filter bar.
+
   const [leaves, setLeaves] = useState([]);
 
   // fetch all leaves once
@@ -1919,7 +2039,7 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   // build index for *today*
   const leaveIndexToday = useMemo(() => {
     const idx = new Map();
-    const d = new Date(todayStr); // todayStr already defined in your code
+    const d = new Date(displayedDateStr);
     const rank = { Approved: 3, Pending: 2, Rejected: 1 }; // prefer Approved > Pending > Rejected
     leaves.forEach((lr) => {
       const s = new Date(lr.request_start_date);
@@ -1933,12 +2053,28 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
       }
     });
     return idx;
-  }, [leaves, todayStr]);
+  }, [leaves, displayedDateStr]);
+
+  // Options for filter dropdowns
+  const departmentOptions = useMemo(() => {
+    const set = new Set();
+    (records || []).forEach((r) => {
+      if (r && r.per_department) set.add(r.per_department);
+    });
+    return ["All", ...Array.from(set).sort()];
+  }, [records]);
+  const roleOptions = useMemo(() => {
+    const set = new Set();
+    (records || []).forEach((r) => {
+      if (r && r.per_role) set.add(r.per_role);
+    });
+    return ["All", ...Array.from(set).sort()];
+  }, [records]);
 
   const todayEntries = records.filter((record) => {
     return (
       record.pdks_date &&
-      record.pdks_date.slice(0, 10) === todayStr &&
+      record.pdks_date.slice(0, 10) === displayedDateStr &&
       record.pdks_checkInTime &&
       record.pdks_checkInTime !== "00:00:00"
     );
@@ -1958,18 +2094,6 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
   const absentToday = allPersonnel.filter(
     (person) => !presentToday.includes(person)
   );
-
-  // Filtered records
-  const filteredRecords = records.filter((entry) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      entry.per_name?.toLowerCase().includes(searchLower) ||
-      entry.per_lname?.toLowerCase().includes(searchLower) ||
-      entry.per_department?.toLowerCase().includes(searchLower) ||
-      entry.per_role?.toLowerCase().includes(searchLower)
-    );
-  });
 
   // On time personnel
   const onTimePersonnel = todayEntries
@@ -2262,6 +2386,210 @@ const Entries = ({ searchTerm, onSelectPerson, setPreviousPage }) => {
               maxHeight: "92%",
             }}
           >
+            {/* Filters Row: hidden when external filters provided */}
+            {!externalFilters && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  padding: "12px 20px",
+                  borderBottom: "1px solid #e5e7eb",
+                  position: "sticky",
+                  top: 0,
+                  background: "#f6f8fb",
+                  zIndex: 2,
+                }}
+              >
+                <select
+                  value={selectedDept}
+                  onChange={(e) => setSelectedDept(e.target.value)}
+                  style={{
+                    padding: "10px 14px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    backgroundColor: "#ffffff",
+                    color: "#111827",
+                    minWidth: 200,
+                    height: 44,
+                    fontSize: 14,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    appearance: "none",
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 12px center",
+                    paddingRight: 40,
+                  }}
+                  title="Filter by department"
+                >
+                  {departmentOptions.map((dep) => (
+                    <option key={dep} value={dep}>
+                      {dep}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  style={{
+                    padding: "10px 14px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    backgroundColor: "#ffffff",
+                    color: "#111827",
+                    minWidth: 180,
+                    height: 44,
+                    fontSize: 14,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    appearance: "none",
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 12px center",
+                    paddingRight: 40,
+                  }}
+                  title="Filter by role"
+                >
+                  {roleOptions.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  style={{
+                    padding: "10px 14px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    backgroundColor: "#ffffff",
+                    color: "#111827",
+                    minWidth: 180,
+                    height: 44,
+                    fontSize: 14,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    appearance: "none",
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 12px center",
+                    paddingRight: 40,
+                  }}
+                  title="Filter by status"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="On Time">On Time</option>
+                  <option value="Late">Late</option>
+                  <option value="Absent">Absent</option>
+                  <option value="On Leave">On Leave</option>
+                </select>
+                {selectedStatus === "Late" && (
+                  <select
+                    value={lateThreshold}
+                    onChange={(e) => setLateThreshold(e.target.value)}
+                    style={{
+                      padding: "10px 14px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 12,
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      minWidth: 150,
+                      height: 44,
+                      fontSize: 14,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                      appearance: "none",
+                      backgroundImage:
+                        "url(\"data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                      paddingRight: 40,
+                    }}
+                    title="Late threshold"
+                  >
+                    <option value="08:00">08:00</option>
+                    <option value="08:15">08:15</option>
+                    <option value="08:30">08:30</option>
+                    <option value="08:45">08:45</option>
+                    <option value="09:00">09:00</option>
+                    <option value="09:15">09:15</option>
+                    <option value="09:30">09:30</option>
+                  </select>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedDept("All");
+                    setSelectedRole("All");
+                    setSelectedStatus("All");
+                    setLateThreshold("08:30");
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #fecaca",
+                    borderRadius: 12,
+                    backgroundColor: "#fee2e2",
+                    color: "#991b1b",
+                    cursor: "pointer",
+                    height: 33,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    outline: "none",
+                    boxShadow: "none",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.outline = "none";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.outline = "none";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.outline = "none";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  title="Reset filters"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M3 6h18" stroke="#991b1b" strokeWidth="2" />
+                    <path
+                      d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+                      stroke="#991b1b"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      stroke="#991b1b"
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1="10"
+                      y1="11"
+                      x2="10"
+                      y2="17"
+                      stroke="#991b1b"
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1="14"
+                      y1="11"
+                      x2="14"
+                      y2="17"
+                      stroke="#991b1b"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
             {/* Table Header */}
             <div
               style={{
