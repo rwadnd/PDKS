@@ -8,6 +8,34 @@ import { useIsFocused } from '@react-navigation/native';
 import { auth, db } from '../../firebase';    
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import * as Location from 'expo-location';  // ⬅️ NEW
+
+
+
+
+
+
+// ====== Geofence config (circle) ======
+const GEOFENCE = {
+  // Example: your office entrance
+  lat: 37.1592502,         // ⬅️ set this
+  lng: 37.2931337,         // ⬅️ set this
+  radiusMeters: 120,      // ⬅️ allowable radius
+};
+
+// Haversine distance in meters
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 6371000; // Earth radius (m)
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+
 
 export default function App() {
   const [hasPermission] = useState(true);
@@ -17,6 +45,9 @@ export default function App() {
   const [loadingUserId, setLoadingUserId] = useState(true);
   const isFocused = useIsFocused();
 
+
+
+  
   // Get employee ID from Firestore users/{uid}
   useEffect(() => {
     setLoadingUserId(true);
@@ -76,14 +107,42 @@ export default function App() {
     }
 
     try {
-      const response = await axios.post('http://192.168.1.142:5050/api/pdks/submit', {
+      // 1) Ask permission for foreground location
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Location needed', 'Allow location to verify you are on site.');
+        return;
+      }
+
+      // 2) Get current GPS fix
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced, // good tradeoff; you can try High
+        // maximumAge: 10000, // optionally accept last 10s fix
+        // timeout: 8000,
+      });
+
+      const { latitude, longitude } = pos.coords;
+
+      // 3) Check distance to geofence center
+      const d = distanceMeters(latitude, longitude, GEOFENCE.lat, GEOFENCE.lng);
+      if (d > GEOFENCE.radiusMeters) {
+        Alert.alert(
+          'Out of zone',
+          `You are ${Math.round(d)} m away. You must be within ${GEOFENCE.radiusMeters} m of the site.`
+        );
+        return;
+      }
+
+      // 4) Submit with location included (recommended)
+      const response = await axios.post('http://192.168.1.141:5050/api/pdks/submit', {
         token,
-        employeeId: Number(employeeId) || employeeId, // send number if numeric
+        employeeId: Number(employeeId) || employeeId,
+        location: { lat: latitude, lng: longitude },
       });
 
       Alert.alert('Success', response.data.message || 'Data sent successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to send data');
+      Alert.alert('Error', 'Failed to verify location or send data');
       console.error(error);
     }
   };

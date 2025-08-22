@@ -9,7 +9,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 // API base URL
-const API_BASE_URL = 'http://192.168.1.142:5050';
+const API_BASE_URL = 'http://192.168.1.141:5050';
 
 export default function LeaveRequestScreen() {
   // Derived from Firestore users/{uid}
