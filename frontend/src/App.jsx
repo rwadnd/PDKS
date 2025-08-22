@@ -14,6 +14,7 @@ import Reporting from "./components/Reporting";
 import "./App.css";
 import axios from "axios";
 import FilterBar from "./components/FilterBar";
+import PersonnelFilterBar from "./components/PersonnelFilterBar";
 
 const App = () => {
   // Read initial page from URL
@@ -42,6 +43,12 @@ const App = () => {
   const [personnelFiltersOpen, setPersonnelFiltersOpen] = useState(false);
   const [departmentFiltersOpen, setDepartmentFiltersOpen] = useState(false);
   const [entriesSelectedDepts, setEntriesSelectedDepts] = useState([]);
+
+  // Personnel filter states
+  const [personnelDept, setPersonnelDept] = useState("All");
+  const [personnelRole, setPersonnelRole] = useState("All");
+  const [personnelStatus, setPersonnelStatus] = useState("All");
+  const [personnelEmployment, setPersonnelEmployment] = useState("All");
 
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
@@ -202,6 +209,21 @@ const App = () => {
         )}
 
         {activePage === "personnel" &&
+          !selectedPerson &&
+          personnelFiltersOpen && (
+            <PersonnelFilterBar
+              selectedDept={personnelDept}
+              setSelectedDept={setPersonnelDept}
+              selectedRole={personnelRole}
+              setSelectedRole={setPersonnelRole}
+              selectedStatus={personnelStatus}
+              setSelectedStatus={setPersonnelStatus}
+              selectedEmployment={personnelEmployment}
+              setSelectedEmployment={setPersonnelEmployment}
+            />
+          )}
+
+        {activePage === "personnel" &&
           (selectedPerson ? (
             <PersonnelDetail
               person={selectedPerson}
@@ -216,6 +238,10 @@ const App = () => {
             <PersonnelList
               searchTerm={searchTerm}
               filtersOpen={personnelFiltersOpen}
+              selectedDept={personnelDept}
+              selectedRole={personnelRole}
+              selectedStatus={personnelStatus}
+              selectedEmployment={personnelEmployment}
             />
           ))}
 

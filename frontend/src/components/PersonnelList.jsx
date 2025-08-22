@@ -13,7 +13,14 @@ import { FaBuilding } from "react-icons/fa";
 const FALLBACK_AVATAR =
   "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=111827";
 
-const PersonnelList = ({ searchTerm, filtersOpen }) => {
+const PersonnelList = ({
+  searchTerm,
+  filtersOpen,
+  selectedDept,
+  selectedRole,
+  selectedStatus,
+  selectedEmployment,
+}) => {
   const [personnel, setPersonnel] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,10 +34,81 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
     role: "",
   });
   const [departments, setDepartments] = useState([]);
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [todayMap, setTodayMap] = useState({});
   const [onLeaveMap, setOnLeaveMap] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Export functions
+  const exportPersonnelCsv = (data) => {
+    const headers = [
+      "ID",
+      "First Name",
+      "Last Name",
+      "Department",
+      "Role",
+      "Status",
+    ];
+    const csvContent = [
+      headers.join(","),
+      ...data.map((person) => {
+        const isOnLeave = onLeaveMap[person.per_id];
+        const isActive = todayMap[person.per_id]?.in;
+        let status = "Absent";
+        if (isOnLeave) status = "On Leave";
+        else if (isActive) status = "Active";
+
+        return [
+          person.per_id,
+          person.per_name || "",
+          person.per_lname || "",
+          person.per_department || "",
+          person.per_role || "",
+          status,
+        ].join(",");
+      }),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `personnel_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const makePersonnelAoa = (data) => {
+    const headers = [
+      "ID",
+      "First Name",
+      "Last Name",
+      "Department",
+      "Role",
+      "Status",
+    ];
+    const rows = data.map((person) => {
+      const isOnLeave = onLeaveMap[person.per_id];
+      const isActive = todayMap[person.per_id]?.in;
+      let status = "Absent";
+      if (isOnLeave) status = "On Leave";
+      else if (isActive) status = "Active";
+
+      return [
+        person.per_id,
+        person.per_name || "",
+        person.per_lname || "",
+        person.per_department || "",
+        person.per_role || "",
+        status,
+      ];
+    });
+    return [headers, ...rows];
+  };
 
   useEffect(() => {
     fetchPersonnel();
@@ -49,6 +127,103 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
     timer = setInterval(tick, 60000);
     return () => clearInterval(timer);
   }, [showModal]);
+
+  // Listen for export events
+  useEffect(() => {
+    const handleExport = (event) => {
+      const { format } = event.detail;
+      const filteredPersonnel = personnel
+        .filter((entry) => {
+          // Department filter
+          if (
+            selectedDept &&
+            selectedDept !== "All" &&
+            entry.per_department !== selectedDept
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .filter((entry) => {
+          // Role filter
+          if (
+            selectedRole &&
+            selectedRole !== "All" &&
+            entry.per_role !== selectedRole
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .filter((entry) => {
+          // Status filter
+          if (selectedStatus && selectedStatus !== "All") {
+            const isOnLeave = onLeaveMap[entry.per_id];
+            const isActive = todayMap[entry.per_id]?.in;
+
+            if (selectedStatus === "Active" && !isActive) return false;
+            if (selectedStatus === "Absent" && (isActive || isOnLeave))
+              return false;
+            if (selectedStatus === "On Leave" && !isOnLeave) return false;
+          }
+          return true;
+        })
+        .filter((entry) => {
+          // Search filter
+          if (!searchTerm) return true;
+          const searchLower = searchTerm.toLowerCase();
+          return (
+            entry.per_name?.toLowerCase().includes(searchLower) ||
+            entry.per_lname?.toLowerCase().includes(searchLower) ||
+            entry.per_department?.toLowerCase().includes(searchLower) ||
+            entry.per_role?.toLowerCase().includes(searchLower)
+          );
+        });
+
+      if (format === "csv") {
+        exportPersonnelCsv(filteredPersonnel);
+      } else if (format === "xlsx") {
+        const XLSX = window.XLSX;
+        if (XLSX) {
+          const aoa = makePersonnelAoa(filteredPersonnel);
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Personnel");
+          XLSX.writeFile(
+            wb,
+            `personnel_${new Date().toISOString().slice(0, 10)}.xlsx`
+          );
+        }
+      } else if (format === "pdf") {
+        const { jsPDF } = window.jspdf;
+        if (jsPDF) {
+          const doc = new jsPDF();
+          const aoa = makePersonnelAoa(filteredPersonnel);
+
+          doc.autoTable({
+            head: [aoa[0]],
+            body: aoa.slice(1),
+            startY: 20,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [59, 130, 246] },
+          });
+
+          doc.save(`personnel_${new Date().toISOString().slice(0, 10)}.pdf`);
+        }
+      }
+    };
+
+    window.addEventListener("personnelExport", handleExport);
+    return () => window.removeEventListener("personnelExport", handleExport);
+  }, [
+    personnel,
+    selectedDept,
+    selectedRole,
+    selectedStatus,
+    searchTerm,
+    onLeaveMap,
+    todayMap,
+  ]);
 
   // After we know today's check-ins, make sure anyone who checked-in is not marked as onLeave
   useEffect(() => {
@@ -272,7 +447,7 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
 
   return (
     <div style={{ position: "relative" }}>
-      {/* Top Bar: Department Filter + Add Button */}
+      {/* Top Bar: Add Button */}
       <div
         style={{
           display: "flex",
@@ -283,67 +458,9 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
           padding: "0 8px",
         }}
       >
-        <select
-          value={selectedDepartment || ""}
-          onChange={(e) => setSelectedDepartment(e.target.value || null)}
-          style={{
-            padding: "12px 16px",
-            border: "1px solid #e5e7eb",
-            borderRadius: 12,
-            backgroundColor: "#ffffff",
-            color: "#111827",
-            minWidth: 240,
-            height: "40px",
-            boxShadow: "0 2px 8px rgba(2, 6, 23, 0.05)",
-            appearance: "none",
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "right 14px center",
-            paddingRight: "40px",
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = "#cbd5e1";
-            e.target.style.boxShadow = "0 3px 10px rgba(2, 6, 23, 0.08)";
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = "#e5e7eb";
-            e.target.style.boxShadow = "0 2px 8px rgba(2, 6, 23, 0.05)";
-          }}
-        >
-          <option value="">All Departments</option>
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
-            </option>
-          ))}
-        </select>
-        {selectedDepartment && (
-          <button
-            onClick={() => setSelectedDepartment(null)}
-            style={{
-              padding: "8px 12px",
-              background: "#f3f4f6",
-              color: "#374151",
-              border: "1px solid #e5e7eb",
-              borderRadius: 10,
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 500,
-            }}
-          >
-            Clear
-          </button>
-        )}
         <button
           onClick={() => {
             setShowModal(true);
-            if (selectedDepartment) {
-              setFormData((prev) => ({
-                ...prev,
-                department: selectedDepartment,
-              }));
-            }
           }}
           style={{
             padding: "8px 16px",
@@ -453,39 +570,58 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
       {/* Personnel Grid with Department filter */}
       {!loading && (
         <div>
-          {filtersOpen && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 0",
-                marginBottom: 8,
-              }}
-            >
-              {/* Placeholder for future personnel page filters */}
-              <div
-                style={{
-                  padding: "10px 14px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  backgroundColor: "#ffffff",
-                  color: "#111827",
-                  fontSize: 13,
-                }}
-              >
-                Filters coming soon
-              </div>
-            </div>
-          )}
           <div className="personnel-grid">
             {personnel
-              .filter((entry) =>
-                selectedDepartment
-                  ? entry.per_department === selectedDepartment
-                  : true
-              )
               .filter((entry) => {
+                // Department filter
+                if (
+                  selectedDept &&
+                  selectedDept !== "All" &&
+                  entry.per_department !== selectedDept
+                ) {
+                  return false;
+                }
+                return true;
+              })
+              .filter((entry) => {
+                // Role filter
+                if (
+                  selectedRole &&
+                  selectedRole !== "All" &&
+                  entry.per_role !== selectedRole
+                ) {
+                  return false;
+                }
+                return true;
+              })
+              .filter((entry) => {
+                // Status filter
+                if (selectedStatus && selectedStatus !== "All") {
+                  const isOnLeave = onLeaveMap[entry.per_id];
+                  const isActive = todayMap[entry.per_id]?.in;
+
+                  if (selectedStatus === "Active" && !isActive) return false;
+                  if (selectedStatus === "Absent" && (isActive || isOnLeave))
+                    return false;
+                  if (selectedStatus === "On Leave" && !isOnLeave) return false;
+                }
+                return true;
+              })
+              .filter((entry) => {
+                // Employment status filter (Active/Inactive)
+                if (selectedEmployment && selectedEmployment !== "All") {
+                  const inactive =
+                    entry?.per_active === false ||
+                    entry?.per_status === "Inactive";
+                  const active = !inactive; // default active when field missing
+                  if (selectedEmployment === "Active" && !active) return false;
+                  if (selectedEmployment === "Inactive" && !inactive)
+                    return false;
+                }
+                return true;
+              })
+              .filter((entry) => {
+                // Search filter
                 if (!searchTerm) return true;
                 const searchLower = searchTerm.toLowerCase();
                 return (
@@ -529,6 +665,7 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
                       }}
                     >
                       <button
+                        className="card-delete"
                         onClick={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
@@ -542,30 +679,20 @@ const PersonnelList = ({ searchTerm, filtersOpen }) => {
                           top: 8,
                           right: 8,
                           background: "transparent",
-                          color: "#6b7280",
                           border: "none",
                           borderRadius: "50%",
-                          width: 32,
-                          height: 32,
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           fontSize: 16,
                           zIndex: 1000,
-                          transition: "all 0.2s ease",
                           opacity: 0,
+                          outline: "none",
+                          boxShadow: "none",
+                          pointerEvents: "none",
                         }}
-                        onMouseEnter={(e) => {
-                          e.target.style.opacity = "1";
-                          e.target.style.backgroundColor = "#f3f4f6";
-                          e.target.style.color = "#374151";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.opacity = "0";
-                          e.target.style.backgroundColor = "transparent";
-                          e.target.style.color = "#6b7280";
-                        }}
+                        title="Deactivate Personnel"
                         title="Deactivate Personnel"
                       >
                         <FiX size={16} />
