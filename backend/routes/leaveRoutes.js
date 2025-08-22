@@ -6,13 +6,15 @@ const {
   submitRequest,
   getLeavesByPersonnelId,
   deleteLeave,
+  getApproved
 } = require('../controllers/leaveController');
 
 // GET all
+router.get("/approved",getApproved)
 router.get('/', getLeaves);
+router.post('/', submitRequest)
 router.get('/:id',getLeavesByPersonnelId)
 router.put('/:id',updateRequest)
-router.post('/', submitRequest)
 router.delete("/:leaveId", deleteLeave);   
 
 module.exports = router;

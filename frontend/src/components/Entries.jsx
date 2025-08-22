@@ -1981,9 +1981,6 @@ const Entries = ({
 
 
 
-
-
-
   const exportPersonnelCsv = useCallback(
     (list, base) => {
       const aoa = makePersonnelAoa(list);

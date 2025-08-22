@@ -132,3 +132,30 @@ exports.submitRequest = async (req, res) => {
     res.status(500).json({ error: 'Submit failed', detail: err.message });
   }
 };
+
+
+
+// GET /api/leave/approved?perId=11&start=2025-07-01&end=2025-08-31
+exports.getApproved =  async (req, res) => {
+  const { perId, start, end } = req.query;
+  if (!perId) return res.status(400).json({ error: "perId required" });
+
+  // Limit by window if provided; otherwise return all approved
+  const sql = `
+    SELECT request_start_date, request_end_date
+    FROM leave_request
+    WHERE personnel_per_id = ?
+      AND status = 'Approved'
+      ${start && end ? "AND request_end_date >= ? AND request_start_date <= ?" : ""}
+    ORDER BY request_start_date
+  `;
+  const params = start && end ? [perId, start, end] : [perId];
+
+  try {
+    const [rows] = await db.execute(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "DB error" });
+  }
+};

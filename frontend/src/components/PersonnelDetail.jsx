@@ -10,6 +10,43 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);   // NEW: for preview
   const fileInputRef = useRef(); // EKLENDİ
+  const [approvedLeaveSet, setApprovedLeaveSet] = useState(new Set());
+
+
+  async function fetchApprovedLeaves(perId, startISO, endISO) {
+    try {
+      // Optional: limit to the 52-week window you’re rendering
+      const res = await axios.get("http://localhost:5050/api/leave/approved", {
+        params: { perId, start: startISO, end: endISO },
+      });
+      const list = Array.isArray(res.data) ? res.data : [];
+      // Expecting rows like: { request_start_date: "2025-08-22", request_end_date: "2025-08-24" }
+      const dates = new Set();
+
+      const toISO = (d) => {
+        const y = d.getFullYear();
+        const m = `${d.getMonth() + 1}`.padStart(2, "0");
+        const day = `${d.getDate()}`.padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      for (const lr of list) {
+        const s = new Date(lr.request_start_date);
+        const e = new Date(lr.request_end_date);
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+          dates.add(toISO(d));
+        }
+      }
+      setApprovedLeaveSet(dates);
+      console.log(dates)
+    } catch (err) {
+      console.error("Failed to fetch approved leaves:", err);
+    }
+  }
+
+
+
+
 
   const normalizeAvatar = (url, p) => {
     if (!url) {
@@ -186,6 +223,26 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
   // Get the first day in the heatmap (52 weeks ago from last Monday)
   const startDate = new Date(lastMonday);
   startDate.setDate(startDate.getDate() - 51 * 7);
+
+  useEffect(() => {
+    fetchDepartments();
+
+    axios
+      .get(`http://localhost:5050/api/pdks/${person.per_id}`)
+      .then((res) => setRecords(res.data))
+      .catch((err) => console.error(err));
+
+    // compute 52-week window bounds for the query
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    const startISO = toLocalISODate(startDate);
+    const endISO = toLocalISODate(yesterday);
+    console.log(person.per_id)
+    fetchApprovedLeaves(person.per_id, startISO, endISO);
+  }, [person]);
+
 
   const todayRecord = records.find((rec) => {
     const recordDate = rec.pdks_date?.split(" ")[0];
@@ -1031,15 +1088,24 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                   }
 
                   const dateStr = toLocalISODate(cellDate);
-                  const isWeekend =
-                    cellDate.getDay() === 0 || cellDate.getDay() === 6;
+                  const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
+                  const onLeave = approvedLeaveSet.has(dateStr);
 
+                  // Order matters:
+                  // 1) Future -> skip
+                  // 2) Present (check-in) -> green
+                  // 3) Approved Leave (weekdays) -> orange
+                  // 4) Weekend -> no-data
+                  // 5) Otherwise -> absent (red)
                   let status;
-
-                  if (cellDate > yesterday || isWeekend) {
-                    status = "no-data"; // Hide future and weekends
+                  if (cellDate > yesterday) {
+                    return <div key={dayIdx} style={{ width: 12, height: 12 }} />;
                   } else if (checkInDatesSet.has(dateStr)) {
                     status = "present";
+                  } else if (onLeave && !isWeekend) {
+                    status = "leave";
+                  } else if (isWeekend) {
+                    status = "no-data";
                   } else {
                     status = "absent";
                   }
@@ -1048,6 +1114,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                     present: { bg: "#10b981", border: "#059669" },
                     absent: { bg: "#ef4444", border: "#dc2626" },
                     "no-data": { bg: "#f3f4f6", border: "#e5e7eb" },
+                    leave: { bg: "#fb923c", border: "#f97316" }, // NEW: orange
                   };
 
                   return (
@@ -1161,6 +1228,20 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
             ></div>
             <span style={{ fontSize: 11, color: "#6b7280", fontWeight: "500" }}>
               Absent
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: 2,
+                background: "#fb923c",
+                border: "1px solid #f97316",
+              }}
+            ></div>
+            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: "500" }}>
+              Approved Leave
             </span>
           </div>
         </div>
