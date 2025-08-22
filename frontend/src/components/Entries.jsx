@@ -1947,6 +1947,43 @@ const Entries = ({
     return [headers, ...rows];
   }, []);
 
+
+
+
+   const [leaves, setLeaves] = useState([]);
+
+  // fetch all leaves once
+  useEffect(() => {
+    axios
+      .get("/api/leave")
+      .then((res) => setLeaves(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setLeaves([]));
+  }, []);
+
+  // build index for *today*
+  const leaveIndexToday = useMemo(() => {
+    const idx = new Map();
+    const d = new Date(displayedDateStr);
+    const rank = { Approved: 3, Pending: 2, Rejected: 1 }; // prefer Approved > Pending > Rejected
+    leaves.forEach((lr) => {
+      const s = new Date(lr.request_start_date);
+      const e = new Date(lr.request_end_date);
+      if (isNaN(s) || isNaN(e)) return;
+      if (d >= s && d <= e) {
+        const prev = idx.get(lr.personnel_per_id);
+        if (!prev || (rank[lr.status] || 0) > (rank[prev.status] || 0)) {
+          idx.set(lr.personnel_per_id, lr);
+        }
+      }
+    });
+    return idx;
+  }, [leaves, displayedDateStr]);
+
+
+
+
+
+
   const exportPersonnelCsv = useCallback(
     (list, base) => {
       const aoa = makePersonnelAoa(list);
@@ -2026,34 +2063,7 @@ const Entries = ({
   // Handle export requests from FilterBar (placed after filteredRecords)
   // Removed as export UI has been removed from the filter bar.
 
-  const [leaves, setLeaves] = useState([]);
-
-  // fetch all leaves once
-  useEffect(() => {
-    axios
-      .get("/api/leave")
-      .then((res) => setLeaves(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setLeaves([]));
-  }, []);
-
-  // build index for *today*
-  const leaveIndexToday = useMemo(() => {
-    const idx = new Map();
-    const d = new Date(displayedDateStr);
-    const rank = { Approved: 3, Pending: 2, Rejected: 1 }; // prefer Approved > Pending > Rejected
-    leaves.forEach((lr) => {
-      const s = new Date(lr.request_start_date);
-      const e = new Date(lr.request_end_date);
-      if (isNaN(s) || isNaN(e)) return;
-      if (d >= s && d <= e) {
-        const prev = idx.get(lr.personnel_per_id);
-        if (!prev || (rank[lr.status] || 0) > (rank[prev.status] || 0)) {
-          idx.set(lr.personnel_per_id, lr);
-        }
-      }
-    });
-    return idx;
-  }, [leaves, displayedDateStr]);
+ 
 
   // Options for filter dropdowns
   const departmentOptions = useMemo(() => {
