@@ -303,8 +303,10 @@ html,
 
 /* Show delete button on card hover */
 .personnel-card:hover + button,
-.personnel-card:hover button {
+.personnel-card:hover button,
+.personnel-card:hover .card-delete {
   opacity: 1 !important;
+  pointer-events: auto !important;
 }
 .personnel-avatar {
   width: 72px;
