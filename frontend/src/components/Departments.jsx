@@ -1001,7 +1001,7 @@ const Departments = ({ searchTerm, filtersOpen }) => {
   return (
     <div
       style={{
-        padding: "24px",
+        padding: "0",
         backgroundColor: "#f8fafc",
         overflowY: "scroll",
       }}

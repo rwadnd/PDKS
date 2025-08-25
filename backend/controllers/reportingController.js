@@ -1,8 +1,12 @@
 // backend/controllers/reportingController.js
+const path = require("path");
 const db = require("../db/connection");
 const { Parser } = require("json2csv");
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
+
+// Path to a Unicode font that supports Turkish (place .ttf in /fonts)
+const FONT_PATH = path.join(__dirname, "../fonts/DejaVuSans.ttf");
 
 // --- Report catalog (derived from tables: personnel, pdks_entry, leave_request, departments) ---
 const REPORTS = [
@@ -102,7 +106,6 @@ const REPORTS = [
       let deptFilter = "";
       if (department) { deptFilter = "WHERE per_department = ?"; args.push(department); }
 
-      // present if any entry exists on the date; absent otherwise
       const [rows] = await db.query(
         `
         SELECT p.per_id, p.per_name, p.per_lname, p.per_department,
@@ -125,27 +128,27 @@ const REPORTS = [
     description: "Leaves in range with optional status/type filters.",
     params: ["dateRange", "leaveStatus", "leaveType", "department", "personnel"],
     sql: async ({ dateFrom, dateTo, leaveStatus, leaveType, department, perId }) => {
-  const args = [dateTo, dateFrom]; // <-- end first, then start
-  let where = "WHERE lr.request_start_date <= ? AND lr.request_end_date >= ?";
+      const args = [dateTo, dateFrom];
+      let where = "WHERE lr.request_start_date <= ? AND lr.request_end_date >= ?";
 
-  if (leaveStatus) { where += " AND lr.status = ?"; args.push(leaveStatus); }
-  if (leaveType)  { where += " AND lr.request_type = ?"; args.push(leaveType); }
-  if (department) { where += " AND p.per_department = ?"; args.push(department); }
-  if (perId)      { where += " AND p.per_id = ?"; args.push(Number(perId)); }
+      if (leaveStatus) { where += " AND lr.status = ?"; args.push(leaveStatus); }
+      if (leaveType)  { where += " AND lr.request_type = ?"; args.push(leaveType); }
+      if (department) { where += " AND p.per_department = ?"; args.push(department); }
+      if (perId)      { where += " AND p.per_id = ?"; args.push(Number(perId)); }
 
-  const [rows] = await db.query(
-    `
-    SELECT lr.request_id, p.per_id, p.per_name, p.per_lname, p.per_department,
-           lr.request_type, lr.status, lr.request_start_date, lr.request_end_date, lr.request_date
-    FROM leave_request lr
-    JOIN personnel p ON p.per_id = lr.personnel_per_id
-    ${where}
-    ORDER BY lr.request_start_date DESC, lr.request_id DESC
-    `,
-    args
-  );
-  return rows;
-},
+      const [rows] = await db.query(
+        `
+        SELECT lr.request_id, p.per_id, p.per_name, p.per_lname, p.per_department,
+               lr.request_type, lr.status, lr.request_start_date, lr.request_end_date, lr.request_date
+        FROM leave_request lr
+        JOIN personnel p ON p.per_id = lr.personnel_per_id
+        ${where}
+        ORDER BY lr.request_start_date DESC, lr.request_id DESC
+        `,
+        args
+      );
+      return rows;
+    },
   },
   {
     id: "personnel_roster",
@@ -171,7 +174,6 @@ const REPORTS = [
 ];
 
 exports.getMetadata = async (req, res) => {
-  // Return only public metadata (no SQL)
   const meta = {
     reports: REPORTS.map((r) => ({
       id: r.id,
@@ -189,7 +191,6 @@ exports.exportReport = async (req, res) => {
     const r = REPORTS.find((x) => x.id === reportId);
     if (!r) return res.status(400).json({ error: "Unknown reportId" });
 
-    // sensible defaults for dates
     const today = new Date().toISOString().slice(0, 10);
     if (r.params?.includes("dateRange")) {
       params.dateFrom = params.dateFrom || today;
@@ -200,9 +201,9 @@ exports.exportReport = async (req, res) => {
     }
 
     const rows = await r.sql(params);
+    const filename = `${reportId}_${today}.${fileType}`;
 
-    // serialize
-    const filename = `${reportId}_${new Date().toISOString().slice(0,10)}.${fileType}`;
+    // CSV
     if (fileType === "csv") {
       const parser = new Parser({ withBOM: true });
       const csv = parser.parse(rows);
@@ -211,6 +212,7 @@ exports.exportReport = async (req, res) => {
       return res.send(csv);
     }
 
+    // XLSX
     if (fileType === "xlsx") {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet(r.title);
@@ -225,25 +227,81 @@ exports.exportReport = async (req, res) => {
       return res.end();
     }
 
+    // PDF
     if (fileType === "pdf") {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-      const doc = new PDFDocument({ margin: 36 });
+
+      const doc = new PDFDocument({ margin: 40, size: "A4" });
+      doc.registerFont("DejaVu", FONT_PATH);
+      doc.font("DejaVu").fontSize(12);
       doc.pipe(res);
-      doc.fontSize(14).text(r.title, { underline: true });
-      doc.moveDown(0.5);
+
+      doc.fontSize(16).text(r.title, { align: "center", underline: true });
+      doc.moveDown(1);
+
       if (rows.length === 0) {
-        doc.text("No data.");
-      } else {
-        // simple table
-        const headers = Object.keys(rows[0]);
-        doc.fontSize(9).text(headers.join(" | "));
-        doc.moveDown(0.25);
-        rows.forEach((row) => {
-          const line = headers.map((h) => (row[h] ?? "")).join(" | ");
-          doc.text(line);
-        });
+        doc.text("No data available.", { align: "center" });
+        doc.end();
+        return;
       }
+
+      const headers = Object.keys(rows[0]);
+      const colWidths = headers.map((h) =>
+        h.toLowerCase().includes("id") ? 40 : (doc.page.width - 80) / headers.length
+      );
+      let y = doc.y;
+
+      // --- Table Header ---
+      doc.fontSize(10).fillColor("white");
+      headers.forEach((h, i) => {
+        doc.rect(
+          40 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
+          y,
+          colWidths[i],
+          20
+        ).fill("#3f51b5");
+        doc
+          .fillColor("white")
+          .text(h, 45 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), y + 5, {
+            width: colWidths[i] - 10,
+            align: "center",
+          });
+      });
+
+      y += 20;
+      doc.fontSize(9).fillColor("black");
+
+      // --- Table Rows ---
+      rows.forEach((row) => {
+        // determine row height based on wrapped text
+        let rowHeight = 0;
+        headers.forEach((h, i) => {
+          const text = String(row[h] ?? "");
+          const height = doc.heightOfString(text, { width: colWidths[i] - 10 });
+          rowHeight = Math.max(rowHeight, height + 10);
+        });
+
+        // draw cells
+        headers.forEach((h, i) => {
+          const x = 40 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
+          const text = String(row[h] ?? "");
+          doc.rect(x, y, colWidths[i], rowHeight).stroke();
+          doc.text(text, x + 5, y + 5, {
+            width: colWidths[i] - 10,
+            align: "center",
+          });
+        });
+
+        y += rowHeight;
+
+        // New page check
+        if (y > doc.page.height - 60) {
+          doc.addPage();
+          y = 40;
+        }
+      });
+
       doc.end();
       return;
     }

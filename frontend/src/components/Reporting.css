@@ -1,6 +1,6 @@
 /* Container & headings */
 .reporting-container {
-  padding: 20px;
+  padding: 0;
 }
 
 .reporting-title {
@@ -17,14 +17,13 @@
 /* Reports grid */
 .report-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, 1fr); /* always 3 equal columns */
+  gap: 16px;
   margin: 16px 0 24px;
 }
 
-/* Pills (report buttons) */
 .pill {
-  padding: 10px 14px;
+  padding: 16px;                 /* make them taller */
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   background: #fff;
@@ -32,7 +31,11 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  text-align: left;
+  text-align: center;            /* center text horizontally */
+  display: flex;                 /* center text vertically too */
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;             /* ensures consistent height */
 }
 
 .pill.is-active {
@@ -56,7 +59,9 @@
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: end; /* aligns labels and inputs neatly */
 }
+
 
 /* Labels */
 .label {
@@ -91,12 +96,23 @@
 /* Inputs & selects */
 .input {
   width: 100%;
-  padding: 10px;
+  padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
   background: #fff;
   font-size: 14px;
+  appearance: none; /* removes browser-specific styles */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
 }
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px #bfdbfe;
+}
+
 
 /* Export button area */
 .export {

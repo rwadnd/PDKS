@@ -90,7 +90,6 @@ const Reporting = () => {
 
   return (
     <div className="reporting-container">
-      <h1 className="reporting-title">Reporting</h1>
       <p className="reporting-subtitle">
         Choose a report, pick an export format, adjust filters, then click <b>Export</b>.
       </p>
