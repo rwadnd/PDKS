@@ -679,10 +679,19 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           list = list.filter(
             (p) => p.per_status === "OnLeave" || p.per_status === "OnSickLeave"
           );
+        } else if (selectedReason === "OnSickLeave") {
+          list = list.filter((p) => p.per_status === "OnSickLeave");
         } else if (selectedReason === "Absent") {
           list = list.filter(
             (p) => p.per_status !== "OnLeave" && p.per_status !== "OnSickLeave"
           );
+        } else {
+          // Filter by leave request type (Annual, Sick, Maternity, Paternity, Other)
+          list = list.filter((p) => {
+            const lr =
+              leaveIndex && leaveIndex.get ? leaveIndex.get(p.per_id) : null;
+            return lr && lr.request_type === selectedReason;
+          });
         }
       }
     }
@@ -751,127 +760,6 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
     sortDesc,
     toMinutes,
   ]);
-
-  const exportToCSV = useCallback(() => {
-    const view = computeViewList;
-    const headers = [
-      "Name",
-      "Department",
-      "Role",
-      "Status",
-      "Check-in",
-      "Check-out",
-    ];
-    const rows = (view || []).map((p) => {
-      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
-      const dept = p.per_department || "";
-      const role = p.per_role || "";
-      const checkIn =
-        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
-          ? p.pdks_checkInTime.slice(0, 5)
-          : "-";
-      const checkOut =
-        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
-          ? p.pdks_checkOutTime.slice(0, 5)
-          : "-";
-      let status = p.per_status || "-";
-      if (showCheckInTime && checkIn !== "-") {
-        const [h, m] = (p.pdks_checkInTime || "00:00:00")
-          .split(":")
-          .map(Number);
-        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
-      }
-      const fields = [name, dept, role, status, checkIn, checkOut];
-      return fields.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
-    });
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    a.download = `${title.replace(/\s+/g, "_")}_${dateStr}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [computeViewList, showCheckInTime, title]);
-
-  const exportToXLSX = useCallback(() => {
-    const view = computeViewList;
-    const aoa = [
-      ["Name", "Department", "Role", "Status", "Check-in", "Check-out"],
-      ...(view || []).map((p) => {
-        const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
-        const dept = p.per_department || "";
-        const role = p.per_role || "";
-        const checkIn =
-          p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
-            ? p.pdks_checkInTime.slice(0, 5)
-            : "-";
-        const checkOut =
-          p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
-            ? p.pdks_checkOutTime.slice(0, 5)
-            : "-";
-        let status = p.per_status || "-";
-        if (showCheckInTime && checkIn !== "-") {
-          const [h, m] = (p.pdks_checkInTime || "00:00:00")
-            .split(":")
-            .map(Number);
-          status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
-        }
-        return [name, dept, role, status, checkIn, checkOut];
-      }),
-    ];
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `${title.replace(/\s+/g, "_")}_${dateStr}.xlsx`);
-  }, [computeViewList, showCheckInTime, title]);
-
-  const exportToPDF = useCallback(() => {
-    const view = computeViewList;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(title, 14, 16);
-    doc.setFontSize(10);
-    let y = 24;
-    doc.text("Name | Department | Role | Status | Check-in | Check-out", 14, y);
-    y += 6;
-    (view || []).forEach((p) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
-      const dept = p.per_department || "";
-      const role = p.per_role || "";
-      const checkIn =
-        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
-          ? p.pdks_checkInTime.slice(0, 5)
-          : "-";
-      const checkOut =
-        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
-          ? p.pdks_checkOutTime.slice(0, 5)
-          : "-";
-      let status = p.per_status || "-";
-      if (showCheckInTime && checkIn !== "-") {
-        const [h, m] = (p.pdks_checkInTime || "00:00:00")
-          .split(":")
-          .map(Number);
-        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
-      }
-      doc.text(
-        `${name} | ${dept} | ${role} | ${status} | ${checkIn} | ${checkOut}`,
-        14,
-        y
-      );
-      y += 6;
-    });
-    const dateStr = new Date().toISOString().slice(0, 10);
-    doc.save(`${title.replace(/\s+/g, "_")}_${dateStr}.pdf`);
-  }, [computeViewList, showCheckInTime, title]);
 
   // handleRemind removed (auto notifications will replace manual action)
 
@@ -1267,6 +1155,11 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
                 <option value="All">All reasons</option>
                 <option value="OnLeave">On Leave</option>
                 <option value="OnSickLeave">Sick Leave</option>
+                <option value="Annual">Annual Leave</option>
+                <option value="Sick">Sick Leave</option>
+                <option value="Maternity">Maternity Leave</option>
+                <option value="Paternity">Paternity Leave</option>
+                <option value="Other">Other Leave</option>
                 <option value="Absent">Unexcused Absence</option>
               </select>
             )}
@@ -1307,6 +1200,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
                 setSelectedDept("All");
                 setSelectedRole("All");
                 setSelectedStatus("All");
+                setSelectedReason("All");
                 setLateThreshold("08:30");
               }}
               style={{
@@ -1383,7 +1277,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
             gridTemplateColumns: isLateToday
               ? "60px 2fr 1.5fr 1.5fr 1fr 1fr"
               : isAbsent
-              ? "60px 2fr 1.5fr 1.5fr 80px"
+              ? "60px 2fr 1.5fr 1.5fr 1fr 80px"
               : showCheckInTime
               ? "60px 2fr 1.5fr 1.5fr 1fr"
               : "60px 2fr 1.5fr 1.5fr 80px",
@@ -1401,6 +1295,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
           <div>Personnel Name</div>
           <div>Department</div>
           <div>Role</div>
+          {isAbsent && <div>Reason</div>}
           {isLateToday ? (
             <>
               <div>Minutes Late</div>
@@ -1435,7 +1330,7 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
                 gridTemplateColumns: isLateToday
                   ? "60px 2fr 1.5fr 1.5fr 1fr 1fr"
                   : isAbsent
-                  ? "60px 2fr 1.5fr 1.5fr 80px"
+                  ? "60px 2fr 1.5fr 1.5fr 1fr 80px"
                   : showCheckInTime
                   ? "60px 2fr 1.5fr 1.5fr 1fr"
                   : "60px 2fr 1.5fr 1.5fr 80px",
@@ -1483,6 +1378,31 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
               <div style={{ color: "#6b7280", textAlign: "left" }}>
                 {person.per_role || "-"}
               </div>
+              {/* Reason */}
+              {isAbsent && (
+                <div style={{ color: "#6b7280", textAlign: "left" }}>
+                  {(() => {
+                    const lr =
+                      leaveIndex && leaveIndex.get
+                        ? leaveIndex.get(person.per_id)
+                        : null;
+                    const statusReason =
+                      person.per_status === "OnLeave"
+                        ? "On Leave"
+                        : person.per_status === "OnSickLeave"
+                        ? "Sick Leave"
+                        : null;
+
+                    if (lr?.request_type) {
+                      return lr.request_type === "Other"
+                        ? lr.request_other || "Other"
+                        : lr.request_type;
+                    }
+
+                    return statusReason || "Absent";
+                  })()}
+                </div>
+              )}
               {/* Status / Check-in / Late Buckets */}
               {isLateToday ? (
                 <>
@@ -2090,8 +2010,161 @@ const Entries = ({
     return true;
   });
 
-  // Handle export requests from FilterBar (placed after filteredRecords)
-  // Removed as export UI has been removed from the filter bar.
+  // Export functions
+  const exportToCSV = useCallback(() => {
+    const view = filteredRecords;
+    const headers = [
+      "Name",
+      "Department",
+      "Role",
+      "Work Mode",
+      "Status",
+      "Check-in",
+      "Check-out",
+    ];
+    const rows = (view || []).map((p) => {
+      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+      const dept = p.per_department || "";
+      const role = p.per_role || "";
+      const workMode = p.work_mode || "Office";
+      const checkIn =
+        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+          ? p.pdks_checkInTime.slice(0, 5)
+          : "-";
+      const checkOut =
+        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+          ? p.pdks_checkOutTime.slice(0, 5)
+          : "-";
+      let status = p.per_status || "-";
+      if (checkIn !== "-") {
+        const [h, m] = (p.pdks_checkInTime || "00:00:00")
+          .split(":")
+          .map(Number);
+        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+      }
+      const fields = [name, dept, role, workMode, status, checkIn, checkOut];
+      return fields.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `Entries_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [filteredRecords]);
+
+  const exportToXLSX = useCallback(() => {
+    const view = filteredRecords;
+    const aoa = [
+      [
+        "Name",
+        "Department",
+        "Role",
+        "Work Mode",
+        "Status",
+        "Check-in",
+        "Check-out",
+      ],
+      ...(view || []).map((p) => {
+        const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+        const dept = p.per_department || "";
+        const role = p.per_role || "";
+        const workMode = p.work_mode || "Office";
+        const checkIn =
+          p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+            ? p.pdks_checkInTime.slice(0, 5)
+            : "-";
+        const checkOut =
+          p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+            ? p.pdks_checkOutTime.slice(0, 5)
+            : "-";
+        let status = p.per_status || "-";
+        if (checkIn !== "-") {
+          const [h, m] = (p.pdks_checkInTime || "00:00:00")
+            .split(":")
+            .map(Number);
+          status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+        }
+        return [name, dept, role, workMode, status, checkIn, checkOut];
+      }),
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Entries_${dateStr}.xlsx`);
+  }, [filteredRecords]);
+
+  const exportToPDF = useCallback(() => {
+    const view = filteredRecords;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Entries Report", 14, 16);
+    doc.setFontSize(10);
+    let y = 24;
+    doc.text(
+      "Name | Department | Role | Work Mode | Status | Check-in | Check-out",
+      14,
+      y
+    );
+    y += 6;
+    (view || []).forEach((p) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
+      const dept = p.per_department || "";
+      const role = p.per_role || "";
+      const workMode = p.work_mode || "Office";
+      const checkIn =
+        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
+          ? p.pdks_checkInTime.slice(0, 5)
+          : "-";
+      const checkOut =
+        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
+          ? p.pdks_checkOutTime.slice(0, 5)
+          : "-";
+      let status = p.per_status || "-";
+      if (checkIn !== "-") {
+        const [h, m] = (p.pdks_checkInTime || "00:00:00")
+          .split(":")
+          .map(Number);
+        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
+      }
+      doc.text(
+        `${name} | ${dept} | ${role} | ${workMode} | ${status} | ${checkIn} | ${checkOut}`,
+        14,
+        y
+      );
+      y += 6;
+    });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    doc.save(`Entries_${dateStr}.pdf`);
+  }, [filteredRecords]);
+
+  // Handle export requests from FilterBar
+  useEffect(() => {
+    const handleExport = (event) => {
+      const { format } = event.detail;
+
+      if (format === "csv") {
+        exportToCSV();
+      } else if (format === "xlsx") {
+        exportToXLSX();
+      } else if (format === "pdf") {
+        exportToPDF();
+      }
+    };
+
+    window.addEventListener("entriesExport", handleExport);
+    return () => window.removeEventListener("entriesExport", handleExport);
+  }, [exportToCSV, exportToXLSX, exportToPDF]);
 
   // Options for filter dropdowns
   const departmentOptions = useMemo(() => {
