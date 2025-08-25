@@ -111,12 +111,14 @@ const statusDot = (status, checkInTime) => {
   );
 };
 
-// Helpers for lateness severity (08:00 baseline, 10-min buckets)
-const getMinutesLateFromEight = (timeStr) => {
+// Helpers for lateness severity (uses current lateThreshold)
+const getMinutesLateFromEight = (timeStr, threshold = "08:30") => {
   if (!timeStr || timeStr === "00:00:00") return 0;
   const [h, m] = timeStr.split(":").map(Number);
   const minutes = h * 60 + m;
-  return Math.max(0, minutes - 480);
+  const [th, tm] = threshold.split(":").map(Number);
+  const thrMinutes = th * 60 + tm;
+  return Math.max(0, minutes - thrMinutes);
 };
 
 // --- Semicircle SVG gauge (Low → High) ---
@@ -730,8 +732,8 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
     }
     if (isLateToday) {
       list.sort((a, b) => {
-        const la = getMinutesLateFromEight(a.pdks_checkInTime);
-        const lb = getMinutesLateFromEight(b.pdks_checkInTime);
+        const la = getMinutesLateFromEight(a.pdks_checkInTime, lateThreshold);
+        const lb = getMinutesLateFromEight(b.pdks_checkInTime, lateThreshold);
         return sortDesc ? lb - la : la - lb;
       });
     }
@@ -1487,7 +1489,10 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
                   <div style={{ color: "#374151", textAlign: "center" }}>
                     {Math.max(
                       0,
-                      getMinutesLateFromEight(person.pdks_checkInTime)
+                      getMinutesLateFromEight(
+                        person.pdks_checkInTime,
+                        lateThreshold
+                      )
                     )}
                     m
                   </div>
@@ -2177,10 +2182,12 @@ const Entries = ({
     return true;
   });
 
-  // Geç kalanlar (Late Personnel) listesi
+  // Geç kalanlar (Late Personnel) listesi - respects selected lateThreshold and graceMinutes
   const latePersonnelList = todayEntries.filter((entry) => {
-    const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
-    return hours > 8 || (hours === 8 && minutes > 30);
+    const checkIn = entry.pdks_checkInTime;
+    if (!checkIn || checkIn === "00:00:00") return false;
+    const thr = `${lateThreshold}:00`;
+    return toMinutes(checkIn) > toMinutes(thr) + graceMinutes;
   });
 
   return (
@@ -3174,9 +3181,7 @@ const Entries = ({
                 marginBottom: 0,
               }}
             >
-              <h3 style={{ margin: 0, color: "#111827" }}>
-                Average Check-in
-              </h3>
+              <h3 style={{ margin: 0, color: "#111827" }}>Average Check-in</h3>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <div ref={exportRef} style={{ position: "relative" }}>
                   <button
