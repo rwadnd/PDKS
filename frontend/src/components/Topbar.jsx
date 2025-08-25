@@ -6,6 +6,7 @@ import axios from "axios";
 import { format } from "date-fns";
 
 const Topbar = ({
+  activePage,
   searchTerm,
   onSearchChange,
   hideSearch,
@@ -122,7 +123,7 @@ const Topbar = ({
           onClick={onToggleSidebar}
           style={{ marginRight: 100 }}
         >
-          Dashboard
+          {activePage ? activePage.charAt(0).toUpperCase() + activePage.slice(1) : "Dashboard"}
         </div>
 
         {/* Center - Search + Filter */}
