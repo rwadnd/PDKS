@@ -11,6 +11,7 @@ const departmentRoutes = require("./routes/departmentRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const reportingRoutes = require("./routes/reportingRoutes");
+const remoteWorkRoutes = require("./routes/remoteWorkRoutes");
 const db = require("./db/connection");
 const cron = require("node-cron");
 const fetch = require("node-fetch");
@@ -66,6 +67,7 @@ app.use("/api/department", departmentRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/reporting", reportingRoutes);
+app.use("/api/remote-work", remoteWorkRoutes);
 
 // Error handler
 app.use((err, _req, res, _next) => {

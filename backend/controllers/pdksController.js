@@ -29,10 +29,12 @@ exports.getRecordsByDate = async (req, res) => {
   p.per_department,
   p.per_role,
   p.per_status,
+  p.work_mode,
   p.avatar_url,
   e.pdks_date,
   e.pdks_checkInTime,
-  e.pdks_checkOutTime
+  e.pdks_checkOutTime,
+  e.location_type
 FROM personnel p
 LEFT JOIN pdks_entry e 
   ON p.per_id = e.personnel_per_id 
@@ -125,14 +127,26 @@ exports.submitEntry = async (req, res) => {
         checkOut: currentTime,
       });
     } else {
+      // Get personnel work mode
+      const [personnelRows] = await db.query(
+        `SELECT work_mode FROM personnel WHERE per_id = ?`,
+        [employeeId]
+      );
+      
+      const workMode = personnelRows.length > 0 ? personnelRows[0].work_mode : 'Office';
+      
       await db.query(
-        `INSERT INTO pdks_entry (pdks_date, pdks_checkInTime, personnel_per_id)
-         VALUES (?, ?, ?)`,
-        [midnight, currentTime, employeeId]
+        `INSERT INTO pdks_entry (pdks_date, pdks_checkInTime, personnel_per_id, location_type)
+         VALUES (?, ?, ?, ?)`,
+        [midnight, currentTime, employeeId, workMode]
       );
       return res
         .status(201)
-        .json({ message: "Check-in time recorded", checkIn: currentTime });
+        .json({ 
+          message: "Check-in time recorded", 
+          checkIn: currentTime,
+          workMode: workMode
+        });
     }
   } catch (err) {
     console.error("SubmitEntry error:", err);
