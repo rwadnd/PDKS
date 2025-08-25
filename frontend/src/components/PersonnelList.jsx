@@ -743,20 +743,10 @@ const PersonnelList = ({
                               Absent
                             </span>
                           )}
-                          {todayMap[person.per_id]?.in && (
-                            <span className="chip time-chip">
-                              <FiClock size={12} />
-                              {new Date(
-                                `${new Date().toISOString().split("T")[0]}T${
-                                  todayMap[person.per_id].in
-                                }`
-                              ).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              })}
-                            </span>
-                          )}
+                          <span className="chip time-chip">
+                            <FiBriefcase size={12} />
+                            {String(person.work_mode || "Office")}
+                          </span>
                         </div>
                       </div>
                     </div>
