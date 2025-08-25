@@ -20,6 +20,7 @@ const PersonnelList = ({
   selectedRole,
   selectedStatus,
   selectedEmployment,
+  selectedWorkType,
 }) => {
   const [personnel, setPersonnel] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -141,6 +142,13 @@ const PersonnelList = ({
             entry.per_department !== selectedDept
           ) {
             return false;
+          }
+          return true;
+        })
+        .filter((entry) => {
+          // Work type filter
+          if (selectedWorkType && selectedWorkType !== "All") {
+            return String(entry.work_mode || "").trim() === selectedWorkType;
           }
           return true;
         })

@@ -121,6 +121,7 @@ const FilterBar = ({
             </option>
           ))}
       </select>
+      {/* Work type dropdown removed from Entries filter bar */}
       {/* Export moved to far right below */}
       <select
         value={selectedRole}

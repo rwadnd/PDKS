@@ -659,9 +659,19 @@ const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
       : [];
     let list = [...base];
     if (isAbsent) {
+      // Start with people who have no real check-in
       list = list.filter(
         (p) => !p.pdks_checkInTime || p.pdks_checkInTime === "00:00:00"
       );
+      // Exclude Remote always; Exclude Hybrid when there's no check-in (i.e., here)
+      list = list.filter((p) => {
+        const mode = String(p.work_mode || "")
+          .trim()
+          .toLowerCase();
+        if (mode === "remote") return false;
+        if (mode === "hybrid") return false;
+        return true;
+      });
       if (selectedReason && selectedReason !== "All") {
         if (selectedReason === "OnLeave") {
           list = list.filter(
@@ -1570,6 +1580,8 @@ const Entries = ({
   const [selectedDeptLocal, setSelectedDeptLocal] = useState("All");
   const [selectedRoleLocal, setSelectedRoleLocal] = useState("All");
   const [selectedStatusLocal, setSelectedStatusLocal] = useState("All");
+  // removed local work type filter for entries
+  // const [selectedWorkTypeLocal, setSelectedWorkTypeLocal] = useState("All");
   const [lateThresholdLocal, setLateThresholdLocal] = useState("08:30");
 
   const selectedDept = externalFilters?.selectedDept ?? selectedDeptLocal;
@@ -1578,6 +1590,9 @@ const Entries = ({
   const setSelectedRole = externalFilters ? () => {} : setSelectedRoleLocal;
   const selectedStatus = externalFilters?.selectedStatus ?? selectedStatusLocal;
   const setSelectedStatus = externalFilters ? () => {} : setSelectedStatusLocal;
+  // Always show local Work Type filter (not hidden by external filters)
+  // const selectedWorkType = selectedWorkTypeLocal;
+  // const setSelectedWorkType = setSelectedWorkTypeLocal;
   const lateThreshold = externalFilters?.lateThreshold ?? lateThresholdLocal;
   const setLateThreshold = externalFilters ? () => {} : setLateThresholdLocal;
   const graceMinutes = externalFilters?.graceMinutes ?? 0;
@@ -2065,6 +2080,8 @@ const Entries = ({
       }
     }
 
+    // removed work type filter in entries
+
     return true;
   });
 
@@ -2136,16 +2153,28 @@ const Entries = ({
     return hours <= 8 && minutes <= 30;
   });
 
-  // Absent Personnel List (full objects) - Exclude remote/hybrid workers
+  // Absent Personnel List (full objects)
+  // - Exclude Remote always
+  // - Exclude Hybrid unless there is a real check-in (otherwise don't count as absent)
   const absentPersonnelList = records.filter((record) => {
     const isPresent = presentToday.includes(
       `${record.per_name} ${record.per_lname}`
     );
-    const isRemoteOrHybrid =
-      record.work_mode === "Remote" || record.work_mode === "Hybrid";
+    if (isPresent) return false;
 
-    // Don't show remote/hybrid workers as absent
-    return !isPresent && !isRemoteOrHybrid;
+    const workMode = String(record.work_mode || "")
+      .trim()
+      .toLowerCase();
+    if (workMode === "remote") return false;
+
+    if (
+      workMode === "hybrid" &&
+      (!record.pdks_checkInTime || record.pdks_checkInTime === "00:00:00")
+    ) {
+      return false;
+    }
+
+    return true;
   });
 
   // Geç kalanlar (Late Personnel) listesi
@@ -2433,6 +2462,8 @@ const Entries = ({
                   top: 0,
                   background: "#f6f8fb",
                   zIndex: 2,
+                  flexWrap: "wrap",
+                  rowGap: 8,
                 }}
               >
                 <select
@@ -2519,6 +2550,7 @@ const Entries = ({
                   <option value="Absent">Absent</option>
                   <option value="On Leave">On Leave</option>
                 </select>
+                {/* removed work type dropdown from entries */}
                 {selectedStatus === "Late" && (
                   <select
                     value={lateThreshold}
@@ -3022,8 +3054,21 @@ const Entries = ({
                 cursor: "pointer",
               }}
               onClick={() => {
+                // Extra safety: exclude Remote always; exclude Hybrid without real check-in
+                const modalList = (absentPersonnelList || []).filter((r) => {
+                  const mode = String(r.work_mode || "")
+                    .trim()
+                    .toLowerCase();
+                  if (mode === "remote") return false;
+                  if (
+                    mode === "hybrid" &&
+                    (!r.pdks_checkInTime || r.pdks_checkInTime === "00:00:00")
+                  )
+                    return false;
+                  return true;
+                });
                 setPersonnelModalTitle("Absent Today");
-                setPersonnelModalList(absentPersonnelList);
+                setPersonnelModalList(modalList);
                 setShowPersonnelModal(true);
               }}
             >

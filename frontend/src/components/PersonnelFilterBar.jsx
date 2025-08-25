@@ -12,6 +12,8 @@ const PersonnelFilterBar = ({
   setSelectedStatus,
   selectedEmployment,
   setSelectedEmployment,
+  selectedWorkType,
+  setSelectedWorkType,
 }) => {
   const [departmentOptions, setDepartmentOptions] = useState(["All"]);
   const [roleOptions, setRoleOptions] = useState(["All"]);
@@ -88,6 +90,34 @@ const PersonnelFilterBar = ({
               {dep}
             </option>
           ))}
+      </select>
+
+      <select
+        value={selectedWorkType}
+        onChange={(e) => setSelectedWorkType(e.target.value)}
+        style={{
+          padding: "10px 14px",
+          border: "1px solid #e5e7eb",
+          borderRadius: 12,
+          backgroundColor: "#ffffff",
+          color: "#111827",
+          width: 180,
+          height: 44,
+          fontSize: 14,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+          appearance: "none",
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "right 12px center",
+          paddingRight: 40,
+        }}
+        title="Filter by work type"
+      >
+        <option value="All">All Work Types</option>
+        <option value="Office">Office</option>
+        <option value="Hybrid">Hybrid</option>
+        <option value="Remote">Remote</option>
       </select>
 
       <select

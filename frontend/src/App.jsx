@@ -33,6 +33,7 @@ const App = () => {
   const [entriesDept, setEntriesDept] = useState("All");
   const [entriesRole, setEntriesRole] = useState("All");
   const [entriesStatus, setEntriesStatus] = useState("All");
+  const [entriesWorkType, setEntriesWorkType] = useState("All");
   const [entriesLateThr, setEntriesLateThr] = useState("08:30");
   const [entriesDate, setEntriesDate] = useState(() =>
     new Date().toISOString().slice(0, 10)
@@ -50,6 +51,7 @@ const App = () => {
   const [personnelRole, setPersonnelRole] = useState("All");
   const [personnelStatus, setPersonnelStatus] = useState("All");
   const [personnelEmployment, setPersonnelEmployment] = useState("All");
+  const [personnelWorkType, setPersonnelWorkType] = useState("All");
 
   // On first load: check login status and handle sidebar hover
   useEffect(() => {
@@ -221,6 +223,8 @@ const App = () => {
               setSelectedStatus={setPersonnelStatus}
               selectedEmployment={personnelEmployment}
               setSelectedEmployment={setPersonnelEmployment}
+              selectedWorkType={personnelWorkType}
+              setSelectedWorkType={setPersonnelWorkType}
             />
           )}
 
@@ -256,6 +260,8 @@ const App = () => {
             setSelectedRole={setEntriesRole}
             selectedStatus={entriesStatus}
             setSelectedStatus={setEntriesStatus}
+            selectedWorkType={entriesWorkType}
+            setSelectedWorkType={setEntriesWorkType}
             lateThreshold={entriesLateThr}
             setLateThreshold={setEntriesLateThr}
             selectedDate={entriesDate}
@@ -290,6 +296,7 @@ const App = () => {
                 selectedDept: entriesDept,
                 selectedRole: entriesRole,
                 selectedStatus: entriesStatus,
+                selectedWorkType: entriesWorkType,
                 lateThreshold: entriesLateThr,
                 selectedDate: entriesDate,
                 graceMinutes: entriesGrace,
