@@ -530,6 +530,12 @@ const getStatusDotColor = (person, isAbsent = false) => {
     // On time: green
     return "#1dbf73";
   }
+
+  // Remote/Hybrid workers should show as present (green) even if absent
+  if (person.work_mode === "Remote" || person.work_mode === "Hybrid") {
+    return "#1dbf73"; // Green for remote workers
+  }
+
   // Absent: yellow if leave, else red
   if (person.per_status === "OnLeave" || person.per_status === "OnSickLeave") {
     return "#ffc107";
@@ -1947,10 +1953,7 @@ const Entries = ({
     return [headers, ...rows];
   }, []);
 
-
-
-
-   const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState([]);
 
   // fetch all leaves once
   useEffect(() => {
@@ -1979,8 +1982,6 @@ const Entries = ({
     return idx;
   }, [leaves, displayedDateStr]);
 
-
-
   const exportPersonnelCsv = useCallback(
     (list, base) => {
       const aoa = makePersonnelAoa(list);
@@ -2004,7 +2005,17 @@ const Entries = ({
   );
 
   // Filtered records
+  // Hide Remote users always; show Hybrid only if they have a real check-in today
   const filteredRecords = records.filter((entry) => {
+    // Exclude Remote workers from the entries list entirely
+    if (entry.work_mode === "Remote") return false;
+    // Exclude Hybrid workers unless they have an actual check-in (not 00:00:00)
+    if (
+      entry.work_mode === "Hybrid" &&
+      (!entry.pdks_checkInTime || entry.pdks_checkInTime === "00:00:00")
+    )
+      return false;
+
     // Global search from parent
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -2060,8 +2071,6 @@ const Entries = ({
   // Handle export requests from FilterBar (placed after filteredRecords)
   // Removed as export UI has been removed from the filter bar.
 
- 
-
   // Options for filter dropdowns
   const departmentOptions = useMemo(() => {
     const set = new Set();
@@ -2098,9 +2107,20 @@ const Entries = ({
       todayEntries.map((record) => `${record.per_name} ${record.per_lname}`)
     ),
   ];
-  const absentToday = allPersonnel.filter(
-    (person) => !presentToday.includes(person)
-  );
+  const absentToday = allPersonnel.filter((person) => {
+    const isPresent = presentToday.includes(person);
+    // Find the person record to check work_mode
+    const personRecord = records.find(
+      (r) => `${r.per_name} ${r.per_lname}` === person
+    );
+    const isRemoteOrHybrid =
+      personRecord &&
+      (personRecord.work_mode === "Remote" ||
+        personRecord.work_mode === "Hybrid");
+
+    // Don't count remote/hybrid workers as absent
+    return !isPresent && !isRemoteOrHybrid;
+  });
 
   // On time personnel
   const onTimePersonnel = todayEntries
@@ -2116,10 +2136,17 @@ const Entries = ({
     return hours <= 8 && minutes <= 30;
   });
 
-  // Absent Personnel List (full objects)
-  const absentPersonnelList = records.filter(
-    (record) => !presentToday.includes(`${record.per_name} ${record.per_lname}`)
-  );
+  // Absent Personnel List (full objects) - Exclude remote/hybrid workers
+  const absentPersonnelList = records.filter((record) => {
+    const isPresent = presentToday.includes(
+      `${record.per_name} ${record.per_lname}`
+    );
+    const isRemoteOrHybrid =
+      record.work_mode === "Remote" || record.work_mode === "Hybrid";
+
+    // Don't show remote/hybrid workers as absent
+    return !isPresent && !isRemoteOrHybrid;
+  });
 
   // Geç kalanlar (Late Personnel) listesi
   const latePersonnelList = todayEntries.filter((entry) => {
@@ -2601,7 +2628,7 @@ const Entries = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr",
+                gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr",
                 gap: "16px",
                 padding: "20px",
                 backgroundColor: "#f9fafb",
@@ -2617,6 +2644,7 @@ const Entries = ({
               <div>Role</div>
               <div>Check-in</div>
               <div>Check-out</div>
+              <div>Work Mode</div>
               <div style={{ display: "flex", justifyContent: "center" }}>
                 Status
               </div>
@@ -2643,7 +2671,8 @@ const Entries = ({
                     key={i}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr",
+                      gridTemplateColumns:
+                        "1fr 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr",
                       gap: "16px",
                       padding: "20px",
                       borderBottom: "1px solid #f3f4f6",
@@ -2720,6 +2749,23 @@ const Entries = ({
 
                     {/* Check-out Time */}
                     <div style={{ color: "#6b7280" }}>{formattedCheckOut}</div>
+
+                    {/* Work Mode */}
+                    <div style={{ color: "#6b7280" }}>
+                      {entry.work_mode === "Remote" ? (
+                        <span style={{ color: "#3b82f6", fontWeight: "500" }}>
+                          🏠 Uzaktan
+                        </span>
+                      ) : entry.work_mode === "Hybrid" ? (
+                        <span style={{ color: "#8b5cf6", fontWeight: "500" }}>
+                          🔄 Hibrit
+                        </span>
+                      ) : entry.work_mode === "Office" ? (
+                        <span style={{ color: "#6b7280" }}>Office</span>
+                      ) : (
+                        <span style={{ color: "#6b7280" }}>Office</span>
+                      )}
+                    </div>
 
                     {/* Status */}
                     <div style={{ display: "flex", justifyContent: "center" }}>
