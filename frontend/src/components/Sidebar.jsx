@@ -1,4 +1,4 @@
-import { FaTachometerAlt, FaRegHeart, FaRegComments, FaFile, FaFileAlt } from "react-icons/fa";
+import { FaTachometerAlt, FaRegHeart, FaRegComments, FaFile, FaFileAlt, FaHome } from "react-icons/fa";
 import { PiTableLight } from "react-icons/pi";
 import "../App.css";
 import logo from "../../public/Logo1.png"
@@ -72,6 +72,17 @@ const Sidebar = ({ activePage, onChangePage, isOpen }) => (
         >
           <FaFileAlt style={{ marginRight: 16, fontSize: 22 }} />{" "}
           Reporting
+        </li>
+        <li
+          className={
+            activePage === "remote-work"
+              ? "active sidebar-item-selected"
+              : "sidebar-item"
+          }
+          onClick={() => onChangePage("remote-work")}
+        >
+          <FaHome style={{ marginRight: 16, fontSize: 22 }} />{" "}
+          Uzaktan Çalışma
         </li>
       </ul>
     </nav>

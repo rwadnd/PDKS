@@ -11,6 +11,7 @@ import LeaveRequests from "./components/LeaveRequests";
 import Profile from "./components/Profile";
 import Login from "./components/Login";
 import Reporting from "./components/Reporting";
+import RemoteWork from "./components/RemoteWork";
 import "./App.css";
 import axios from "axios";
 import FilterBar from "./components/FilterBar";
@@ -305,6 +306,7 @@ const App = () => {
             setLeaveRequests={setLeaveRequests}
           />
         )}
+        {activePage === "remote-work" && <RemoteWork />}
         {activePage === "profile" && <Profile currentUser={currentUser} />}
         {activePage === "reporting" && <Reporting />}
       </div>
