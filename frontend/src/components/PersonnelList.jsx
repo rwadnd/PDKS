@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
 import {
   FiPlus,
   FiUsers,
@@ -191,33 +193,35 @@ const PersonnelList = ({
       if (format === "csv") {
         exportPersonnelCsv(filteredPersonnel);
       } else if (format === "xlsx") {
-        const XLSX = window.XLSX;
-        if (XLSX) {
-          const aoa = makePersonnelAoa(filteredPersonnel);
-          const ws = XLSX.utils.aoa_to_sheet(aoa);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, "Personnel");
-          XLSX.writeFile(
-            wb,
-            `personnel_${new Date().toISOString().slice(0, 10)}.xlsx`
-          );
-        }
+        const aoa = makePersonnelAoa(filteredPersonnel);
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Personnel");
+        XLSX.writeFile(
+          wb,
+          `personnel_${new Date().toISOString().slice(0, 10)}.xlsx`
+        );
       } else if (format === "pdf") {
-        const { jsPDF } = window.jspdf;
-        if (jsPDF) {
-          const doc = new jsPDF();
-          const aoa = makePersonnelAoa(filteredPersonnel);
-
-          doc.autoTable({
-            head: [aoa[0]],
-            body: aoa.slice(1),
-            startY: 20,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [59, 130, 246] },
-          });
-
-          doc.save(`personnel_${new Date().toISOString().slice(0, 10)}.pdf`);
-        }
+        const doc = new jsPDF();
+        const aoa = makePersonnelAoa(filteredPersonnel);
+        // Fallback simple table without autotable to avoid plugin requirement
+        doc.setFontSize(12);
+        doc.text("Personnel Export", 14, 16);
+        doc.setFontSize(8);
+        let y = 24;
+        // Header
+        doc.text(aoa[0].join(" | "), 14, y);
+        y += 6;
+        // Rows
+        aoa.slice(1).forEach((row) => {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(row.join(" | "), 14, y);
+          y += 5;
+        });
+        doc.save(`personnel_${new Date().toISOString().slice(0, 10)}.pdf`);
       }
     };
 
