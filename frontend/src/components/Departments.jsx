@@ -1001,7 +1001,7 @@ const Departments = ({ searchTerm, filtersOpen }) => {
   return (
     <div
       style={{
-        padding: "24px",
+        padding: "0",
         backgroundColor: "#f8fafc",
         overflowY: "scroll",
       }}
@@ -1016,16 +1016,6 @@ const Departments = ({ searchTerm, filtersOpen }) => {
         }}
       >
         <div>
-          <h1
-            style={{
-              fontSize: "28px",
-              fontWeight: "700",
-              color: "#1e293b",
-              margin: "0 0 8px 0",
-            }}
-          >
-            Departments Overview
-          </h1>
           <p
             style={{
               fontSize: "16px",

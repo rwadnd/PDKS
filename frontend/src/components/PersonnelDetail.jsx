@@ -1114,7 +1114,7 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                     present: { bg: "#10b981", border: "#059669" },
                     absent: { bg: "#ef4444", border: "#dc2626" },
                     "no-data": { bg: "#f3f4f6", border: "#e5e7eb" },
-                    leave: { bg: "#fb923c", border: "#f97316" }, // NEW: orange
+                    leave: { bg: "rgb(255, 193, 7)", border: "rgb(255, 193, 7)" }, // NEW: orange
                   };
 
                   return (
@@ -1236,8 +1236,8 @@ const PersonnelDetail = ({ person, onBack, onUpdate }) => {
                 width: 12,
                 height: 12,
                 borderRadius: 2,
-                background: "#fb923c",
-                border: "1px solid #f97316",
+                background: "rgb(255, 193, 7)",
+                border: "1px solid rgb(255, 193, 7)",
               }}
             ></div>
             <span style={{ fontSize: 11, color: "#6b7280", fontWeight: "500" }}>
