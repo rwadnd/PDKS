@@ -545,7 +545,7 @@ const getStatusDotColor = (person, isAbsent = false) => {
   return "#c62116ff";
 };
 
-const PersonnelModal = ({ title, personnelList, onClose, isAbsent }) => {
+const PersonnelModal = ({ title, personnelList, onClose, isAbsent, exportToPDF,exportToCSV, exportToXLSX}) => {
   // Check if modal is for On Time or Late
   const showCheckInTime =
     title === "On Time Today" ||
@@ -1604,8 +1604,6 @@ const Entries = ({
     return () => clearInterval(intervalId);
   }, [displayedDateStr, todayStr]);
 
-  // Calculate stats for cards
-  const lastEntryRecord = records[0];
 
   // Calculate average check-in time
   const checkInTimes = records
@@ -1859,40 +1857,6 @@ const Entries = ({
     doc.save(`avg-checkin_${avgTimeframe}_${dateStr}.pdf`);
   }, [chartData, avgTimeframe]);
 
-  // Generic personnel list exports (used by cards)
-  const makePersonnelAoa = useCallback((list) => {
-    const headers = [
-      "Name",
-      "Department",
-      "Role",
-      "Status",
-      "Check-in",
-      "Check-out",
-    ];
-    const rows = (list || []).map((p) => {
-      const name = `${p.per_name || ""} ${p.per_lname || ""}`.trim();
-      const dept = p.per_department || "";
-      const role = p.per_role || "";
-      const checkIn =
-        p.pdks_checkInTime && p.pdks_checkInTime !== "00:00:00"
-          ? p.pdks_checkInTime.slice(0, 5)
-          : "-";
-      const checkOut =
-        p.pdks_checkOutTime && p.pdks_checkOutTime !== "00:00:00"
-          ? p.pdks_checkOutTime.slice(0, 5)
-          : "-";
-      let status = p.per_status || "-";
-      if (checkIn !== "-") {
-        const [h, m] = (p.pdks_checkInTime || "00:00:00")
-          .split(":")
-          .map(Number);
-        status = h > 8 || (h === 8 && m > 30) ? "Late" : "On Time";
-      }
-      return [name, dept, role, status, checkIn, checkOut];
-    });
-    return [headers, ...rows];
-  }, []);
-
   const [leaves, setLeaves] = useState([]);
 
   // fetch all leaves once
@@ -1921,28 +1885,6 @@ const Entries = ({
     });
     return idx;
   }, [leaves, displayedDateStr]);
-
-  const exportPersonnelCsv = useCallback(
-    (list, base) => {
-      const aoa = makePersonnelAoa(list);
-      const csv = aoa
-        .map((r) =>
-          r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
-        )
-        .join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `${base}_${dateStr}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    },
-    [makePersonnelAoa]
-  );
 
   // Filtered records
   // Hide Remote users always; show Hybrid only if they have a real check-in today
@@ -2217,13 +2159,6 @@ const Entries = ({
     return !isPresent && !isRemoteOrHybrid;
   });
 
-  // On time personnel
-  const onTimePersonnel = todayEntries
-    .filter((entry) => {
-      const [hours, minutes] = entry.pdks_checkInTime.split(":").map(Number);
-      return hours <= 8 && minutes <= 30;
-    })
-    .map((entry) => `${entry.per_name} ${entry.per_lname}`);
 
   // On Time Personnel List (full objects)
   const onTimePersonnelList = todayEntries.filter((entry) => {
@@ -3219,6 +3154,9 @@ const Entries = ({
           personnelList={personnelModalList}
           onClose={() => setShowPersonnelModal(false)}
           isAbsent={personnelModalTitle === "Absent Today"}
+          exportToPDF ={exportToPDF} 
+          exportToCSV = {exportToCSV}
+          exportToXLSX = {exportToXLSX}
         />
       )}
       {avgModalOpen && (
