@@ -151,6 +151,27 @@ INSERT INTO `leave_request` (`request_id`, `personnel_per_id`, `request_start_da
 -- --------------------------------------------------------
 
 --
+-- Tablo için tablo yapısı `remote_work_requests`
+--
+
+CREATE TABLE `remote_work_requests` (
+  `request_id` int(11) NOT NULL AUTO_INCREMENT,
+  `personnel_per_id` int(11) NOT NULL,
+  `request_date` date NOT NULL,
+  `work_mode` enum('Remote','Hybrid') NOT NULL,
+  `request_reason` text DEFAULT NULL,
+  `status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`request_id`),
+  KEY `personnel_per_id` (`personnel_per_id`),
+  KEY `approved_by` (`approved_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Tablo için tablo yapısı `pdks_entry`
 --
 
@@ -159,7 +180,8 @@ CREATE TABLE `pdks_entry` (
   `pdks_date` date DEFAULT NULL,
   `pdks_checkInTime` time DEFAULT NULL,
   `pdks_checkOutTime` time DEFAULT NULL,
-  `personnel_per_id` int(11) DEFAULT NULL
+  `personnel_per_id` int(11) DEFAULT NULL,
+  `location_type` enum('Office','Remote','Hybrid') DEFAULT 'Office'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -575,6 +597,7 @@ CREATE TABLE `personnel` (
   `per_department` enum('IT','QA','Finance') NOT NULL,
   `per_role` varchar(50) DEFAULT NULL,
   `per_status` enum('Active','Inactive','OnLeave','OnSickLeave') NOT NULL,
+  `work_mode` enum('Office','Remote','Hybrid') DEFAULT 'Office',
   `avatar_url` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -631,6 +654,14 @@ ALTER TABLE `leave_request`
   ADD KEY `personnel_per_id` (`personnel_per_id`);
 
 --
+-- Tablo için indeksler `remote_work_requests`
+--
+ALTER TABLE `remote_work_requests`
+  ADD PRIMARY KEY (`request_id`),
+  ADD KEY `personnel_per_id` (`personnel_per_id`),
+  ADD KEY `approved_by` (`approved_by`);
+
+--
 -- Tablo için indeksler `pdks_entry`
 --
 ALTER TABLE `pdks_entry`
@@ -666,6 +697,12 @@ ALTER TABLE `leave_request`
   MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
+-- Tablo için AUTO_INCREMENT değeri `remote_work_requests`
+--
+ALTER TABLE `remote_work_requests`
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=502;
+
+--
 -- Tablo için AUTO_INCREMENT değeri `pdks_entry`
 --
 ALTER TABLE `pdks_entry`
@@ -686,6 +723,13 @@ ALTER TABLE `personnel`
 --
 ALTER TABLE `leave_request`
   ADD CONSTRAINT `leave_request_ibfk_1` FOREIGN KEY (`personnel_per_id`) REFERENCES `personnel` (`per_id`) ON DELETE CASCADE;
+
+--
+-- Tablo kısıtlamaları `remote_work_requests`
+--
+ALTER TABLE `remote_work_requests`
+  ADD CONSTRAINT `remote_work_requests_ibfk_1` FOREIGN KEY (`personnel_per_id`) REFERENCES `personnel` (`per_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `remote_work_requests_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL;
 
 --
 -- Tablo kısıtlamaları `pdks_entry`
