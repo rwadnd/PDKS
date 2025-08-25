@@ -3175,8 +3175,7 @@ const Entries = ({
               }}
             >
               <h3 style={{ margin: 0, color: "#111827" }}>
-                {avgTimeframe === "monthly" ? "Monthly" : "Weekly"} Average
-                Check-in
+                Average Check-in
               </h3>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <div ref={exportRef} style={{ position: "relative" }}>
@@ -3320,7 +3319,7 @@ const Entries = ({
                     fontSize: 12,
                   }}
                 >
-                  Weekly
+                  Daily
                 </button>
                 <button
                   onClick={() => setAvgTimeframe("monthly")}
@@ -3334,7 +3333,7 @@ const Entries = ({
                     fontSize: 12,
                   }}
                 >
-                  Month
+                  Weekly
                 </button>
               </div>
               <ResponsiveContainer width="100%" height="100%">

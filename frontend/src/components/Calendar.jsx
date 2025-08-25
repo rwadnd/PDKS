@@ -581,14 +581,7 @@ const Calendar = () => {
                       borderRadius: "12px",
                       transition: "all 0.2s ease",
                     }}
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = "#f8fafc";
-                      e.target.style.transform = "translateY(-1px)";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = "transparent";
-                      e.target.style.transform = "translateY(0)";
-                    }}
+                    
                   >
                     <div
                       style={{

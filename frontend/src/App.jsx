@@ -165,6 +165,7 @@ const App = () => {
           hideSearch={
             activePage === "dashboard" ||
             activePage === "profile" ||
+            activePage === 'reporting' ||
             selectedPerson !== null
           }
           currentUser={currentUser}

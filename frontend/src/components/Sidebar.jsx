@@ -28,7 +28,7 @@ const Sidebar = ({ activePage, onChangePage, isOpen }) => (
           onClick={() => onChangePage("dashboard")}
         >
           <FaTachometerAlt style={{ marginRight: 16, fontSize: 22 }} />{" "}
-          Overview
+          Dashboard
         </li>
         <li
           className={
