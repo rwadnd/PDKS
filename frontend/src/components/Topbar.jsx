@@ -125,14 +125,14 @@ const Topbar = ({
           Dashboard
         </div>
 
-        {/* Center - Search + Filter toggle */}
+        {/* Center - Search + Filter */}
         {!hideSearch && (
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              marginLeft: 12,
+              gap: 75,
+              marginLeft: 20,
             }}
           >
             <div className="topbar__searchWrap">
@@ -146,6 +146,31 @@ const Topbar = ({
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange("")}
+                  style={{
+                    position: "absolute",
+                    right: "-40px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#9ca3af",
+                    fontSize: "14px",
+                    padding: "4px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             {showFilterButton && (
               <button
@@ -158,11 +183,11 @@ const Topbar = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: filtersOpen ? "#2563eb" : undefined,
-                  marginLeft: 7,
+                  color: filtersOpen ? "#2563eb" : "#ef4444",
                   background: "#f8fafc",
                   outline: "none",
                   boxShadow: "none",
+                  marginLeft: -8,
                 }}
                 onMouseDown={(e) => {
                   e.currentTarget.style.outline = "none";
@@ -187,6 +212,7 @@ const Topbar = ({
             className="notifBtn"
             onClick={() => setShowNotifications((s) => !s)}
             aria-label="Notifications"
+            style={{ marginLeft: 120 }}
           >
             <FaBell />
             {pendingCount > 0 && <span className="notifBtn__badge" />}
